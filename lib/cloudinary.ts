@@ -23,7 +23,7 @@ export async function uploadImage(
   const result = await cloudinary.uploader.upload(
     typeof file === "string" ? file : `data:${options?.mediaType || "image/jpeg"};base64,${file.toString("base64")}`,
     {
-      folder: options?.folder || "xilar/products",
+      folder: options?.folder || "miti-home/products",
       public_id: options?.publicId,
       transformation: options?.transformation,
       resource_type: "image",
@@ -96,7 +96,7 @@ export function getImageUrl(imagePath: string): string {
   }
 
   // Extract filename without extension for public_id
-  const publicId = `xilar/products/${imagePath.replace(/^\/?(clothes\/)?/, "").replace(/\.[^.]+$/, "")}`;
+  const publicId = `miti-home/products/${imagePath.replace(/^\/?(products\/)?/, "").replace(/\.[^.]+$/, "")}`;
   
   return `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto/${publicId}`;
 }

@@ -14,8 +14,8 @@ import { createUnsubscribeToken, verifyUnsubscribeToken } from "./marketing/unsu
 const validDraft: CampaignDraftInput = {
   name: "Cargo restock",
   subject: "New cargos just landed",
-  previewText: "Fresh XILAR pieces are live.",
-  headline: "CARGO RESTOCK",
+  previewText: "New Miti Home pieces have arrived.",
+  headline: "THE SILVER EDIT",
   body: "The new cargos are live.\n\nSizes are moving fast.",
   ctaLabel: "Shop now",
   ctaUrl: "/new",
@@ -101,15 +101,15 @@ test("campaign email template escapes admin text and includes unsubscribe link",
   const html = buildCampaignEmailHtml({
     draft: {
       ...validDraft,
-      headline: "<DROP>",
+      headline: "<EDIT>",
       body: "Hello <script>alert(1)</script>",
     },
     recipient: { userId: "u1", email: "customer@example.com", name: "<Customer>" },
     products: [],
-    appUrl: "https://xilar.in",
+    appUrl: "https://mitihome.ae",
   });
 
-  assert.match(html, /&lt;DROP&gt;/);
+  assert.match(html, /&lt;EDIT&gt;/);
   assert.match(html, /Hello &lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.match(html, /Hi &lt;Customer&gt;/);
   assert.match(html, /\/unsubscribe\/marketing\?token=/);
@@ -124,22 +124,24 @@ test("campaign email template uses email-safe width and product image constraint
     products: [
       {
         id: "p1",
-        slug: "seoul-edge-polo",
-        name: "Seoul Edge Polo",
-        image: "https://xilar.in/product.jpg",
+        slug: "moai-tissue-box-silver",
+        name: "Moai Tissue Box",
+        image: "https://mitihome.ae/product.jpg",
         sellingPrice: "1299",
         mrp: "1599",
       },
     ],
-    appUrl: "https://xilar.in",
+    appUrl: "https://mitihome.ae",
   });
 
-  assert.match(html, /width="640"/);
-  assert.match(html, /padding:34px/);
+  assert.match(html, /width="600"/);
+  assert.match(html, /padding:36px/);
   assert.match(html, /width="240"/);
-  assert.match(html, /height="300"/);
+  assert.match(html, /height="240"/);
   assert.doesNotMatch(html, /display:grid/);
-  assert.match(html, /\/logo\.jpeg/);
+  assert.match(html, /\/brand\/miti-home-logo\.png/);
+  assert.match(html, /AED 1,299/);
+  assert.doesNotMatch(html, /XILAR|Rs\.|₹/);
 });
 
 test("campaign email template links featured products by product slug", () => {
@@ -150,18 +152,18 @@ test("campaign email template links featured products by product slug", () => {
     products: [
       {
         id: "b72305dc-5fc9-453b-b4dc-830d628c4fd8",
-        slug: "miti-dualform",
-        name: "XILAR Dualform",
-        image: "https://xilar.in/product.jpg",
+        slug: "sculpted-hand-grip-vase",
+        name: "Sculpted Vase",
+        image: "https://mitihome.ae/product.jpg",
         sellingPrice: "799",
         mrp: "999",
       },
     ],
-    appUrl: "https://xilar.in",
+    appUrl: "https://mitihome.ae",
   });
 
-  assert.match(html, /https:\/\/xilar\.in\/product\/miti-dualform/);
-  assert.doesNotMatch(html, /https:\/\/xilar\.in\/product\/b72305dc-5fc9-453b-b4dc-830d628c4fd8/);
+  assert.match(html, /https:\/\/mitihome\.ae\/product\/sculpted-hand-grip-vase/);
+  assert.doesNotMatch(html, /https:\/\/mitihome\.ae\/product\/b72305dc-5fc9-453b-b4dc-830d628c4fd8/);
 });
 
 test("campaign email template renders up to twelve selected products", () => {
@@ -173,15 +175,15 @@ test("campaign email template renders up to twelve selected products", () => {
       id: `p${index + 1}`,
       slug: `product-${index + 1}`,
       name: `Product ${index + 1}`,
-      image: "https://xilar.in/product.jpg",
+      image: "https://mitihome.ae/product.jpg",
       sellingPrice: "799",
       mrp: "999",
     })),
-    appUrl: "https://xilar.in",
+    appUrl: "https://mitihome.ae",
   });
 
-  assert.match(html, /https:\/\/xilar\.in\/product\/product-12/);
-  assert.doesNotMatch(html, /https:\/\/xilar\.in\/product\/product-13/);
+  assert.match(html, /https:\/\/mitihome\.ae\/product\/product-12/);
+  assert.doesNotMatch(html, /https:\/\/mitihome\.ae\/product\/product-13/);
 });
 
 test("campaign email template normalizes Cloudinary product images to a consistent crop", () => {
@@ -192,14 +194,14 @@ test("campaign email template normalizes Cloudinary product images to a consiste
     products: [
       {
         id: "p1",
-        slug: "seoul-edge-polo",
-        name: "Seoul Edge Polo",
+        slug: "moai-tissue-box-silver",
+        name: "Moai Tissue Box",
         image: "https://res.cloudinary.com/demo/image/upload/v123/product.jpg",
         sellingPrice: "1299",
         mrp: "1599",
       },
     ],
-    appUrl: "https://xilar.in",
+    appUrl: "https://mitihome.ae",
   });
 
   assert.match(html, /f_auto,q_auto,c_fill,g_auto,w_480,h_600/);

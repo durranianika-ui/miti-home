@@ -1,50 +1,55 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { filterCatalogProducts } from "./catalog-filter.ts";
-import type { CatalogProduct } from "./product-catalog.ts";
+import { filterCatalogProducts, isOnSale, type FilterableProduct } from "./catalog-filter.ts";
 
-function product(overrides: Partial<CatalogProduct>): CatalogProduct {
+type TestProduct = FilterableProduct & { id: string };
+
+function product(overrides: Partial<TestProduct>): TestProduct {
   return {
     id: "product-id",
     name: "Product",
-    slug: "product",
-    sellingPrice: "999.00",
-    mrp: "1299.00",
-    maxBargainDiscount: "0",
-    category: "tshirt",
-    gender: "unisex",
+    sellingPrice: "199.00",
+    mrp: "199.00",
+    category: "home-decor",
     isNew: false,
     isFeatured: false,
-    isPremium: false,
     stock: 10,
-    images: [],
-    sizes: ["S", "M"],
-    colors: [],
-    availableSizes: ["S", "M"],
     ...overrides,
   };
 }
 
-test("filterCatalogProducts returns only premium products when requested", () => {
+test("filterCatalogProducts returns best sellers and new arrivals when requested", () => {
   const products = [
-    product({ id: "regular", isPremium: false }),
-    product({ id: "premium", isPremium: true }),
+    product({ id: "regular" }),
+    product({ id: "featured", isFeatured: true }),
+    product({ id: "new", isNew: true }),
   ];
 
-  assert.deepEqual(
-    filterCatalogProducts(products, { isPremium: true }).map((item) => item.id),
-    ["premium"],
-  );
+  assert.deepEqual(filterCatalogProducts(products, { isFeatured: true }).map((item) => item.id), ["featured"]);
+  assert.deepEqual(filterCatalogProducts(products, { isNew: true }).map((item) => item.id), ["new"]);
 });
 
-test("filterCatalogProducts narrows products by search query", () => {
+test("filterCatalogProducts narrows by category, sale price and search query", () => {
   const products = [
-    product({ id: "polo", name: "Oversized Polo Tee" }),
-    product({ id: "cargo", name: "Utility Cargo Pants" }),
+    product({ id: "lamp", name: "Smoked Glass Table Lamp", category: "lighting" }),
+    product({ id: "vase", name: "Knotted Stripe Vase", mrp: "249.00", sellingPrice: "199.00" }),
+  ];
+
+  assert.deepEqual(filterCatalogProducts(products, { category: "lighting" }).map((item) => item.id), ["lamp"]);
+  assert.deepEqual(filterCatalogProducts(products, { onSale: true }).map((item) => item.id), ["vase"]);
+  assert.deepEqual(filterCatalogProducts(products, { searchQuery: "VASE" }).map((item) => item.id), ["vase"]);
+  assert.equal(isOnSale(products[0]), false);
+});
+
+test("filterCatalogProducts can surface in-stock pieces first and apply a limit", () => {
+  const products = [
+    product({ id: "sold-out", stock: 0, isFeatured: true }),
+    product({ id: "a", isFeatured: true }),
+    product({ id: "b", isFeatured: true }),
   ];
 
   assert.deepEqual(
-    filterCatalogProducts(products, { searchQuery: "polo" }).map((item) => item.id),
-    ["polo"],
+    filterCatalogProducts(products, { isFeatured: true, inStockFirst: true, limit: 2 }).map((item) => item.id),
+    ["a", "b"],
   );
 });

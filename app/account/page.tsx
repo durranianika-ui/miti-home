@@ -1,7 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Package, Heart, LogOut, Shield, Loader2, Wallet } from "lucide-react"
+import { Package, Heart, LogOut, Shield, Loader2 } from "lucide-react"
+import { AddressBook } from "@/components/features/address-book"
 import Link from "next/link"
 import { useState, Suspense } from "react"
 import { useSession, signIn, signUp, signOut } from "@/lib/auth-client"
@@ -11,7 +12,11 @@ function AccountContent() {
     const { data: session, isPending } = useSession()
     const searchParams = useSearchParams()
     const router = useRouter()
-    const redirect = searchParams.get("redirect") || "/"
+    // Only same-site paths are allowed as post-login destinations (no open redirects).
+    const requestedRedirect = searchParams.get("redirect") || "/"
+    const redirect = requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//") && !requestedRedirect.startsWith("/\\")
+        ? requestedRedirect
+        : "/"
     
     const [showLogin, setShowLogin] = useState(true)
     const [isLoading, setIsLoading] = useState(false)
@@ -101,7 +106,7 @@ function AccountContent() {
                 <div className="w-full max-w-md space-y-8">
                     <div className="text-center space-y-2">
                         <h1 className="font-display text-3xl md:text-4xl">
-                            {showLogin ? "Welcome back" : "Join XILAR"}
+                            {showLogin ? "Welcome back" : "Create your account"}
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {showLogin ? "Sign in to your account" : "Create an account to get started"}
@@ -232,7 +237,7 @@ function AccountContent() {
     return (
         <div className="min-h-screen">
             <div className="px-6 md:px-12 py-14 md:py-20 border-b border-border/60">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium mb-3">Account</p>
+                <p className="mb-3 font-heading text-[10px] font-medium uppercase tracking-[0.3em] text-brand-strong">Your account</p>
                 <h1 className="font-display text-4xl md:text-6xl">
                     My account
                 </h1>
@@ -248,7 +253,7 @@ function AccountContent() {
                             <Shield className="h-5 w-5 text-brand" />
                             <div>
                                 <h3 className="font-medium text-sm">Admin dashboard</h3>
-                                <p className="text-xs text-muted-foreground mt-0.5">Manage products, orders, and coupons</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Manage products, orders, collections and coupons</p>
                             </div>
                         </Link>
                     )}
@@ -257,7 +262,7 @@ function AccountContent() {
                         <Package className="h-5 w-5 text-muted-foreground" />
                         <div>
                             <h3 className="font-medium text-sm">My orders</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">Track, return, or buy things again</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Track deliveries and view past orders</p>
                         </div>
                     </Link>
 
@@ -265,13 +270,8 @@ function AccountContent() {
                         <Heart className="h-5 w-5 text-muted-foreground" />
                         <div>
                             <h3 className="font-medium text-sm">Wishlist</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">Your saved items</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Pieces you&apos;ve saved for later</p>
                         </div>
-                    </Link>
-
-                    <Link href="/account/wallet" className="flex items-center gap-4 p-5 border border-border/60 hover:border-foreground/20 transition-all duration-300">
-                        <Wallet className="h-5 w-5 text-muted-foreground" />
-                        <div><h3 className="font-medium text-sm">Wallet</h3><p className="text-xs text-muted-foreground mt-0.5">Add funds, refunds, and XILAR-only spending</p></div>
                     </Link>
 
                     <button
@@ -285,6 +285,8 @@ function AccountContent() {
                         </div>
                     </button>
                 </div>
+
+                <AddressBook />
 
                 {/* Account Info */}
                 <div className="mt-10 p-5 border border-border/60">
@@ -300,7 +302,7 @@ function AccountContent() {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Member since</span>
-                            <span className="tabular-nums">{new Date(session.user.createdAt).toLocaleDateString()}</span>
+                            <span className="tabular-nums">{new Date(session.user.createdAt).toLocaleDateString("en-AE", { day: "numeric", month: "long", year: "numeric" })}</span>
                         </div>
                     </div>
                 </div>

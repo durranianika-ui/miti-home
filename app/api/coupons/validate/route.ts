@@ -16,13 +16,23 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession();
     const userId = session?.user?.id;
 
-    const result = await validateCoupon(code, orderTotal, userId);
+    const amount = Number(orderTotal);
+    if (typeof code !== "string" || !Number.isFinite(amount) || amount < 0) {
+      return NextResponse.json({ valid: false, error: "Invalid request" }, { status: 400 });
+    }
 
-    return NextResponse.json(result);
+    const result = await validateCoupon(code.trim().slice(0, 40), amount, userId);
+
+    // Never echo the coupon row (limits, owner, usage) back to the browser.
+    return NextResponse.json(
+      result.valid
+        ? { valid: true, code: result.coupon!.code, discount: result.discount }
+        : { valid: false, error: result.error },
+    );
   } catch (error) {
     console.error("Coupon validation error:", error);
     return NextResponse.json(
-      { valid: false, error: "Failed to validate coupon" },
+      { valid: false, error: "We couldn’t check that code. Please try again." },
       { status: 500 }
     );
   }

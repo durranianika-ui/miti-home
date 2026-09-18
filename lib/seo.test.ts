@@ -2,14 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  CATEGORY_SEO,
   buildAbsoluteUrl,
   buildProductPath,
   buildProductUrl,
-  getCategorySeoBySlug,
+  categoryFaq,
+  DEFAULT_SITE_URL,
   isProductUuid,
   normalizeSiteUrl,
   shouldNoindexCatalogQuery,
+  SITE_NAME,
 } from "./seo.ts";
 import { buildGoogleMerchantFeed } from "./seo-merchant-feed.ts";
 import {
@@ -19,106 +20,109 @@ import {
   webSiteJsonLd,
 } from "./structured-data.ts";
 
+const BASE = "https://mitihome.ae";
+
 test("SEO URL helpers normalize base URLs and product slugs", () => {
-  assert.equal(normalizeSiteUrl("https://xilar.in/"), "https://xilar.in");
-  assert.equal(buildAbsoluteUrl("/shop/men", "https://xilar.in/"), "https://xilar.in/shop/men");
-  assert.equal(buildProductPath("seoul-black-tee"), "/product/seoul-black-tee");
-  assert.equal(buildProductUrl("seoul-black-tee", "https://xilar.in/"), "https://xilar.in/product/seoul-black-tee");
+  assert.equal(SITE_NAME, "Miti Home");
+  assert.equal(DEFAULT_SITE_URL, BASE);
+  assert.equal(normalizeSiteUrl(`${BASE}/`), BASE);
+  assert.equal(buildAbsoluteUrl("/shop/lighting", `${BASE}/`), `${BASE}/shop/lighting`);
+  assert.equal(buildProductPath("moai-tissue-box-silver"), "/product/moai-tissue-box-silver");
+  assert.equal(buildProductUrl("moai-tissue-box-silver", `${BASE}/`), `${BASE}/product/moai-tissue-box-silver`);
 });
 
 test("SEO URL helpers identify UUID product URLs separately from slugs", () => {
   assert.equal(isProductUuid("3f0f2a6a-1c8a-4b38-a6da-2450a03f23bb"), true);
-  assert.equal(isProductUuid("seoul-black-tee"), false);
+  assert.equal(isProductUuid("moai-tissue-box-silver"), false);
 });
 
-test("category SEO config covers every public category slug", () => {
-  const slugs = CATEGORY_SEO.map((item) => item.slug);
-
-  assert.deepEqual(slugs, [
-    "tshirts",
-    "shirts",
-    "cargos",
-    "joggers",
-    "jeans",
-    "hoodies",
-    "jackets",
-    "shorts",
-    "accessories",
-  ]);
-  assert.equal(getCategorySeoBySlug("cargos")?.category, "cargo");
-  assert.equal(getCategorySeoBySlug("unknown"), null);
-});
-
-test("catalog query duplicate policy noindexes search and filter variants only", () => {
+test("catalog query duplicate policy noindexes search, filter and sort variants only", () => {
   assert.equal(shouldNoindexCatalogQuery(new URLSearchParams()), false);
-  assert.equal(shouldNoindexCatalogQuery(new URLSearchParams("search=tee")), true);
-  assert.equal(shouldNoindexCatalogQuery(new URLSearchParams("size=M")), true);
+  assert.equal(shouldNoindexCatalogQuery(new URLSearchParams("search=vase")), true);
+  assert.equal(shouldNoindexCatalogQuery(new URLSearchParams("color=Silver")), true);
+  assert.equal(shouldNoindexCatalogQuery(new URLSearchParams("sort=price-asc")), true);
   assert.equal(shouldNoindexCatalogQuery(new URLSearchParams("utm_source=instagram")), false);
 });
 
-test("structured data uses real organization, search, product, and collection URLs", () => {
-  const baseUrl = "https://xilar.in";
-  const organization = organizationJsonLd(baseUrl);
-  const website = webSiteJsonLd(baseUrl);
-  const product = productJsonLd(baseUrl, {
+test("category FAQ answers UAE delivery, VAT and COD questions", () => {
+  const faq = categoryFaq("Lighting");
+  assert.equal(faq.length, 3);
+  assert.match(faq[0].question, /lighting/);
+  assert.match(faq[1].answer, /AED/);
+  assert.match(faq[1].answer, /VAT/);
+});
+
+test("structured data uses Miti Home organization, search, product and collection URLs in AED", () => {
+  const organization = organizationJsonLd(BASE);
+  const website = webSiteJsonLd(BASE);
+  const product = productJsonLd(BASE, {
     id: "3f0f2a6a-1c8a-4b38-a6da-2450a03f23bb",
-    slug: "seoul-black-tee",
-    name: "Seoul Black Tee",
-    description: "Oversized black tee in heavyweight cotton.",
-    images: ["/clothes/seoul.jpg"],
-    sellingPrice: "899",
-    mrp: "1299",
+    slug: "moai-tissue-box-silver",
+    sku: null,
+    name: "Moai Tissue Box",
+    description: "Silver-plated ceramic tissue box.",
+    images: ["/products/moai-tissue-box-silver/1.webp"],
+    sellingPrice: "239",
+    mrp: "239",
     stock: 4,
-    category: "tshirt",
-    sizes: ["M", "L"],
-    colors: [{ name: "Black", hex: "#111111" }],
-    updatedAt: new Date("2026-06-01T00:00:00.000Z"),
+    category: "home-decor",
+    categoryName: "Home Décor",
+    material: "Silver-plated ceramic",
+    sizes: ["Standard"],
+    colors: [],
+    updatedAt: new Date("2026-09-18T00:00:00.000Z"),
   });
-  const collection = collectionJsonLd(baseUrl, {
-    name: "T-Shirts - XILAR",
-    description: "Oversized tees and premium basics.",
-    url: "/shop/tshirts",
-    products: [
-      {
-        name: "Seoul Black Tee",
-        slug: "seoul-black-tee",
-        image: "/clothes/seoul.jpg",
-        sellingPrice: "899",
-      },
-    ],
+  const collection = collectionJsonLd(BASE, {
+    name: "The Silver Edit",
+    description: "Mirror-finish pieces.",
+    url: "/collections/the-silver-edit",
+    products: [{ name: "Moai Tissue Box", slug: "moai-tissue-box-silver", image: "/products/moai-tissue-box-silver/1.webp", sellingPrice: "239" }],
   });
 
   assert.equal(organization["@type"], "OnlineStore");
-  assert.equal(organization.address.addressLocality, "Lucknow");
-  assert.equal(website.potentialAction.target.urlTemplate, "https://xilar.in/shop?search={search_term_string}");
-  assert.equal(product.offers.url, "https://xilar.in/product/seoul-black-tee");
-  assert.equal(product.sku, "3f0f2a6a-1c8a-4b38-a6da-2450a03f23bb");
-  assert.equal(product.offers.hasMerchantReturnPolicy["@type"], "MerchantReturnPolicy");
-  assert.equal(collection.mainEntity["@type"], "ItemList");
-  assert.equal(collection.mainEntity.itemListElement[0].url, "https://xilar.in/product/seoul-black-tee");
+  assert.equal(organization.name, "Miti Home");
+  assert.equal(organization.address.addressLocality, "Dubai");
+  assert.equal(organization.address.addressCountry, "AE");
+  assert.equal(website.potentialAction.target.urlTemplate, `${BASE}/shop?search={search_term_string}`);
+  assert.equal(product.offers.priceCurrency, "AED");
+  assert.equal(product.offers.url, `${BASE}/product/moai-tissue-box-silver`);
+  assert.equal(product.sku, "moai-tissue-box-silver");
+  assert.equal(product.material, "Silver-plated ceramic");
+  assert.equal("size" in product, false, "the Standard option is not exposed as a size");
+  assert.equal(product.offers.hasMerchantReturnPolicy.applicableCountry, "AE");
+  assert.equal(product.offers.priceValidUntil, "2027-09-18");
+  assert.equal(collection.mainEntity.itemListElement[0].url, `${BASE}/product/moai-tissue-box-silver`);
+  assert.equal(collection.mainEntity.itemListElement[0].offers.priceCurrency, "AED");
 });
 
-test("merchant feed serializes active products with slug links and no invented review data", () => {
+test("merchant feed serializes active products with slug links, AED prices and no invented review data", () => {
   const feed = buildGoogleMerchantFeed({
-    baseUrl: "https://xilar.in",
+    baseUrl: BASE,
+    updatedAt: new Date("2026-09-18T00:00:00.000Z"),
     products: [
       {
         id: "3f0f2a6a-1c8a-4b38-a6da-2450a03f23bb",
-        slug: "seoul-black-tee",
-        name: "Seoul Black Tee",
-        description: "Oversized black tee in heavyweight cotton.",
-        images: ["/clothes/seoul.jpg"],
-        sellingPrice: "899",
-        mrp: "1299",
+        slug: "glass-dome-propagation-vase",
+        sku: "MH-VASE-01",
+        name: "Glass Dome Propagation Vase",
+        description: "Ribbed vessel under a bell dome.",
+        images: ["/products/glass-dome-propagation-vase/1.webp", "/products/glass-dome-propagation-vase/2.webp"],
+        sellingPrice: "99",
+        mrp: "129",
         stock: 4,
-        category: "tshirt",
-        gender: "unisex",
+        category: "home-decor",
+        categoryName: "Home Décor",
+        material: "Glass",
       },
     ],
   });
 
-  assert.match(feed, /<g:id>3f0f2a6a-1c8a-4b38-a6da-2450a03f23bb<\/g:id>/);
-  assert.match(feed, /<link>https:\/\/xilar.in\/product\/seoul-black-tee<\/link>/);
-  assert.match(feed, /<g:availability>in_stock<\/g:availability>/);
-  assert.doesNotMatch(feed, /review|rating/i);
+  assert.match(feed, /<g:id>MH-VASE-01<\/g:id>/);
+  assert.match(feed, /<link>https:\/\/mitihome\.ae\/product\/glass-dome-propagation-vase<\/link>/);
+  assert.match(feed, /<g:price>129\.00 AED<\/g:price>/);
+  assert.match(feed, /<g:sale_price>99\.00 AED<\/g:sale_price>/);
+  assert.match(feed, /<g:additional_image_link>/);
+  assert.match(feed, /<g:country>AE<\/g:country>/);
+  assert.match(feed, /Home &amp;amp; Garden|Home &amp; Garden/);
+  assert.doesNotMatch(feed, /review|rating|INR|Apparel/i);
 });

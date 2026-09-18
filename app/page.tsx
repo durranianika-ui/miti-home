@@ -3,29 +3,41 @@ import nextDynamic from "next/dynamic";
 import { Suspense } from "react";
 import { Hero } from "@/components/features/hero";
 import { ComboSection } from "@/components/features/combo-section";
-import { Dec2024GalleryBand } from "@/components/features/dec2024-gallery-band";
-import { ProductGrid } from "@/components/features/product-grid";
+import { AngledGalleryBand } from "@/components/features/angled-gallery-band";
+import { ProductGrid, ProductGridSkeleton } from "@/components/features/product-grid";
 import { RealReviews } from "@/components/features/real-reviews";
+import { Newsletter } from "@/components/features/newsletter";
+import { BrandStory, CategoryTiles, EditorialStory, LifestyleBanner } from "@/components/features/home-sections";
 import { DirectionalMarquee } from "@/components/effects/directional-marquee";
 import { getActiveCombosWithProducts } from "@/lib/combos";
-import { getCatalogProducts } from "@/lib/product-catalog";
+import { getCatalogProducts, getCollectionCatalogProducts } from "@/lib/product-catalog";
+import { filterCatalogProducts } from "@/lib/catalog-filter";
+import { getCollectionBySlug, getNavigationCategories } from "@/lib/taxonomy";
+import { buildCategoryPath, buildCollectionPath } from "@/lib/public-cache";
+import {
+  EDITORIAL_STORY,
+  FEATURED_COLLECTION_SLUG,
+  LIFESTYLE_BANNER,
+  SHOP_THE_SPACE,
+} from "@/lib/merchandising";
+import { BRAND } from "@/lib/brand";
 import {
   JsonLd,
   organizationJsonLd,
   webSiteJsonLd,
 } from "@/components/seo/structured-data";
-import { normalizeSiteUrl } from "@/lib/seo";
+import { normalizeSiteUrl, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
 
-const ShopTheReels = nextDynamic(() =>
-  import("@/components/features/shop-the-reels").then((mod) => mod.ShopTheReels),
+const ShopTheSpace = nextDynamic(() =>
+  import("@/components/features/shop-the-space").then((mod) => mod.ShopTheSpace),
   {
     loading: () => (
-      <section className="min-h-[560px] border-t border-border/60 bg-background px-6 py-16 md:min-h-[650px] md:px-12 md:py-24">
+      <section className="min-h-[560px] border-t border-border/60 bg-background px-6 py-16 md:min-h-[650px] md:px-12 md:py-24" aria-hidden="true">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto h-8 w-64 animate-pulse bg-muted" />
           <div className="mt-10 flex gap-4 overflow-hidden">
             {[0, 1, 2].map((item) => (
-              <div key={item} className="aspect-[9/16] w-[245px] flex-none animate-pulse bg-muted md:w-[260px]" />
+              <div key={item} className="aspect-[3/4] w-[280px] flex-none animate-pulse bg-muted" />
             ))}
           </div>
         </div>
@@ -35,97 +47,97 @@ const ShopTheReels = nextDynamic(() =>
 );
 
 export const metadata: Metadata = {
-  title: "Home | Premium Streetwear for Gen-Z",
-  description:
-    "Shop next-gen streetwear essentials, premium basics, oversized tees, cargos, and bold drops from XILAR. Free shipping above ₹999.",
+  title: { absolute: SITE_TITLE },
+  description: SITE_DESCRIPTION,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "XILAR | The Future Wear — Premium Streetwear India",
-    description:
-      "Shop next-gen streetwear essentials, premium basics, oversized tees, cargos, and bold drops from XILAR. Free shipping above ₹999.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: "/",
   },
 };
 
-function HomeSectionsFallback() {
-  return (
-    <div aria-hidden="true">
-      <section className="bg-background px-6 py-16 md:px-12 md:py-24">
-        <div className="flex flex-col items-center mb-10 md:mb-14">
-          <div className="h-12 w-56 animate-pulse bg-muted md:h-16 md:w-72" />
-          <div className="mt-8 flex items-center gap-8">
-            <div className="h-4 w-20 animate-pulse bg-muted" />
-            <div className="h-4 w-20 animate-pulse bg-muted" />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
-          {[0, 1, 2, 3].map((item) => (
-            <div key={item} className="space-y-3">
-              <div className="aspect-[3/4] animate-pulse bg-muted" />
-              <div className="space-y-2 px-1">
-                <div className="h-3 w-3/4 animate-pulse bg-muted" />
-                <div className="h-3 w-1/2 animate-pulse bg-muted" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="bg-background px-6 py-16 md:px-12 md:py-24">
-        <div className="mb-8 flex flex-col items-center md:mb-12">
-          <div className="h-3 w-28 animate-pulse bg-muted" />
-          <div className="mt-4 h-12 w-44 animate-pulse bg-muted md:h-16 md:w-56" />
-        </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {[0, 1].map((item) => (
-            <div key={item} className="border border-border/60 p-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="aspect-[3/4] animate-pulse bg-muted" />
-                <div className="aspect-[3/4] animate-pulse bg-muted" />
-              </div>
-              <div className="mt-4 space-y-2">
-                <div className="h-3 w-2/3 animate-pulse bg-muted" />
-                <div className="h-3 w-1/2 animate-pulse bg-muted" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
 async function HomeMerchandisingSections() {
-  const [{ products }, combos] = await Promise.all([
+  const [{ products }, categories, combos, featuredCollection, featuredProducts] = await Promise.all([
     getCatalogProducts(),
+    getNavigationCategories(),
     getActiveCombosWithProducts(4),
+    getCollectionBySlug(FEATURED_COLLECTION_SLUG),
+    getCollectionCatalogProducts(FEATURED_COLLECTION_SLUG).then((result) => result.products),
   ]);
-  const galleryBandItems = products.flatMap((product) =>
-    product.images.map((image) => ({
-      src: image,
-      alt: product.name,
-    })),
+
+  const bestSellers = filterCatalogProducts(products, { isFeatured: true, inStockFirst: true, limit: 8 });
+  const newArrivals = filterCatalogProducts(products, { isNew: true, inStockFirst: true, limit: 8 });
+  const bySlug = new Map(products.map((product) => [product.slug, product]));
+  const spaces = SHOP_THE_SPACE.map((space) => ({
+    id: space.id,
+    title: space.title,
+    image: space.image,
+    video: space.video,
+    products: space.productSlugs
+      .map((slug) => bySlug.get(slug))
+      .filter((product): product is NonNullable<typeof product> => Boolean(product))
+      .map((product) => ({
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        sellingPrice: product.sellingPrice,
+        mrp: product.mrp,
+        images: product.images,
+      })),
+  }));
+  const bandItems = products.flatMap((product) =>
+    product.images.slice(0, 1).map((image) => ({ src: image, alt: product.name })),
   );
 
   return (
     <>
-      <ProductGrid title="Best Sellers" isFeatured initialProducts={products} />
-      <ComboSection limit={4} interactive={false} mobileLimit={3} initialCombos={combos} />
-      <ProductGrid title="New Arrivals" isNew viewAllHref="/new" viewAllLabel="Shop all new arrivals" initialProducts={products} />
-      <ProductGrid
-        title="Premium"
-        isPremium
-        viewAllHref="/collections/premium"
-        viewAllLabel="Explore premium collection"
-        initialProducts={products}
-        hideWhenEmpty
+      <CategoryTiles
+        categories={categories.map((category) => ({
+          href: buildCategoryPath(category.slug),
+          name: category.name,
+          description: category.description,
+          image: category.coverImage,
+          count: category.productCount,
+        }))}
       />
+      <ProductGrid
+        eyebrow="Most loved"
+        title="Best Sellers"
+        products={bestSellers}
+        viewAllHref="/best-sellers"
+        viewAllLabel="Shop best sellers"
+      />
+      <EditorialStory {...EDITORIAL_STORY} />
+      <ProductGrid
+        eyebrow="Just landed"
+        title="New Arrivals"
+        products={newArrivals}
+        layout="scroll"
+        viewAllHref="/new"
+        viewAllLabel="Shop all new arrivals"
+      />
+      <LifestyleBanner {...LIFESTYLE_BANNER} />
+      <ShopTheSpace spaces={spaces} />
+      {featuredCollection && (
+        <ProductGrid
+          eyebrow={featuredCollection.eyebrow ?? "Collection"}
+          title={featuredCollection.name}
+          description={featuredCollection.description ?? undefined}
+          products={featuredProducts}
+          viewAllHref={buildCollectionPath(featuredCollection.slug)}
+          viewAllLabel={`Explore ${featuredCollection.name}`}
+          className="border-t border-border/60"
+        />
+      )}
+      <ComboSection limit={4} interactive={false} mobileLimit={3} initialCombos={combos} />
       <DirectionalMarquee />
-      <ShopTheReels />
-      <ProductGrid title="Accessories" fixedCategory="accessory" viewAllHref="/shop/accessories" initialProducts={products} />
-      <Dec2024GalleryBand items={galleryBandItems} />
+      <BrandStory title={BRAND.promise} body={BRAND.description} pillars={BRAND.pillars} />
+      <AngledGalleryBand items={bandItems} />
       <RealReviews />
+      <Newsletter />
     </>
   );
 }
@@ -142,7 +154,7 @@ export default function Home() {
         }}
       />
       <Hero />
-      <Suspense fallback={<HomeSectionsFallback />}>
+      <Suspense fallback={<ProductGridSkeleton />}>
         <HomeMerchandisingSections />
       </Suspense>
     </div>

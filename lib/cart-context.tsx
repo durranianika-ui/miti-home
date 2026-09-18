@@ -11,6 +11,10 @@ export interface CartItem {
     image: string
     size: string
     color?: string
+    /** Display labels for the options, e.g. "Length" / "Finish". */
+    sizeLabel?: string
+    colorLabel?: string
+    slug?: string
     comboId?: string
     comboGroupId?: string
     comboName?: string
@@ -20,7 +24,7 @@ export interface CartItem {
 
 interface CartContextType {
     items: CartItem[]
-    addItem: (item: Omit<CartItem, "quantity">) => void
+    addItem: (item: Omit<CartItem, "quantity">, quantity?: number, options?: { openDrawer?: boolean }) => void
     addCombo: (combo: {
         comboId: string
         comboName: string
@@ -41,6 +45,9 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
+
+/** Per-line cap; the server enforces real stock at checkout. */
+const MAX_LINE_QUANTITY = 10
 
 function readStoredCart() {
     const stored = localStorage.getItem("miti-cart")
@@ -74,7 +81,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
     }, [items, isHydrated])
 
-    const addItem = (newItem: Omit<CartItem, "quantity">) => {
+    const addItem = (newItem: Omit<CartItem, "quantity">, quantity = 1, options: { openDrawer?: boolean } = {}) => {
+        const amount = Math.max(1, Math.min(Math.floor(quantity), MAX_LINE_QUANTITY))
         setItems((prev) => {
             const existing = prev.find((i) =>
                 !i.comboGroupId &&
@@ -88,13 +96,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     i.id === newItem.id &&
                     i.size === newItem.size &&
                     i.color === newItem.color
-                        ? { ...i, quantity: i.quantity + 1 }
+                        ? { ...i, quantity: Math.min(i.quantity + amount, MAX_LINE_QUANTITY) }
                         : i
                 )
             }
-            return [...prev, { ...newItem, quantity: 1 }]
+            return [...prev, { ...newItem, quantity: amount }]
         })
-        setIsOpen(true)
+        if (options.openDrawer !== false) setIsOpen(true)
     }
 
     const addCombo: CartContextType["addCombo"] = (combo) => {
@@ -138,7 +146,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             return
         }
         // Cap at 10 units per variant to prevent abuse (server enforces actual stock limits)
-        const cappedQuantity = Math.min(quantity, 10)
+        const cappedQuantity = Math.min(quantity, MAX_LINE_QUANTITY)
         setItems((prev) => {
             const target = prev.find((i) =>
                 i.id === id &&

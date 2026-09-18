@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { combos, productRecommendations, products, productVariants } from "@/lib/db/schema";
+import { categories, collectionProducts, collections, combos, productRecommendations, products, productVariants } from "@/lib/db/schema";
 import { mergeRelatedProductIds, PRODUCT_RECOMMENDATION_LIMIT } from "@/lib/product-recommendations";
 import { isProductUuid } from "@/lib/seo";
 import { and, asc, desc, eq, gt, inArray, or } from "drizzle-orm";
@@ -17,9 +17,10 @@ type RelatedProductRow = Pick<
   | "sellingPrice"
   | "images"
   | "sizes"
+  | "colors"
   | "stock"
   | "category"
-  | "gender"
+  | "isNew"
   | "displayOrder"
   | "createdAt"
 >;
@@ -29,10 +30,13 @@ type RelatedCombo = ComboRow & {
   productB: ProductRow & { variants: ProductVariantRow[] };
 };
 
-type RelatedProduct = Pick<
+export type RelatedProduct = Pick<
   RelatedProductRow,
-  "id" | "name" | "slug" | "mrp" | "sellingPrice" | "images" | "sizes" | "stock"
+  "id" | "name" | "slug" | "mrp" | "sellingPrice" | "stock" | "isNew"
 > & {
+  images: string[];
+  sizes: string[];
+  colors: { name: string; hex: string }[];
   availableSizes: string[];
 };
 
@@ -40,6 +44,8 @@ export type ProductDetails = ProductRow & {
   variants: ProductVariantRow[];
   relatedCombos: RelatedCombo[];
   relatedProducts: RelatedProduct[];
+  categoryName: string | null;
+  collections: { slug: string; name: string }[];
 };
 
 export async function getActiveProductStaticParams() {
@@ -60,29 +66,23 @@ const relatedProductColumns = {
   sellingPrice: products.sellingPrice,
   images: products.images,
   sizes: products.sizes,
+  colors: products.colors,
   stock: products.stock,
   category: products.category,
-  gender: products.gender,
+  isNew: products.isNew,
   displayOrder: products.displayOrder,
   createdAt: products.createdAt,
 };
 
 function getRelatedScore(
-  target: { category: string; gender: string },
-  candidate: { category: string; gender: string }
+  target: { category: string },
+  candidate: { id: string; category: string; stock: number },
+  sharedCollectionIds: Set<string>,
 ) {
   let score = 0;
-
-  if (candidate.category === target.category) {
-    score += 4;
-  }
-
-  if (candidate.gender === target.gender) {
-    score += 3;
-  } else if (target.gender !== "unisex" && candidate.gender === "unisex") {
-    score += 2;
-  }
-
+  if (candidate.category === target.category) score += 4;
+  if (sharedCollectionIds.has(candidate.id)) score += 3;
+  if (candidate.stock > 0) score += 1;
   return score;
 }
 
@@ -114,6 +114,15 @@ async function getProductDetailsByIdUncached(
     );
 
   if (!product) return null;
+
+  const taxonomyPromise = Promise.all([
+    db.select({ name: categories.name }).from(categories).where(eq(categories.slug, product.category)),
+    db
+      .select({ id: collections.id, slug: collections.slug, name: collections.name })
+      .from(collectionProducts)
+      .innerJoin(collections, eq(collections.id, collectionProducts.collectionId))
+      .where(and(eq(collectionProducts.productId, id), eq(collections.isActive, true))),
+  ]);
 
   const variantsPromise = db
     .select()
@@ -212,6 +221,15 @@ async function getProductDetailsByIdUncached(
   let heuristicIds: string[] = [];
   let newestIds: string[] = [];
 
+  const [[categoryRow], collectionRows] = await taxonomyPromise;
+  const siblingRows = collectionRows.length > 0
+    ? await db
+        .select({ productId: collectionProducts.productId })
+        .from(collectionProducts)
+        .where(inArray(collectionProducts.collectionId, collectionRows.map((row) => row.id)))
+    : [];
+  const sharedCollectionIds = new Set(siblingRows.map((row) => row.productId));
+
   if (!hasStoredRecommendations) {
     const fallbackProducts = await db
       .select(relatedProductColumns)
@@ -221,9 +239,9 @@ async function getProductDetailsByIdUncached(
       .limit(80);
 
     heuristicIds = fallbackProducts
-      .filter((candidate) => !excludedIds.has(candidate.id) && getRelatedScore(product, candidate) > 0)
+      .filter((candidate) => !excludedIds.has(candidate.id) && getRelatedScore(product, candidate, sharedCollectionIds) > 1)
       .sort((a, b) => {
-        const scoreDelta = getRelatedScore(product, b) - getRelatedScore(product, a);
+        const scoreDelta = getRelatedScore(product, b, sharedCollectionIds) - getRelatedScore(product, a, sharedCollectionIds);
         if (scoreDelta !== 0) return scoreDelta;
         if (b.displayOrder !== a.displayOrder) return b.displayOrder - a.displayOrder;
         return b.createdAt.getTime() - a.createdAt.getTime();
@@ -279,6 +297,8 @@ async function getProductDetailsByIdUncached(
       sellingPrice: row.sellingPrice,
       images: row.images || [],
       sizes: row.sizes || [],
+      colors: row.colors || [],
+      isNew: row.isNew,
       stock: row.stock,
       availableSizes: availableSizes.length > 0
         ? availableSizes
@@ -288,7 +308,14 @@ async function getProductDetailsByIdUncached(
     };
   });
 
-  return { ...product, variants, relatedCombos, relatedProducts: relatedProductsWithAvailableSizes };
+  return {
+    ...product,
+    variants,
+    relatedCombos,
+    relatedProducts: relatedProductsWithAvailableSizes,
+    categoryName: categoryRow?.name ?? null,
+    collections: collectionRows.map(({ slug, name }) => ({ slug, name })),
+  };
 }
 
 async function getProductDetailsBySlugOrIdUncached(

@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
-const catalogNoindexParams = ["search", "size", "minPrice", "maxPrice", "isNew", "isFeatured", "isPremium"];
-const catalogNoindexSources = ["/shop", "/shop/:path*", "/new", "/collections/:path*"];
-const staticMediaSources = ["/hero/:path*", "/clothes/:path*", "/logo.jpeg", "/logo.png"];
+import { CATALOG_NOINDEX_PARAMS } from "./lib/seo.ts";
+
+const catalogNoindexParams = [...CATALOG_NOINDEX_PARAMS];
+const catalogNoindexSources = ["/shop", "/shop/:path*", "/new", "/best-sellers", "/sale", "/collections/:path*"];
+const staticMediaSources = ["/products/:path*", "/brand/:path*"];
 
 function catalogNoindexHeaders() {
   return catalogNoindexSources.flatMap((source) =>

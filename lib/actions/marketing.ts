@@ -181,7 +181,7 @@ type MarketingProductOptionsInput = {
   search?: string;
   limit?: number;
   offset?: number;
-  filters?: Array<"premium" | "bestSeller" | "new">;
+  filters?: Array<"sale" | "bestSeller" | "new">;
 };
 
 export async function getMarketingProductOptions(input: MarketingProductOptionsInput = {}) {
@@ -197,7 +197,7 @@ export async function getMarketingProductOptions(input: MarketingProductOptionsI
       sql`(${products.name} ilike ${`%${search}%`} or ${products.slug} ilike ${`%${search}%`})`
     );
   }
-  if (filters.has("premium")) conditions.push(eq(products.isPremium, true));
+  if (filters.has("sale")) conditions.push(sql`${products.mrp} > ${products.sellingPrice}`);
   if (filters.has("bestSeller")) conditions.push(eq(products.isFeatured, true));
   if (filters.has("new")) conditions.push(eq(products.isNew, true));
 
@@ -210,7 +210,7 @@ export async function getMarketingProductOptions(input: MarketingProductOptionsI
       sellingPrice: products.sellingPrice,
       isNew: products.isNew,
       isFeatured: products.isFeatured,
-      isPremium: products.isPremium,
+      isOnSale: sql<boolean>`${products.mrp} > ${products.sellingPrice}`,
     })
     .from(products)
     .where(and(...conditions))
@@ -226,7 +226,7 @@ export async function getMarketingProductOptions(input: MarketingProductOptionsI
     sellingPrice: product.sellingPrice,
     isNew: product.isNew,
     isFeatured: product.isFeatured,
-    isPremium: product.isPremium,
+    isOnSale: Boolean(product.isOnSale),
   }));
 
   return {

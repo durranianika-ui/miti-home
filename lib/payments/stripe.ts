@@ -65,10 +65,13 @@ export class StripeCardProvider implements CardPaymentProvider {
   readonly id = "stripe";
   readonly label = "Card · Apple Pay · Google Pay";
 
-  constructor(
-    private readonly secretKey: string,
-    private readonly webhookSecret: string | undefined,
-  ) {}
+  private readonly secretKey: string;
+  private readonly webhookSecret: string | undefined;
+
+  constructor(secretKey: string, webhookSecret: string | undefined) {
+    this.secretKey = secretKey;
+    this.webhookSecret = webhookSecret;
+  }
 
   private async request<T>(path: string, init: { method: "GET" | "POST"; body?: URLSearchParams; idempotencyKey?: string }) {
     const response = await fetch(`${STRIPE_API}${path}`, {

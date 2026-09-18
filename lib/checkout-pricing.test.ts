@@ -1,111 +1,93 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  assertRazorpayAmountMatchesQuote,
+  assertProviderAmountMatchesQuote,
   buildCheckoutQuoteFromVerifiedItems,
 } from "./checkout/pricing.ts";
+import { COD_FEE, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "./constants.ts";
 
 const verifiedItems = [
   {
     productId: "p1",
-    productName: "Server tee",
-    productImage: "/server-tee.jpg",
-    size: "M",
-    color: "Black",
-    quantity: 2,
-    unitPrice: 700,
-    totalPrice: 1400,
+    productName: "Moai Tissue Box",
+    productImage: "/products/moai-tissue-box-silver/1.webp",
+    size: "Standard",
+    quantity: 1,
+    unitPrice: 239,
+    totalPrice: 239,
   },
   {
     productId: "p2",
-    productName: "Server cargo",
-    productImage: "/server-cargo.jpg",
-    size: "L",
-    color: "Olive",
+    productName: "Pebble Tissue Box",
+    productImage: "/products/pebble-tissue-box/1.webp",
+    size: "Standard",
+    color: "Black",
     quantity: 2,
-    unitPrice: 800,
-    totalPrice: 1600,
+    unitPrice: 159,
+    totalPrice: 318,
   },
 ];
 
-describe("checkout pricing", () => {
-  it("builds a server-priced COD quote with combo, coupon, shipping, and COD fee", () => {
+describe("checkout pricing (AED)", () => {
+  it("builds a server-priced COD quote with set savings, coupon, delivery, COD fee and VAT", () => {
     const quote = buildCheckoutQuoteFromVerifiedItems({
       items: verifiedItems,
       paymentMethod: "cod",
-      comboDiscount: 100,
-      couponDiscount: 50,
-      couponCode: "save50",
+      comboDiscount: 30,
+      couponDiscount: 20,
+      couponCode: "welcome20",
     });
 
-    assert.equal(quote.subtotal, 3000);
-    assert.equal(quote.comboDiscount, 100);
-    assert.equal(quote.couponDiscount, 50);
-    assert.equal(quote.discount, 150);
-    assert.equal(quote.shippingCost, 0);
-    assert.equal(quote.codFee, 50);
-    assert.equal(quote.total, 2900);
-    assert.equal(quote.couponCode, "SAVE50");
+    assert.equal(quote.subtotal, 557);
+    assert.equal(quote.discount, 50);
+    assert.equal(quote.shippingCost, 557 >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE);
+    assert.equal(quote.codFee, COD_FEE);
+    assert.equal(quote.total, 557 - 50 + quote.shippingCost + COD_FEE);
+    assert.equal(quote.couponCode, "WELCOME20");
+    // Prices are VAT-inclusive: VAT is the 5/105 share of the total.
+    assert.equal(quote.vatAmount, Math.round(((quote.total * 0.05) / 1.05) * 100) / 100);
   });
 
-  it("charges shipping below the free-shipping threshold and never lets discounts invert total", () => {
+  it("charges delivery below the free-delivery threshold and never lets discounts invert the total", () => {
     const quote = buildCheckoutQuoteFromVerifiedItems({
-      items: [
-        {
-          productId: "p1",
-          productName: "Server tee",
-          size: "M",
-          quantity: 1,
-          unitPrice: 499,
-          totalPrice: 499,
-        },
-      ],
-      paymentMethod: "upi",
-      comboDiscount: 200,
-      couponDiscount: 500,
+      items: [{ productId: "p1", productName: "Keyring", size: "Duck", quantity: 1, unitPrice: 39, totalPrice: 39 }],
+      paymentMethod: "card",
+      comboDiscount: 20,
+      couponDiscount: 50,
     });
 
-    assert.equal(quote.subtotal, 499);
-    assert.equal(quote.shippingCost, 99);
+    assert.equal(quote.subtotal, 39);
+    assert.equal(quote.shippingCost, SHIPPING_FEE);
     assert.equal(quote.codFee, 0);
-    assert.equal(quote.discount, 498);
-    assert.equal(quote.total, 100);
+    assert.equal(quote.discount, 38);
+    assert.equal(quote.total, 1 + SHIPPING_FEE);
   });
 
   it("rejects mismatched item totals before quote creation", () => {
     assert.throws(
       () =>
         buildCheckoutQuoteFromVerifiedItems({
-          items: [{ ...verifiedItems[0], totalPrice: 1399 }],
+          items: [{ ...verifiedItems[1], totalPrice: 300 }],
           paymentMethod: "card",
         }),
       /Price total mismatch/
     );
   });
 
-  it("allows Razorpay amount parity within the existing one-rupee tolerance", () => {
-    const quote = buildCheckoutQuoteFromVerifiedItems({
-      items: verifiedItems,
-      paymentMethod: "netbanking",
-      couponDiscount: 25,
-    });
+  it("requires the provider to settle the exact AED amount (one fils tolerance)", () => {
+    const quote = buildCheckoutQuoteFromVerifiedItems({ items: verifiedItems, paymentMethod: "card" });
+    const minor = Math.round(quote.total * 100);
 
     assert.doesNotThrow(() =>
-      assertRazorpayAmountMatchesQuote({
-        quoteTotal: quote.total,
-        orderAmountInPaise: Math.round((quote.total + 1) * 100),
-        capturedAmountInPaise: Math.round(quote.total * 100),
-      })
+      assertProviderAmountMatchesQuote({ quoteTotal: quote.total, paidAmountMinor: minor + 1, paidCurrency: "aed", expectedCurrency: "AED" })
     );
-
     assert.throws(
-      () =>
-        assertRazorpayAmountMatchesQuote({
-          quoteTotal: quote.total,
-          orderAmountInPaise: Math.round((quote.total + 2) * 100),
-          capturedAmountInPaise: Math.round(quote.total * 100),
-        }),
+      () => assertProviderAmountMatchesQuote({ quoteTotal: quote.total, paidAmountMinor: minor - 100, paidCurrency: "AED", expectedCurrency: "AED" }),
       /Payment amount mismatch/
+    );
+    assert.throws(
+      () => assertProviderAmountMatchesQuote({ quoteTotal: quote.total, paidAmountMinor: minor, paidCurrency: "USD", expectedCurrency: "AED" }),
+      /currency mismatch/
     );
   });
 });

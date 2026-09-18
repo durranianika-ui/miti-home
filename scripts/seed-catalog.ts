@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { and, eq, notInArray } from "drizzle-orm";
 import { db } from "../lib/db/index.ts";
-import { categories, collectionProducts, collections, products, productVariants } from "../lib/db/schema.ts";
+import { categories, collectionProducts, collections, combos, products, productVariants } from "../lib/db/schema.ts";
 import { buildDefaultVariants, DEFAULT_OPTION } from "../lib/admin-product-input.ts";
 import { buildProductSearchText } from "../lib/product-search.ts";
 
@@ -43,6 +43,7 @@ type CatalogProduct = {
 type Catalog = {
   categories: { slug: string; name: string; description?: string; seoTitle?: string; seoDescription?: string; displayOrder?: number }[];
   collections: { slug: string; name: string; eyebrow?: string; description?: string; isFeatured?: boolean; displayOrder?: number; products: string[] }[];
+  combos?: { productA: string; productB: string; discount: number; displayOrder?: number }[];
   products: CatalogProduct[];
 };
 
@@ -232,6 +233,21 @@ async function main() {
     });
   }
   console.log(`✓ ${catalog.collections.length} collections`);
+
+  // "Complete the set" pairings
+  for (const combo of catalog.combos ?? []) {
+    const productAId = productIds.get(combo.productA);
+    const productBId = productIds.get(combo.productB);
+    if (!productAId || !productBId) throw new Error(`Combo ${combo.productA} + ${combo.productB}: unknown product`);
+    await db
+      .insert(combos)
+      .values({ productAId, productBId, discountAmount: combo.discount.toFixed(2), displayOrder: combo.displayOrder ?? 0, isActive: true })
+      .onConflictDoUpdate({
+        target: [combos.productAId, combos.productBId],
+        set: { discountAmount: combo.discount.toFixed(2), displayOrder: combo.displayOrder ?? 0, updatedAt: new Date() },
+      });
+  }
+  console.log(`✓ ${(catalog.combos ?? []).length} sets`);
   process.exit(0);
 }
 

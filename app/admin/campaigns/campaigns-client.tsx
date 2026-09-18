@@ -35,12 +35,12 @@ type CustomerOption = {
 };
 type ProductOptionsPage = Awaited<ReturnType<typeof getMarketingProductOptions>>;
 type ProductOption = ProductOptionsPage["items"][number];
-type ProductFilter = "premium" | "bestSeller" | "new";
+type ProductFilter = "sale" | "bestSeller" | "new";
 
 const PRODUCT_PICKER_PAGE_SIZE = 8;
 
 const productFilterOptions: { label: string; value: ProductFilter }[] = [
-  { label: "Premium", value: "premium" },
+  { label: "On sale", value: "sale" },
   { label: "Best seller", value: "bestSeller" },
   { label: "New", value: "new" },
 ];
@@ -406,7 +406,7 @@ export function AdminCampaignsClient({
                         <p className="truncate text-sm font-semibold">{product.name}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs opacity-70">
                           <span>{formatPrice(product.sellingPrice)}</span>
-                          {product.isPremium && <span>Premium</span>}
+                          {product.isOnSale && <span>On sale</span>}
                           {product.isFeatured && <span>Best seller</span>}
                           {product.isNew && <span>New</span>}
                         </div>

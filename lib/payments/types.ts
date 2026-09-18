@@ -54,8 +54,11 @@ export interface CardPaymentProvider {
 }
 
 export class PaymentProviderError extends Error {
-  constructor(message: string, readonly status = 502) {
+  readonly status: number;
+
+  constructor(message: string, status = 502) {
     super(message);
     this.name = "PaymentProviderError";
+    this.status = status;
   }
 }

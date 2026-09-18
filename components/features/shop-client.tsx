@@ -2,158 +2,186 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense, use } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Image from "next/image"
-import { Search, SlidersHorizontal, X, Loader2 } from "lucide-react"
-import { normalizeProductImage } from "@/lib/image"
-import { buildProductPath, normalizeSiteUrl } from "@/lib/seo"
-import { getDisplaySizes, useShopCatalog, type CatalogProduct, type ProductPageResponse, type ShopCatalogQuery } from "@/components/features/use-shop-catalog"
-import { ViewportPrefetchLink } from "@/components/ui/viewport-prefetch-link"
+import { Search, SlidersHorizontal, X, Loader2, ChevronDown } from "lucide-react"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
+import { useShopCatalog, type ProductPageResponse, type ShopCatalogQuery } from "@/components/features/use-shop-catalog"
+import { ProductCard, ProductCardSkeleton } from "@/components/features/product-card"
 import { useDebouncedValue } from "@/lib/use-debounced-value"
+import { normalizeSiteUrl } from "@/lib/seo"
 import { JsonLd, collectionJsonLd } from "@/components/seo/structured-data"
-
-const CATEGORIES = ["All", "tshirt", "shirt", "cargo", "jogger", "jeans", "hoodie", "jacket", "shorts", "accessory"]
-const CATEGORY_LABELS: Record<string, string> = {
-    "All": "All",
-    "tshirt": "T-Shirts",
-    "shirt": "Shirts",
-    "cargo": "Cargos",
-    "jogger": "Joggers",
-    "jeans": "Jeans",
-    "hoodie": "Hoodies",
-    "jacket": "Jackets",
-    "shorts": "Shorts",
-    "accessory": "Accessories",
-}
-const DEFAULT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"]
-const NUMBER_SIZES = ["26", "28", "30", "32", "34"]
-const NUMBER_SIZE_CATEGORIES = ["jogger", "jeans", "cargo", "shorts"]
-const PRICE_RANGES = [
-    { label: "All Prices", min: 0, max: Infinity },
-    { label: "Under ₹1000", min: 0, max: 1000 },
-    { label: "₹1000 - ₹2000", min: 1000, max: 2000 },
-    { label: "Over ₹2000", min: 2000, max: Infinity },
-]
+import { CATALOG_SORTS, CATALOG_SORT_LABELS, PRICE_BANDS, parseCatalogSort, type CatalogSort } from "@/lib/catalog-query"
+import type { CatalogFacets } from "@/lib/product-catalog"
+import { cn } from "@/lib/utils"
 
 type ShopRestoreState = {
     scrollY: number
     visibleCount: number
     historyIndex: number | null
     searchQuery: string
-    selectedCategory: string
-    selectedSize: string | null
-    selectedPriceRangeLabel: string
+    filters: Filters
     clickedProductId: string
 }
 
+type Filters = {
+    category: string | null
+    color: string | null
+    material: string | null
+    size: string | null
+    priceBand: string | null
+    inStock: boolean
+    sort: CatalogSort
+}
+
+const EMPTY_FILTERS: Filters = {
+    category: null,
+    color: null,
+    material: null,
+    size: null,
+    priceBand: null,
+    inStock: false,
+    sort: "featured",
+}
+
 const SHOP_SCROLL_PREFIX = "miti-shop-scroll:"
+const EASE = [0.32, 0.72, 0, 1] as const
+
+export type ShopScope = {
+    category?: string
+    collection?: string
+    isNew?: boolean
+    isFeatured?: boolean
+    onSale?: boolean
+}
 
 interface ShopClientProps {
-    genderFilter?: "men" | "women" | "unisex" | "all"
-    title?: string
+    title: string
+    eyebrow?: string
     subtitle?: string
     initialSearch?: string
-    fixedCategory?: string
-    isNew?: boolean
-    isPremium?: boolean
-    initialProducts?: CatalogProduct[]
-    initialCatalog?: ProductPageResponse
-    initialCatalogPromise?: Promise<ProductPageResponse>
+    scope?: ShopScope
+    facets?: CatalogFacets
+    categoryNames?: Record<string, string>
+    defaultSort?: CatalogSort
+    initialCatalogPromise: Promise<ProductPageResponse>
+    emptyMessage?: string
 }
 
 export function ShopProductGridSkeleton() {
     return (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4" aria-hidden="true">
             {[...Array(8)].map((_, i) => (
-                <div key={i} className={`space-y-3 ${i >= 6 ? "hidden md:block" : ""}`}>
-                    <div className="aspect-[3/4] bg-muted animate-pulse" />
-                    <div className="space-y-2 px-1">
-                        <div className="h-3 bg-muted animate-pulse w-3/4" />
-                        <div className="h-3 bg-muted animate-pulse w-1/2" />
-                    </div>
-                </div>
+                <ProductCardSkeleton key={i} className={i >= 6 ? "hidden md:block" : undefined} />
             ))}
         </div>
     )
 }
 
+function FilterChip({
+    active,
+    onClick,
+    children,
+    swatch,
+}: {
+    active: boolean
+    onClick: () => void
+    children: React.ReactNode
+    swatch?: string
+}) {
+    return (
+        <button
+            type="button"
+            aria-pressed={active}
+            onClick={onClick}
+            className={cn(
+                "inline-flex h-9 items-center gap-2 border px-3.5 font-heading text-[10px] font-medium uppercase tracking-[0.14em] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground",
+                active ? "border-foreground bg-foreground text-background" : "border-border text-foreground/80 hover:border-foreground/60",
+            )}
+        >
+            {swatch && <span className="h-3.5 w-3.5 rounded-full border border-foreground/20" style={{ backgroundColor: swatch }} />}
+            {children}
+        </button>
+    )
+}
+
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <fieldset className="min-w-0 space-y-3">
+            <legend className="mb-3 font-heading text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">{label}</legend>
+            <div className="flex flex-wrap gap-2">{children}</div>
+        </fieldset>
+    )
+}
+
 export function ShopClient({
-    genderFilter = "all",
-    title = "All Products",
+    title,
+    eyebrow = "Shop",
     subtitle,
     initialSearch = "",
-    fixedCategory,
-    isNew,
-    isPremium,
-    initialProducts,
-    initialCatalog,
+    scope = {},
+    facets,
+    categoryNames = {},
+    defaultSort = "featured",
     initialCatalogPromise,
+    emptyMessage,
 }: ShopClientProps) {
     const pathname = usePathname()
     const router = useRouter()
+    const shouldReduceMotion = useReducedMotion()
     const [searchQuery, setSearchQuery] = useState(initialSearch)
     const debouncedSearchQuery = useDebouncedValue(searchQuery, 300)
-    const [selectedCategory, setSelectedCategory] = useState(fixedCategory || "All")
-    const [selectedSize, setSelectedSize] = useState<string | null>(null)
-    const [selectedPriceRange, setSelectedPriceRange] = useState(PRICE_RANGES[0])
+    const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS, sort: defaultSort })
     const [showFilters, setShowFilters] = useState(false)
-    const [visibleCount, setVisibleCount] = useState(8)
+    const [visibleCount, setVisibleCount] = useState(12)
     const pendingRestoreRef = useRef<ShopRestoreState | null>(null)
     const restoredRef = useRef(false)
 
-    const catalogPromise = useMemo(() => {
-        if (initialCatalogPromise) return initialCatalogPromise
-        if (initialCatalog) return Promise.resolve(initialCatalog)
-        if (initialProducts) {
-            return Promise.resolve({
-                products: initialProducts,
-                total: initialProducts.length,
-                limit: initialProducts.length,
-                offset: 0,
-            })
-        }
-        return Promise.resolve({ products: [], total: 0, limit: 24, offset: 0 })
-    }, [initialCatalogPromise, initialCatalog, initialProducts])
+    const priceBand = PRICE_BANDS.find((band) => band.label === filters.priceBand) ?? null
 
-    const effectiveSelectedCategory = fixedCategory || selectedCategory
     const catalogQuery = useMemo<ShopCatalogQuery>(() => {
         const trimmedSearch = debouncedSearchQuery.trim()
-        const query: ShopCatalogQuery = {
+        return {
             limit: 24,
             search: trimmedSearch || undefined,
-            category: effectiveSelectedCategory === "All" ? undefined : effectiveSelectedCategory,
-            gender: genderFilter === "all" ? undefined : genderFilter,
-            size: selectedSize || undefined,
-            isNew: isNew || undefined,
-            isPremium: isPremium || undefined,
+            category: scope.category ?? filters.category ?? undefined,
+            collection: scope.collection,
+            isNew: scope.isNew || undefined,
+            isFeatured: scope.isFeatured || undefined,
+            onSale: scope.onSale || undefined,
+            color: filters.color ?? undefined,
+            material: filters.material ?? undefined,
+            size: filters.size ?? undefined,
+            availability: filters.inStock ? "in-stock" : undefined,
+            minPrice: priceBand && priceBand.min > 0 ? String(priceBand.min) : undefined,
+            maxPrice: priceBand && Number.isFinite(priceBand.max) ? String(priceBand.max) : undefined,
+            sort: filters.sort === "featured" ? undefined : filters.sort,
         }
+    }, [debouncedSearchQuery, filters, priceBand, scope])
 
-        if (selectedPriceRange.min > 0) {
-            query.minPrice = String(selectedPriceRange.min)
-        }
-        if (Number.isFinite(selectedPriceRange.max)) {
-            query.maxPrice = String(selectedPriceRange.max)
-        }
+    const updateFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => {
+        setFilters((current) => ({ ...current, [key]: value }))
+        setVisibleCount(12)
+    }
 
-        return query
-    }, [debouncedSearchQuery, effectiveSelectedCategory, genderFilter, isNew, isPremium, selectedPriceRange, selectedSize])
+    const toggleFilter = <K extends "category" | "color" | "material" | "size" | "priceBand">(key: K, value: string) => {
+        setFilters((current) => ({ ...current, [key]: current[key] === value ? null : value }))
+        setVisibleCount(12)
+    }
 
     useEffect(() => {
         if (restoredRef.current || typeof window === "undefined") return
         restoredRef.current = true
 
-        const applyUrlSearch = () => {
-            const urlSearch = new URLSearchParams(window.location.search).get("search")
-            if (urlSearch) {
-                setSearchQuery(urlSearch)
-                setVisibleCount(8)
-            }
+        const params = new URLSearchParams(window.location.search)
+        const urlSort = parseCatalogSort(params.get("sort"))
+        const applyUrlState = () => {
+            const urlSearch = params.get("search")
+            if (urlSearch) setSearchQuery(urlSearch)
+            if (urlSort) setFilters((current) => ({ ...current, sort: urlSort }))
         }
 
         const raw = window.sessionStorage.getItem(`${SHOP_SCROLL_PREFIX}${pathname}`)
         if (!raw) {
-            applyUrlSearch()
+            applyUrlState()
             return
         }
 
@@ -167,26 +195,22 @@ export function ShopClient({
 
             if (!shouldRestore) {
                 window.sessionStorage.removeItem(`${SHOP_SCROLL_PREFIX}${pathname}`)
-                applyUrlSearch()
+                applyUrlState()
                 return
             }
 
             pendingRestoreRef.current = saved
             const timer = window.setTimeout(() => {
-                const urlSearch = new URLSearchParams(window.location.search).get("search")
+                const urlSearch = params.get("search")
                 setSearchQuery(urlSearch !== null ? urlSearch : saved.searchQuery)
-                setSelectedCategory(fixedCategory || saved.selectedCategory || "All")
-                setSelectedSize(saved.selectedSize)
-                setSelectedPriceRange(
-                    PRICE_RANGES.find((range) => range.label === saved.selectedPriceRangeLabel) || PRICE_RANGES[0]
-                )
-                setVisibleCount(Math.max(8, saved.visibleCount))
+                setFilters({ ...EMPTY_FILTERS, ...saved.filters })
+                setVisibleCount(Math.max(12, saved.visibleCount))
             }, 0)
             return () => window.clearTimeout(timer)
         } catch {
             window.sessionStorage.removeItem(`${SHOP_SCROLL_PREFIX}${pathname}`)
         }
-    }, [fixedCategory, pathname])
+    }, [pathname])
 
     const saveScrollState = (clickedProductId: string) => {
         if (typeof window === "undefined") return
@@ -195,9 +219,7 @@ export function ShopClient({
             visibleCount,
             historyIndex: typeof window.history.state?.idx === "number" ? window.history.state.idx : null,
             searchQuery,
-            selectedCategory,
-            selectedSize,
-            selectedPriceRangeLabel: selectedPriceRange.label,
+            filters,
             clickedProductId,
         }
         window.sessionStorage.setItem(`${SHOP_SCROLL_PREFIX}${pathname}`, JSON.stringify(state))
@@ -208,22 +230,16 @@ export function ShopClient({
 
         const params = new URLSearchParams(window.location.search)
         const trimmedValue = value.trim()
-        if (trimmedValue) {
-            params.set("search", trimmedValue)
-        } else {
-            params.delete("search")
-        }
+        if (trimmedValue) params.set("search", trimmedValue)
+        else params.delete("search")
 
         const query = params.toString()
         const nextUrl = `${pathname}${query ? `?${query}` : ""}`
         const currentUrl = `${pathname}${window.location.search}`
         if (nextUrl === currentUrl) return
 
-        if (mode === "push") {
-            router.push(nextUrl, { scroll: false })
-        } else {
-            router.replace(nextUrl, { scroll: false })
-        }
+        if (mode === "push") router.push(nextUrl, { scroll: false })
+        else router.replace(nextUrl, { scroll: false })
     }, [pathname, router])
 
     useEffect(() => {
@@ -233,156 +249,177 @@ export function ShopClient({
     const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         navigateUrlSearch(searchQuery, "push")
-        setVisibleCount(8)
+        setVisibleCount(12)
     }
 
     const clearFilters = () => {
         setSearchQuery("")
         navigateUrlSearch("")
-        setSelectedCategory(fixedCategory || "All")
-        setSelectedSize(null)
-        setSelectedPriceRange(PRICE_RANGES[0])
-        setVisibleCount(8)
+        setFilters({ ...EMPTY_FILTERS, sort: defaultSort })
+        setVisibleCount(12)
     }
 
     const activeFilterCount = [
         searchQuery.trim() !== "",
-        !fixedCategory && selectedCategory !== "All",
-        selectedSize !== null,
-        selectedPriceRange !== PRICE_RANGES[0],
+        !scope.category && filters.category !== null,
+        filters.color !== null,
+        filters.material !== null,
+        filters.size !== null,
+        filters.priceBand !== null,
+        filters.inStock,
     ].filter(Boolean).length
 
+    const categoryOptions = !scope.category ? (facets?.categories ?? []).filter((category) => categoryNames[category.slug]) : []
+    const priceBands = PRICE_BANDS.filter((band) => {
+        if (!facets) return true
+        return facets.price.max >= band.min && facets.price.min < band.max
+    })
+
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex min-h-screen flex-col">
             {/* Header */}
-            <div className="px-6 md:px-12 py-14 md:py-20 border-b border-border/60">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium mb-3">Shop</p>
-                <h1 className="font-display text-4xl md:text-6xl lg:text-7xl">{title}</h1>
-                {subtitle && <p className="text-sm text-muted-foreground mt-2">{subtitle}</p>}
+            <div className="border-b border-border/60 px-5 py-14 md:px-12 md:py-20">
+                <p className="mb-4 font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand-strong">{eyebrow}</p>
+                <h1 className="font-display text-4xl leading-[1.05] md:text-6xl">{title}</h1>
+                {subtitle && <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">{subtitle}</p>}
             </div>
 
             {/* Toolbar */}
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 px-6 md:px-12 py-4 border-b border-border/60 sticky top-16 z-40 bg-background/80 backdrop-blur-xl">
-                {/* Search */}
-                <form onSubmit={submitSearch} className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <div className="sticky top-14 z-40 flex flex-col items-stretch justify-between gap-3 border-b border-border/60 bg-background/85 px-5 py-3 backdrop-blur-xl md:top-20 md:flex-row md:items-center md:px-12 md:py-4">
+                <form onSubmit={submitSearch} className="relative flex-1 md:max-w-md" role="search">
+                    <label htmlFor="shop-search" className="sr-only">Search products</label>
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <input
-                        type="text"
-                        placeholder="Search products..."
+                        id="shop-search"
+                        type="search"
+                        placeholder="Search by name, material or colour"
                         value={searchQuery}
-                        onChange={(e) => {
-                            const value = e.target.value
-                            setSearchQuery(value)
-                            setVisibleCount(8)
+                        onChange={(event) => {
+                            setSearchQuery(event.target.value)
+                            setVisibleCount(12)
                         }}
-                        className="w-full h-10 pl-10 pr-4 bg-secondary/30 border border-input rounded-none text-sm focus:outline-none focus:ring-1 focus:ring-ring transition-all duration-300"
+                        className="h-10 w-full border border-input bg-card/60 pl-10 pr-4 text-sm transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                 </form>
 
-                {/* Filter Toggle & Sort */}
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-none h-10 text-[10px] uppercase tracking-[0.1em] gap-2"
-                        onClick={() => setShowFilters(!showFilters)}
+                    <button
+                        type="button"
+                        onClick={() => setShowFilters((open) => !open)}
+                        aria-expanded={showFilters}
+                        aria-controls="shop-filters"
+                        className="inline-flex h-10 items-center gap-2 border border-input px-4 font-heading text-[10px] font-medium uppercase tracking-[0.16em] transition-colors hover:border-foreground/60"
                     >
                         <SlidersHorizontal className="h-3.5 w-3.5" />
-                        Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-                    </Button>
+                        Filter{activeFilterCount > 0 && ` (${activeFilterCount})`}
+                    </button>
+                    <div className="relative flex-1 md:flex-none">
+                        <label htmlFor="shop-sort" className="sr-only">Sort products</label>
+                        <select
+                            id="shop-sort"
+                            value={filters.sort}
+                            onChange={(event) => updateFilter("sort", event.target.value as CatalogSort)}
+                            className="h-10 w-full appearance-none border border-input bg-transparent pl-4 pr-9 font-heading text-[10px] font-medium uppercase tracking-[0.16em] focus:outline-none focus:ring-1 focus:ring-ring md:w-auto"
+                        >
+                            {CATALOG_SORTS.map((sort) => (
+                                <option key={sort} value={sort}>{CATALOG_SORT_LABELS[sort]}</option>
+                            ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    </div>
                     {activeFilterCount > 0 && (
-                        <Button variant="ghost" size="sm" className="rounded-none h-10 text-[10px] uppercase tracking-[0.1em]" onClick={clearFilters}>
-                            <X className="h-3.5 w-3.5 mr-1" /> Clear
-                        </Button>
+                        <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="inline-flex h-10 items-center gap-1 px-2 font-heading text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-3.5 w-3.5" /> Clear
+                        </button>
                     )}
                 </div>
             </div>
 
-            {/* Filters Panel */}
-            {showFilters && (
-                <div className="px-6 md:px-12 py-5 border-b border-border/60 bg-secondary/10 flex flex-wrap gap-6">
-                    {/* Category */}
-                    {!fixedCategory && (
-                        <div className="space-y-2.5">
-                            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Category</label>
-                            <div className="flex flex-wrap gap-1.5">
-                                {CATEGORIES.map((cat) => (
-                                    <Button
-                                        key={cat}
-                                        variant={selectedCategory === cat ? "default" : "outline"}
-                                        size="sm"
-                                        className="rounded-none h-8 text-[10px] tracking-wide"
-                                        onClick={() => {
-                                            setSelectedCategory(cat)
-                                            setSelectedSize(null)
-                                            setVisibleCount(8)
-                                        }}
-                                    >
-                                        {CATEGORY_LABELS[cat] || cat}
-                                    </Button>
+            {/* Filters */}
+            <AnimatePresence initial={false}>
+                {showFilters && (
+                    <motion.div
+                        id="shop-filters"
+                        initial={shouldReduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        animate={shouldReduceMotion ? { opacity: 1 } : { height: "auto", opacity: 1 }}
+                        exit={shouldReduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        transition={{ duration: 0.35, ease: EASE }}
+                        className="overflow-hidden border-b border-border/60 bg-secondary/40"
+                    >
+                        <div className="grid gap-8 px-5 py-6 sm:grid-cols-2 md:px-12 lg:grid-cols-3 xl:grid-cols-5">
+                            {categoryOptions.length > 1 && (
+                                <FilterGroup label="Category">
+                                    {categoryOptions.map((category) => (
+                                        <FilterChip key={category.slug} active={filters.category === category.slug} onClick={() => toggleFilter("category", category.slug)}>
+                                            {categoryNames[category.slug]}
+                                        </FilterChip>
+                                    ))}
+                                </FilterGroup>
+                            )}
+                            {(facets?.colors.length ?? 0) > 0 && (
+                                <FilterGroup label="Colour & finish">
+                                    {facets!.colors.map((color) => (
+                                        <FilterChip key={color.name} swatch={color.hex} active={filters.color === color.name} onClick={() => toggleFilter("color", color.name)}>
+                                            {color.name}
+                                        </FilterChip>
+                                    ))}
+                                </FilterGroup>
+                            )}
+                            {(facets?.materials.length ?? 0) > 0 && (
+                                <FilterGroup label="Material">
+                                    {facets!.materials.map((material) => (
+                                        <FilterChip key={material.name} active={filters.material === material.name} onClick={() => toggleFilter("material", material.name)}>
+                                            {material.name}
+                                        </FilterChip>
+                                    ))}
+                                </FilterGroup>
+                            )}
+                            {(facets?.sizes.length ?? 0) > 0 && (
+                                <FilterGroup label="Size & option">
+                                    {facets!.sizes.map((size) => (
+                                        <FilterChip key={size.name} active={filters.size === size.name} onClick={() => toggleFilter("size", size.name)}>
+                                            {size.name}
+                                        </FilterChip>
+                                    ))}
+                                </FilterGroup>
+                            )}
+                            <FilterGroup label="Price">
+                                {priceBands.map((band) => (
+                                    <FilterChip key={band.label} active={filters.priceBand === band.label} onClick={() => toggleFilter("priceBand", band.label)}>
+                                        {band.label}
+                                    </FilterChip>
                                 ))}
-                            </div>
+                            </FilterGroup>
+                            <FilterGroup label="Availability">
+                                <FilterChip active={filters.inStock} onClick={() => updateFilter("inStock", !filters.inStock)}>
+                                    In stock only
+                                </FilterChip>
+                            </FilterGroup>
                         </div>
-                    )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                    {/* Size */}
-                    {effectiveSelectedCategory !== "accessory" && (
-                        <div className="space-y-2.5">
-                            <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Size</label>
-                            <div className="flex flex-wrap gap-1.5">
-                                {(NUMBER_SIZE_CATEGORIES.includes(effectiveSelectedCategory) ? NUMBER_SIZES : effectiveSelectedCategory === "All" ? [...DEFAULT_SIZES, ...NUMBER_SIZES] : DEFAULT_SIZES).map((size) => (
-                                    <Button
-                                        key={size}
-                                        variant={selectedSize === size ? "default" : "outline"}
-                                        size="sm"
-                                        className="rounded-none h-8 text-[10px] tracking-wide"
-                                        onClick={() => {
-                                            setSelectedSize(selectedSize === size ? null : size)
-                                            setVisibleCount(8)
-                                        }}
-                                    >
-                                        {size}
-                                    </Button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Price */}
-                    <div className="space-y-2.5">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Price</label>
-                        <div className="flex flex-wrap gap-1.5">
-                            {PRICE_RANGES.map((range) => (
-                                <Button
-                                    key={range.label}
-                                    variant={selectedPriceRange === range ? "default" : "outline"}
-                                    size="sm"
-                                    className="rounded-none h-8 text-[10px] tracking-wide"
-                                    onClick={() => {
-                                        setSelectedPriceRange(range)
-                                        setVisibleCount(8)
-                                    }}
-                                >
-                                    {range.label}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Product Grid */}
-            <div className="py-10 px-6 md:px-12">
+            {/* Product grid */}
+            <div className="px-5 py-10 md:px-12">
                 <Suspense fallback={<ShopProductGridSkeleton />}>
                     <ShopProductGrid
-                        catalogPromise={catalogPromise}
+                        title={title}
+                        subtitle={subtitle}
+                        catalogPromise={initialCatalogPromise}
                         query={catalogQuery}
+                        isDefaultQuery={activeFilterCount === 0 && filters.sort === defaultSort}
                         clearFilters={clearFilters}
                         visibleCount={visibleCount}
                         setVisibleCount={setVisibleCount}
                         pathname={pathname}
                         saveScrollState={saveScrollState}
                         pendingRestoreRef={pendingRestoreRef}
+                        emptyMessage={emptyMessage}
                     />
                 </Suspense>
             </div>
@@ -391,63 +428,61 @@ export function ShopClient({
 }
 
 interface ShopProductGridProps {
+    title: string
+    subtitle?: string
     catalogPromise: Promise<ProductPageResponse>
     query: ShopCatalogQuery
+    isDefaultQuery: boolean
     clearFilters: () => void
     visibleCount: number
     setVisibleCount: (value: number | ((prev: number) => number)) => void
     pathname: string
     saveScrollState: (clickedProductId: string) => void
     pendingRestoreRef: React.MutableRefObject<ShopRestoreState | null>
+    emptyMessage?: string
 }
 
 function ShopProductGrid({
+    title,
+    subtitle,
     catalogPromise,
     query,
+    isDefaultQuery,
     clearFilters,
     visibleCount,
     setVisibleCount,
     pathname,
     saveScrollState,
     pendingRestoreRef,
+    emptyMessage,
 }: ShopProductGridProps) {
     const initialCatalog = use(catalogPromise)
     const baseUrl = normalizeSiteUrl()
 
-    const canUseInitialCatalog =
-        (query.search || "").trim() === "" &&
-        (query.category || "All") === "All" &&
-        query.size === undefined &&
-        query.minPrice === undefined
-
-    const initialCatalogPage = canUseInitialCatalog ? initialCatalog : undefined
-
     const {
         data: products = [],
         isLoading: loading,
+        isError,
+        refetch,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
-    } = useShopCatalog(query, initialCatalogPage)
+    } = useShopCatalog(query, isDefaultQuery ? initialCatalog : undefined)
 
     const visibleProducts = products.slice(0, visibleCount)
     const hasMore = visibleCount < products.length || Boolean(hasNextPage)
 
-    // Infinite scroll sentinel
     const sentinelRef = useRef<HTMLDivElement>(null)
     useEffect(() => {
         if (!hasMore || loading || isFetchingNextPage) return
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting) {
-                    if (visibleCount < products.length) {
-                        setVisibleCount((prev) => prev + 8)
-                    } else if (hasNextPage) {
-                        fetchNextPage()
-                    }
+                    if (visibleCount < products.length) setVisibleCount((prev) => prev + 12)
+                    else if (hasNextPage) fetchNextPage()
                 }
             },
-            { rootMargin: typeof window !== "undefined" && window.innerWidth < 768 ? "100px" : "200px" }
+            { rootMargin: typeof window !== "undefined" && window.innerWidth < 768 ? "150px" : "300px" }
         )
         const el = sentinelRef.current
         if (el) observer.observe(el)
@@ -459,7 +494,7 @@ function ShopProductGrid({
         if (!saved || loading || products.length === 0) return
 
         const clickedIndex = products.findIndex((product) => product.id === saved.clickedProductId)
-        const requiredVisibleCount = Math.max(saved.visibleCount, clickedIndex >= 0 ? clickedIndex + 1 : 8)
+        const requiredVisibleCount = Math.max(saved.visibleCount, clickedIndex >= 0 ? clickedIndex + 1 : 12)
 
         if (visibleCount < requiredVisibleCount) {
             setVisibleCount(requiredVisibleCount)
@@ -471,7 +506,7 @@ function ShopProductGrid({
             attempts += 1
             const maxReachableScroll = document.documentElement.scrollHeight - window.innerHeight
             if (maxReachableScroll >= saved.scrollY || attempts > 24) {
-                window.scrollTo({ top: saved.scrollY, behavior: "smooth" })
+                window.scrollTo({ top: saved.scrollY, behavior: "instant" as ScrollBehavior })
                 pendingRestoreRef.current = null
                 return
             }
@@ -481,24 +516,12 @@ function ShopProductGrid({
         window.requestAnimationFrame(restore)
     }, [products, loading, visibleCount, pendingRestoreRef, setVisibleCount])
 
-    const formatPrice = (price: string) => {
-        const num = parseFloat(price)
-        return `₹${num.toLocaleString("en-IN")}`
-    }
-
-    const discountPercent = (product: CatalogProduct) => {
-        const mrp = parseFloat(product.mrp)
-        const price = parseFloat(product.sellingPrice)
-        if (!Number.isFinite(mrp) || !Number.isFinite(price) || mrp <= price) return null
-        return Math.round(((mrp - price) / mrp) * 100)
-    }
-
     return (
         <>
             <JsonLd
                 data={collectionJsonLd(baseUrl, {
-                    name: `${query.gender === "women" ? "Women's" : query.gender === "men" ? "Men's" : "All"} Streetwear - XILAR`,
-                    description: "Explore the premium streetwear collection from XILAR.",
+                    name: `${title} | Miti Home`,
+                    description: subtitle || `${title} — curated home décor and lifestyle pieces from Miti Home.`,
                     url: pathname,
                     products: initialCatalog.products.map((product) => ({
                         name: product.name,
@@ -511,89 +534,50 @@ function ShopProductGrid({
 
             {loading ? (
                 <ShopProductGridSkeleton />
+            ) : isError ? (
+                <div className="py-24 text-center" role="alert">
+                    <p className="text-sm text-muted-foreground">We couldn&apos;t load products just now.</p>
+                    <button type="button" onClick={() => refetch()} className="mt-4 border-b border-foreground/30 pb-0.5 font-heading text-[11px] uppercase tracking-[0.2em]">
+                        Try again
+                    </button>
+                </div>
             ) : (
                 <>
-                    <p className="text-[10px] text-muted-foreground mb-6 uppercase tracking-[0.15em] tabular-nums">{products.length} products</p>
+                    <p className="mb-6 font-heading text-[10px] uppercase tabular-nums tracking-[0.18em] text-muted-foreground" aria-live="polite">
+                        {products.length} {products.length === 1 ? "piece" : "pieces"}{hasNextPage ? "+" : ""}
+                    </p>
                     {visibleProducts.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-                            {visibleProducts.map((product) => (
-                                <ViewportPrefetchLink
-                                    href={buildProductPath(product.slug)}
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
+                            {visibleProducts.map((product, index) => (
+                                <ProductCard
                                     key={product.id}
-                                    onClick={() => saveScrollState(product.id)}
-                                >
-                                    <Card className="bg-transparent border-0 rounded-none hover-lift">
-                                        <CardContent className="p-0 relative aspect-[3/4] overflow-hidden bg-muted/30">
-                                            <Image
-                                                src={normalizeProductImage(product.images?.[0])}
-                                                alt={product.name}
-                                                fill
-                                                sizes="(max-width: 640px) 50vw, 25vw"
-                                                className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-                                            />
-                                            {product.isNew && (
-                                                <span className="absolute top-3 left-3 bg-foreground text-background text-[10px] px-2.5 py-1 uppercase tracking-[0.1em] font-medium">
-                                                    New
-                                                </span>
-                                            )}
-                                            {product.stock === 0 && (
-                                                <span className="absolute top-3 right-3 badge-sold-out">
-                                                    Sold out
-                                                </span>
-                                            )}
-                                        </CardContent>
-                                        <CardFooter className="flex flex-col items-start px-1 sm:px-2 pt-4 pb-2 space-y-1">
-                                            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em]">
-                                                {CATEGORY_LABELS[product.category] || product.category}
-                                            </p>
-                                            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-                                                <h3 className="min-w-0 truncate font-medium tracking-tight text-sm">{product.name}</h3>
-                                                <div className="flex flex-none flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap text-right">
-                                                    <span className="font-semibold text-sm tabular-nums">{formatPrice(product.sellingPrice)}</span>
-                                                    {parseFloat(product.mrp) > parseFloat(product.sellingPrice) && (
-                                                        <span className="text-[10px] text-muted-foreground line-through tabular-nums">
-                                                            {formatPrice(product.mrp)}
-                                                        </span>
-                                                    )}
-                                                    {discountPercent(product) !== null && (
-                                                        <span className="flex-none bg-foreground px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-background">
-                                                            {discountPercent(product)}% off
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {getDisplaySizes(product).length > 0 && (
-                                                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                                                    {getDisplaySizes(product).slice(0, 5).map((size) => (
-                                                        <span
-                                                            key={size}
-                                                            className="border border-border/70 px-2 py-1 text-[10px] uppercase leading-none text-muted-foreground"
-                                                        >
-                                                            {size}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </CardFooter>
-                                    </Card>
-                                </ViewportPrefetchLink>
+                                    product={product}
+                                    priority={index < 4}
+                                    onNavigate={() => saveScrollState(product.id)}
+                                />
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-24">
-                            <p className="text-sm text-muted-foreground">No products found matching your filters</p>
-                            <Button variant="link" onClick={clearFilters} className="mt-2 text-xs">
+                        <div className="mx-auto max-w-md py-24 text-center">
+                            <p className="font-display text-2xl">Nothing here just yet</p>
+                            <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                                {emptyMessage ?? "No pieces match these filters. Try removing a filter or searching for a material, colour or room."}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={clearFilters}
+                                className="mt-6 border-b border-foreground/30 pb-0.5 font-heading text-[11px] uppercase tracking-[0.2em] hover:border-brand hover:text-brand-strong"
+                            >
                                 Clear all filters
-                            </Button>
+                            </button>
                         </div>
                     )}
                 </>
             )}
 
-            {/* Infinite scroll sentinel */}
-            {hasMore && !loading && (
-                <div ref={sentinelRef} className="py-8 flex justify-center">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            {hasMore && !loading && !isError && (
+                <div ref={sentinelRef} className="flex justify-center py-10">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Loading more products" />
                 </div>
             )}
         </>

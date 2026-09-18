@@ -1,37 +1,33 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import {
+  buildDefaultVariants,
   normalizeProductInput,
   normalizeProductPatch,
+  slugify,
   type RawProductInput,
 } from "./admin-product-input.ts"
 
 const baseInput: RawProductInput = {
-  name: " Golden Skyline Oversized Tee ",
-  slug: " golden-skyline-oversized-tee ",
-  description: "Premium cotton tee",
-  mrp: "999",
-  sellingPrice: "799",
-  maxBargainDiscount: "50",
-  category: "tshirt",
-  gender: "men",
-  stock: 1,
-  fabric: "100% premium cotton ",
-  images: [
-    "https://res.cloudinary.com/du44kbibc/image/upload/v1780066847/xilar/products/eodf5t0wzpckgqasfuya.webp",
-  ],
-  sizes: ["M", "L", "XL", "XXL"],
+  name: " Knotted Stripe Vase ",
+  slug: " knotted-stripe-vase ",
+  description: "Monochrome ceramic vase",
+  mrp: "189",
+  sellingPrice: "159",
+  maxBargainDiscount: "10",
+  category: "home-decor",
+  stock: 6,
+  material: " Ceramic ",
+  dimensions: "8.5 × 8.5 × 29 cm",
+  images: ["/products/knotted-stripe-vase/1.webp"],
+  sizes: ["Standard"],
   careInstructions: [],
   features: [],
   colors: [],
-  tags: [],
-  variants: [
-    { size: "M", color: null, stock: 1 },
-    { size: "L", color: null, stock: 0 },
-  ],
+  tags: ["vase"],
+  variants: [{ size: "Standard", color: null, stock: 6 }],
   isNew: true,
   isFeatured: false,
-  isPremium: false,
   isActive: true,
   displayOrder: 500,
 }
@@ -39,103 +35,88 @@ const baseInput: RawProductInput = {
 test("normalizes server-action undefined sentinels before product insert", () => {
   const product = normalizeProductInput({
     ...baseInput,
-    gsm: "$undefined",
+    sku: "$undefined",
   })
 
-  assert.equal(product.name, "Golden Skyline Oversized Tee")
-  assert.equal(product.slug, "golden-skyline-oversized-tee")
-  assert.equal(product.gsm, null)
-  assert.equal(product.stock, 1)
-  assert.deepEqual(product.variants, [
-    { size: "M", color: null, stock: 1 },
-    { size: "L", color: null, stock: 0 },
-  ])
+  assert.equal(product.name, "Knotted Stripe Vase")
+  assert.equal(product.slug, "knotted-stripe-vase")
+  assert.equal(product.sku, null)
+  assert.equal(product.material, "Ceramic")
+  assert.equal(product.mrp, "189.00")
+  assert.equal(product.sellingPrice, "159.00")
+  assert.deepEqual(product.variants, [{ size: "Standard", color: null, stock: 6 }])
 })
 
-test("normalizes accessory products to the single inventory bucket", () => {
-  const product = normalizeProductInput({
-    ...baseInput,
-    category: "accessory",
-    gender: "men",
-    stock: "3",
-    gsm: 260,
-    fabric: "Leather",
-    sizes: ["M"],
-    colors: [{ name: "Black", hex: "#000000" }],
-    careInstructions: ["wipe clean"],
-    features: ["metal clasp"],
-    variants: [{ size: "M", color: "Black", stock: 3 }],
-  })
+test("single-option products default to the Standard option and option labels", () => {
+  const product = normalizeProductInput({ ...baseInput, sizes: undefined, variants: undefined })
 
-  assert.equal(product.gender, "unisex")
-  assert.equal(product.gsm, null)
-  assert.equal(product.fabric, null)
-  assert.deepEqual(product.sizes, ["One Size"])
-  assert.deepEqual(product.colors, [])
-  assert.deepEqual(product.careInstructions, [])
-  assert.deepEqual(product.features, [])
-  assert.deepEqual(product.variants, [{ size: "One Size", color: null, stock: 3 }])
+  assert.deepEqual(product.sizes, ["Standard"])
+  assert.equal(product.sizeLabel, "Size")
+  assert.equal(product.colorLabel, "Colour")
 })
 
-test("rejects invalid product numerics at the action boundary", () => {
+test("rejects invalid product numerics, slugs and prices at the action boundary", () => {
+  assert.throws(() => normalizeProductInput({ ...baseInput, stock: "1.5" }), /Stock must be a whole number/)
+  assert.throws(() => normalizeProductInput({ ...baseInput, mrp: "free" }), /Compare-at price must be a valid amount/)
+  assert.throws(() => normalizeProductInput({ ...baseInput, slug: "Bad Slug!" }), /Product slug may only contain/)
+  assert.throws(() => normalizeProductInput({ ...baseInput, sellingPrice: "250" }), /cannot be higher than the compare-at price/)
+  assert.throws(() => normalizeProductInput({ ...baseInput, sellingPrice: "0", mrp: "0" }), /greater than zero/)
+})
+
+test("validates finishes and rejects variants that do not match declared options", () => {
   assert.throws(
-    () => normalizeProductInput({ ...baseInput, mrp: "not-a-price" }),
-    /MRP must be a valid amount/
+    () => normalizeProductInput({ ...baseInput, colors: [{ name: "Silver", hex: "silver" }] }),
+    /hex value/,
   )
-  assert.throws(
-    () => normalizeProductInput({ ...baseInput, variants: [{ size: "M", color: null, stock: -1 }] }),
-    /Variant stock cannot be negative/
-  )
-})
-
-test("rejects duplicate variant combinations before product insert", () => {
   assert.throws(
     () =>
       normalizeProductInput({
         ...baseInput,
-        variants: [
-          { size: "M", color: null, stock: 1 },
-          { size: "M", color: null, stock: 0 },
-        ],
+        sizes: ["20 cm", "30 cm"],
+        variants: [{ size: "40 cm", color: null, stock: 1 }],
       }),
-    /Duplicate variant/
+    /not one of the product's options/,
+  )
+  assert.throws(
+    () =>
+      normalizeProductInput({
+        ...baseInput,
+        colors: [{ name: "Black", hex: "#111111" }],
+        variants: [{ size: "Standard", color: null, stock: 1 }],
+      }),
+    /needs a colour/,
   )
 })
 
 test("rejects duplicate inventory dimensions before variant rows are created", () => {
   assert.throws(
-    () => normalizeProductInput({ ...baseInput, sizes: ["M", "M"] }),
-    /Duplicate size/
-  )
-  assert.throws(
     () =>
       normalizeProductInput({
         ...baseInput,
-        colors: [
-          { name: "Ivory", hex: "#fffff0" },
-          { name: "Ivory", hex: "#fffaf0" },
+        variants: [
+          { size: "Standard", color: null, stock: 1 },
+          { size: "Standard", color: null, stock: 2 },
         ],
       }),
-    /Duplicate color/
+    /Duplicate variant/,
   )
 })
 
 test("normalizes partial product updates without forcing missing fields", () => {
-  assert.deepEqual(normalizeProductPatch({ gsm: "$undefined", fabric: "" }), {
-    gsm: null,
-    fabric: null,
-  })
+  const patch = normalizeProductPatch({ name: "  Renamed Vase ", isFeatured: true })
+
+  assert.deepEqual(patch, { name: "Renamed Vase", isFeatured: true })
 })
 
-test("normalizes accessory patches without inventing zero-stock variants", () => {
-  assert.deepEqual(normalizeProductPatch({ category: "accessory" }), {
-    category: "accessory",
-    gender: "unisex",
-    fabric: null,
-    gsm: null,
-    sizes: ["One Size"],
-    colors: [],
-    careInstructions: [],
-    features: [],
-  })
+test("default variant matrix splits stock across option × finish and preserves the total", () => {
+  const variants = buildDefaultVariants(["20 cm", "30 cm"], [{ name: "Black" }, { name: "White" }], 7)
+
+  assert.equal(variants.length, 4)
+  assert.equal(variants.reduce((sum, variant) => sum + variant.stock, 0), 7)
+  assert.deepEqual(variants[0], { size: "20 cm", color: "Black", stock: 2 })
+})
+
+test("slugify produces URL-safe slugs from product names", () => {
+  assert.equal(slugify("Acacia Salt & Pepper Mill Set"), "acacia-salt-and-pepper-mill-set")
+  assert.equal(slugify("  Café Décor — Édition  "), "cafe-decor-edition")
 })

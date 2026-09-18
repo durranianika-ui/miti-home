@@ -2,20 +2,20 @@ export type SearchSuggestionProductSource = {
   id: string;
   name: string;
   category: string;
-  gender: string;
+  categoryName?: string | null;
   tags?: string[] | null;
-  fabric?: string | null;
+  material?: string | null;
   features?: string[] | null;
   colors?: { name: string; hex?: string; images?: string[] }[] | null;
   isNew?: boolean | null;
-  isPremium?: boolean | null;
+  isFeatured?: boolean | null;
   displayOrder?: number | null;
   stock: number;
   searchText?: string | null;
 };
 
 type MerchandisingPoolInput<T extends SearchSuggestionProductSource> = {
-  premiumProducts: T[];
+  featuredProducts: T[];
   newProducts: T[];
   displayOrderProducts: T[];
   seed: string;
@@ -30,36 +30,34 @@ type PhraseInput = {
   query?: string;
 };
 
-const CATEGORY_LABELS: Record<string, { singular: string; plural: string }> = {
-  tshirt: { singular: "tee", plural: "tees" },
-  cargo: { singular: "cargo", plural: "cargos" },
-  jogger: { singular: "jogger", plural: "joggers" },
-  shirt: { singular: "shirt", plural: "shirts" },
-  jeans: { singular: "jeans", plural: "jeans" },
-  hoodie: { singular: "hoodie", plural: "hoodies" },
-  jacket: { singular: "jacket", plural: "jackets" },
-  shorts: { singular: "shorts", plural: "shorts" },
-  accessory: { singular: "accessory", plural: "accessories" },
+/**
+ * Product-type nouns worth suggesting ("vases", "tissue boxes"). Tags that are
+ * adjectives or occasions (gift, silver, playful…) are combined with these
+ * rather than suggested on their own.
+ */
+const PRODUCT_NOUNS: Record<string, string> = {
+  vase: "vases",
+  "bud vase": "bud vases",
+  sculpture: "sculptures",
+  figurine: "figurines",
+  "tissue box": "tissue boxes",
+  lamp: "lamps",
+  "table lamp": "table lamps",
+  pendant: "pendant lights",
+  lighting: "lighting",
+  cushion: "cushions",
+  tray: "trays",
+  hooks: "hooks",
+  shelf: "shelves",
+  clock: "clocks",
+  mug: "mugs",
+  bookends: "bookends",
+  ornament: "ornaments",
+  desk: "desks",
+  keyring: "keyrings",
 };
 
-const STOP_TOKENS = new Set([
-  "xilar",
-  "shirt",
-  "shirts",
-  "tshirt",
-  "tee",
-  "tees",
-  "polo",
-  "polos",
-  "jean",
-  "jeans",
-  "fit",
-  "edition",
-  "premium",
-  "classic",
-]);
-
-const DESCRIPTOR_STOP_TOKENS = new Set(["premium", "xilar"]);
+const DESCRIPTOR_STOP_TOKENS = new Set(["premium", "miti", "home", "standard"]);
 
 function hashString(value: string) {
   let hash = 2166136261;
@@ -94,7 +92,7 @@ export function seededShuffle<T>(items: T[], seed: string) {
 }
 
 export function mergeMerchandisingSuggestionPool<T extends SearchSuggestionProductSource>({
-  premiumProducts,
+  featuredProducts,
   newProducts,
   displayOrderProducts,
   seed,
@@ -102,7 +100,7 @@ export function mergeMerchandisingSuggestionPool<T extends SearchSuggestionProdu
 }: MerchandisingPoolInput<T>) {
   const byId = new Map<string, T>();
 
-  for (const product of [...premiumProducts, ...newProducts, ...displayOrderProducts]) {
+  for (const product of [...featuredProducts, ...newProducts, ...displayOrderProducts]) {
     if (product.stock <= 0 || byId.has(product.id)) continue;
     byId.set(product.id, product);
   }
@@ -121,7 +119,7 @@ function titleCase(value: string) {
 function cleanDescriptor(value: string) {
   const words = value
     .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[^a-zA-Z\s]+/g, " ")
+    .replace(/[^a-zA-Z\s-]+/g, " ")
     .trim()
     .split(/\s+/)
     .filter((word) => word.length > 2 && !DESCRIPTOR_STOP_TOKENS.has(word.toLowerCase()));
@@ -129,15 +127,13 @@ function cleanDescriptor(value: string) {
   return titleCase(words.join(" "));
 }
 
-function getCategoryLabel(category: string) {
-  return CATEGORY_LABELS[category] || {
-    singular: category,
-    plural: category.endsWith("s") ? category : `${category}s`,
-  };
-}
-
 function normalize(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return value
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function phraseWords(phrase: string) {
@@ -145,7 +141,9 @@ function phraseWords(phrase: string) {
     .split(/\s+/)
     .filter(Boolean)
     .map((word) => {
+      if (word.endsWith("ves") && word.length > 4) return word.slice(0, -3);
       if (word.endsWith("ies")) return `${word.slice(0, -3)}y`;
+      if (word.endsWith("xes")) return word.slice(0, -2);
       if (word.endsWith("s") && word.length > 3) return word.slice(0, -1);
       return word;
     });
@@ -154,14 +152,13 @@ function phraseWords(phrase: string) {
 function productHaystack(product: SearchSuggestionProductSource) {
   return normalize([
     product.name,
+    product.categoryName,
     product.category,
-    product.gender,
-    product.fabric,
+    product.material,
     product.searchText,
     ...(product.tags || []),
     ...(product.features || []),
     ...(product.colors || []).map((color) => color.name),
-    product.isPremium ? "premium" : "",
     product.isNew ? "new" : "",
   ].filter(Boolean).join(" "));
 }
@@ -174,24 +171,22 @@ function countPhraseMatches(phrase: string, products: SearchSuggestionProductSou
   }).length;
 }
 
-function getStyleTokens(name: string) {
-  return titleCase(name)
-    .split(/\s+/)
-    .map((token) => token.replace(/[^a-z0-9]/gi, ""))
-    .filter((token) => /^[a-z]+$/i.test(token) && token.length >= 4 && !STOP_TOKENS.has(token.toLowerCase()))
-    .slice(0, 3);
-}
-
 function addPhrase(candidatePhrases: Set<string>, phrase: string) {
   const normalized = phrase.replace(/\s+/g, " ").trim();
-  if (normalized.length > 2) candidatePhrases.add(normalized);
+  if (normalized.length > 2) candidatePhrases.add(normalized.charAt(0).toUpperCase() + normalized.slice(1));
+}
+
+function productNouns(product: SearchSuggestionProductSource) {
+  return (product.tags || [])
+    .map((tag) => PRODUCT_NOUNS[tag.toLowerCase()])
+    .filter((noun): noun is string => Boolean(noun));
 }
 
 export function buildGeneralSearchPhrases({
   products,
   seed,
   limit = 4,
-  minMatches = 6,
+  minMatches = 2,
   query,
 }: PhraseInput) {
   const activeProducts = products.filter((product) => product.stock > 0);
@@ -199,26 +194,22 @@ export function buildGeneralSearchPhrases({
   const candidates = new Set<string>();
 
   for (const product of activeProducts) {
-    const category = getCategoryLabel(product.category);
+    if (product.categoryName) addPhrase(candidates, product.categoryName);
+    const nouns = productNouns(product);
 
-    if (product.isPremium) addPhrase(candidates, `Premium ${category.plural}`);
-    if (product.isNew) addPhrase(candidates, `New ${category.plural}`);
+    for (const noun of nouns) {
+      addPhrase(candidates, noun);
+      if (product.isNew) addPhrase(candidates, `New ${noun}`);
 
-    if (product.gender === "men") addPhrase(candidates, `Men ${category.plural}`);
-    if (product.gender === "women") addPhrase(candidates, `Women ${category.plural}`);
+      for (const color of product.colors || []) {
+        const colorName = cleanDescriptor(color.name);
+        if (colorName) addPhrase(candidates, `${colorName} ${noun}`);
+      }
 
-    for (const color of product.colors || []) {
-      const colorName = cleanDescriptor(color.name);
-      if (colorName) addPhrase(candidates, `${colorName} ${category.plural}`);
-    }
-
-    if (product.fabric) {
-      const fabric = cleanDescriptor(product.fabric);
-      if (fabric) addPhrase(candidates, `${fabric} ${category.plural}`);
-    }
-
-    for (const token of getStyleTokens(product.name)) {
-      addPhrase(candidates, `${token} ${category.plural}`);
+      if (product.material) {
+        const primaryMaterial = cleanDescriptor(product.material.split(/,|with|&/i)[0] ?? "");
+        if (primaryMaterial && primaryMaterial.split(" ").length <= 2) addPhrase(candidates, `${primaryMaterial} ${noun}`);
+      }
     }
   }
 

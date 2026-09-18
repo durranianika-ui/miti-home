@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Account",
-  description: "Sign in or manage your XILAR account.",
+  description: "Sign in or manage your Miti Home account.",
   robots: {
     index: false,
     follow: false,

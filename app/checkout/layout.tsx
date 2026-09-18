@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Checkout",
-  description: "Secure checkout for your XILAR order.",
+  description: "Secure checkout for your Miti Home order.",
   robots: {
     index: false,
     follow: false,

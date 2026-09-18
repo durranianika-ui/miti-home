@@ -10,8 +10,8 @@ import { BARGAIN_SYSTEM_PROMPT } from "./bargain/prompt.ts"
 import { BARGAIN_BOT_BANNER_MESSAGE } from "./constants.ts"
 
 test("uses a short bargain bot announcement copy", () => {
-  assert.ok(BARGAIN_BOT_BANNER_MESSAGE.includes("Bargain Bot"))
-  assert.ok(BARGAIN_BOT_BANNER_MESSAGE.toLowerCase().includes("negotiate"))
+  assert.ok(BARGAIN_BOT_BANNER_MESSAGE.toLowerCase().includes("concierge"))
+  assert.ok(BARGAIN_BOT_BANNER_MESSAGE.length <= 80)
 })
 
 test("bargain bot prompt disallows vulgar abuse and slurs", () => {

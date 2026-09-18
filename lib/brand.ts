@@ -10,14 +10,15 @@
  * Keep this file free of `@/` imports: it is loaded by the node test runner.
  */
 
-function env(name: string) {
-  const value = process.env[name];
+// Pass static `process.env.NEXT_PUBLIC_*` reads so Next.js can inline them
+// into client bundles (dynamic process.env[name] is not inlined).
+function env(value: string | undefined) {
   return value && value.trim() ? value.trim() : undefined;
 }
 
 export const BRAND = {
   name: "Miti Home",
-  legalName: env("NEXT_PUBLIC_LEGAL_NAME") ?? "Miti Home",
+  legalName: env(process.env.NEXT_PUBLIC_LEGAL_NAME) ?? "Miti Home",
   wordmark: "MITI HOME",
   tagline: "Luxury Living",
   promise: "Beautiful spaces. A better you.",
@@ -65,31 +66,31 @@ export const DEFAULT_SITE_URL = "https://mitihome.ae";
 
 export const CONTACT = {
   /** Placeholder until the owner confirms the customer-care mailbox. */
-  email: env("NEXT_PUBLIC_CONTACT_EMAIL") ?? "hello@mitihome.ae",
-  emailIsPlaceholder: !env("NEXT_PUBLIC_CONTACT_EMAIL"),
+  email: env(process.env.NEXT_PUBLIC_CONTACT_EMAIL) ?? "hello@mitihome.ae",
+  emailIsPlaceholder: !env(process.env.NEXT_PUBLIC_CONTACT_EMAIL),
   /** E.164, e.g. +9715XXXXXXXX. Hidden everywhere when unset. */
-  phone: env("NEXT_PUBLIC_CONTACT_PHONE"),
+  phone: env(process.env.NEXT_PUBLIC_CONTACT_PHONE),
   /** Digits only for wa.me links, e.g. 9715XXXXXXXX. Hidden when unset. */
-  whatsapp: env("NEXT_PUBLIC_CONTACT_WHATSAPP"),
-  address: env("NEXT_PUBLIC_CONTACT_ADDRESS") ?? "Dubai, United Arab Emirates",
-  hours: env("NEXT_PUBLIC_CONTACT_HOURS") ?? "Sunday – Friday, 10:00 – 19:00 GST",
-  securityEmail: env("SECURITY_CONTACT_EMAIL") ?? env("NEXT_PUBLIC_CONTACT_EMAIL") ?? "hello@mitihome.ae",
+  whatsapp: env(process.env.NEXT_PUBLIC_CONTACT_WHATSAPP),
+  address: env(process.env.NEXT_PUBLIC_CONTACT_ADDRESS) ?? "Dubai, United Arab Emirates",
+  hours: env(process.env.NEXT_PUBLIC_CONTACT_HOURS) ?? "Sunday – Friday, 10:00 – 19:00 GST",
+  securityEmail: env(process.env.SECURITY_CONTACT_EMAIL) ?? env(process.env.NEXT_PUBLIC_CONTACT_EMAIL) ?? "hello@mitihome.ae",
 } as const;
 
 export const LEGAL = {
   /** UAE trade licence number — required on invoices and policy pages. */
-  tradeLicence: env("NEXT_PUBLIC_TRADE_LICENCE"),
+  tradeLicence: env(process.env.NEXT_PUBLIC_TRADE_LICENCE),
   /** Federal Tax Authority TRN — required on VAT tax invoices once registered. */
-  vatTrn: env("NEXT_PUBLIC_VAT_TRN"),
+  vatTrn: env(process.env.NEXT_PUBLIC_VAT_TRN),
 } as const;
 
 type SocialLink = { label: string; href: string };
 
 export const SOCIAL_LINKS: SocialLink[] = [
-  { label: "Instagram", href: env("NEXT_PUBLIC_SOCIAL_INSTAGRAM") ?? "" },
-  { label: "TikTok", href: env("NEXT_PUBLIC_SOCIAL_TIKTOK") ?? "" },
-  { label: "Pinterest", href: env("NEXT_PUBLIC_SOCIAL_PINTEREST") ?? "" },
-  { label: "Facebook", href: env("NEXT_PUBLIC_SOCIAL_FACEBOOK") ?? "" },
+  { label: "Instagram", href: env(process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM) ?? "" },
+  { label: "TikTok", href: env(process.env.NEXT_PUBLIC_SOCIAL_TIKTOK) ?? "" },
+  { label: "Pinterest", href: env(process.env.NEXT_PUBLIC_SOCIAL_PINTEREST) ?? "" },
+  { label: "Facebook", href: env(process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK) ?? "" },
 ].filter((link) => link.href.length > 0);
 
 export function whatsappHref(message?: string) {

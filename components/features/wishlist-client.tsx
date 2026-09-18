@@ -11,11 +11,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { removeWishlistItem } from "@/lib/actions/wishlist";
 import { normalizeProductImage } from "@/lib/image";
 import { buildProductPath } from "@/lib/seo";
+import { formatPrice } from "@/lib/money";
 import type { WishlistProductItem } from "@/lib/wishlist";
-
-function formatPrice(value: number) {
-  return `₹${value.toLocaleString("en-IN")}`;
-}
 
 function EmptyWishlist() {
   return (
@@ -28,7 +25,7 @@ function EmptyWishlist() {
         Tap the heart icon on any product to save it here.
       </p>
       <Button asChild variant="outline" className="rounded-none text-xs uppercase tracking-[0.1em]">
-        <Link href="/shop">Browse products</Link>
+        <Link href="/shop">Discover the collection</Link>
       </Button>
     </div>
   );
@@ -101,7 +98,7 @@ export function WishlistClient({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {items.map((item) => (
               <Card key={item.id} className="rounded-none border-0 bg-transparent">
-                <CardContent className="relative aspect-[3/4] overflow-hidden bg-muted/30 p-0">
+                <CardContent className="relative aspect-[4/5] overflow-hidden bg-muted/60 p-0">
                   <Link href={buildProductPath(item.slug)}>
                     <Image
                       src={normalizeProductImage(item.images[0])}

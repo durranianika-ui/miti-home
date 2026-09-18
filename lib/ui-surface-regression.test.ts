@@ -1,18 +1,37 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 function read(path: string) {
   return readFileSync(path, "utf8");
 }
 
-test("gallery hides the shared footer through a route-aware shell", () => {
+function walk(dir: string, files: string[] = []) {
+  for (const entry of readdirSync(dir)) {
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) walk(path, files);
+    else if (/\.(tsx?|css)$/.test(entry) && !/\.test\.ts$/.test(entry)) files.push(path);
+  }
+  return files;
+}
+
+test("no XILAR, rupee, Razorpay or Indian storefront references remain in shipped code", () => {
+  const offenders = [...walk("app"), ...walk("components"), ...walk("lib")].filter((file) => {
+    const source = read(file);
+    return /xilar|₹|\bINR\b|razorpay|lucknow|pincode|\bpaise\b|rupee/i.test(source);
+  });
+  assert.deepEqual(offenders, []);
+});
+
+test("gallery and admin hide the shared footer through a route-aware shell", () => {
   const layout = read("app/layout.tsx");
   const gate = read("components/layout/footer-gate.tsx");
 
-  assert.match(layout, /<FooterGate \/>/);
+  assert.match(layout, /<FooterGate shopLinks={navigation\.shop} \/>/);
   assert.match(gate, /usePathname/);
   assert.match(gate, /pathname === "\/gallery"/);
+  assert.match(gate, /pathname\.startsWith\("\/admin"\)/);
 });
 
 test("home streams the hero before data-dependent merchandising sections", () => {
@@ -20,28 +39,23 @@ test("home streams the hero before data-dependent merchandising sections", () =>
 
   assert.match(page, /export default function Home\(\)/);
   assert.doesNotMatch(page, /export default async function Home/);
-  assert.match(page, /<Hero \/>[\s\S]*<Suspense fallback={<HomeSectionsFallback \/>}>[\s\S]*<HomeMerchandisingSections \/>[\s\S]*<\/Suspense>/);
+  assert.match(page, /<Hero \/>[\s\S]*<Suspense fallback={<ProductGridSkeleton \/>}>[\s\S]*<HomeMerchandisingSections \/>[\s\S]*<\/Suspense>/);
   assert.match(page, /async function HomeMerchandisingSections\(\)/);
-  assert.match(page, /function HomeSectionsFallback\(\)/);
 });
 
-test("home merchandising keeps one complete catalog for section density", () => {
+test("home merchandising carves sections from one catalogue fetch", () => {
   const page = read("app/page.tsx");
 
-  assert.match(page, /const \[\{ products \}, combos\] = await Promise\.all\(\[/);
   assert.match(page, /getCatalogProducts\(\)/);
-  assert.match(page, /product\.images\.map/);
-  assert.match(page, /initialProducts={products}/);
-  assert.doesNotMatch(page, /getCatalogProducts\(\{ isNew: true, limit: 8 \}\)/);
-  assert.doesNotMatch(page, /getCatalogProducts\(\{ isPremium: true, limit: 8 \}\)/);
-  assert.doesNotMatch(page, /getCatalogProducts\(\{ category: "accessory", limit: 8 \}\)/);
+  assert.match(page, /filterCatalogProducts\(products, \{ isFeatured: true/);
+  assert.match(page, /filterCatalogProducts\(products, \{ isNew: true/);
+  assert.doesNotMatch(page, /getCatalogProducts\(\{ isNew: true/);
 });
 
-test("gallery band dedupes product images instead of repeating carousel tiles", () => {
-  const galleryBand = read("components/features/dec2024-gallery-band.tsx");
+test("angled gallery band dedupes product images instead of repeating tiles", () => {
+  const galleryBand = read("components/features/angled-gallery-band.tsx");
 
   assert.match(galleryBand, /function uniqueBySrc/);
-  assert.match(galleryBand, /uniqueBySrc\(\[...uniqueProductImages, ...uniqueFallbackImages\]\)\.slice\(0, 32\)/);
   assert.doesNotMatch(galleryBand, /while \(repeated\.length < 32\)/);
 });
 
@@ -50,48 +64,28 @@ test("root route suspense reserves the first viewport instead of exposing the fo
 
   assert.match(layout, /function RouteShellFallback\(\)/);
   assert.match(layout, /<Suspense fallback={<RouteShellFallback \/>}>{children}<\/Suspense>/);
-  assert.doesNotMatch(layout, /<Suspense fallback={null}>{children}<\/Suspense>/);
-});
-
-test("product route loading shell matches the loaded desktop product layout", () => {
-  const loading = read("app/product/[slug]/loading.tsx");
-
-  assert.match(loading, /bg-background pb-24 lg:pt-6/);
-  assert.match(loading, /grid grid-cols-1 lg:grid-cols-2 gap-0/);
-  assert.match(loading, /aspect-\[4\/5\]/);
-  assert.match(loading, /lg:min-h-\[calc\(100svh-8rem\)\] lg:sticky lg:top-20/);
-  assert.match(loading, /descriptionLineWidths/);
-  assert.match(loading, /"w-\[92%\]"/);
-  assert.match(loading, /border-t border-border\/60 mt-24 px-6 md:px-12 lg:px-16/);
-  assert.match(loading, /You may also like/);
 });
 
 test("public product links use slugs while product actions keep ids", () => {
-  const shopClient = read("components/features/shop-client.tsx");
-  const productGrid = read("components/features/product-grid.tsx");
+  const card = read("components/features/product-card.tsx");
   const productClient = read("components/features/product-client.tsx");
   const wishlistClient = read("components/features/wishlist-client.tsx");
   const marketingEmail = read("lib/marketing/email-template.ts");
 
-  assert.match(shopClient, /buildProductPath\(product\.slug\)/);
-  assert.match(productGrid, /buildProductPath\(product\.slug\)/);
-  assert.match(productClient, /buildProductPath\(related\.slug\)/);
+  assert.match(card, /buildProductPath\(product\.slug\)/);
+  assert.match(productClient, /buildProductPath\(product\.slug\)/);
   assert.match(wishlistClient, /buildProductPath\(item\.slug\)/);
   assert.match(marketingEmail, /buildProductUrl\(product\.slug/);
   assert.match(productClient, /addWishlistItem\(product\.id\)/);
   assert.match(productClient, /removeWishlistItem\(product\.id\)/);
-  assert.doesNotMatch(`${shopClient}\n${productGrid}\n${wishlistClient}`, /\/product\/\$\{(?:product|item)\.id\}/);
+  assert.doesNotMatch(`${card}\n${wishlistClient}`, /\/product\/\$\{(?:product|item)\.id\}/);
 });
 
-test("product try-on is exposed from the client surface without making slug pages admin-dynamic", () => {
-  const productPage = read("app/product/[slug]/page.tsx");
-  const productClient = read("components/features/product-client.tsx");
-
-  assert.doesNotMatch(productPage, /requireAdmin|isAdmin|getServerSession/);
-  assert.match(productClient, /ProductTryOnWorkspace/);
-  assert.match(productClient, /Try it on/);
-  assert.equal(existsSync("app/api/products/[id]/try-ons/route.ts"), true);
-  assert.equal(existsSync("app/api/products/[productId]/try-ons/route.ts"), false);
+test("apparel-only try-on and the paise wallet are gone", () => {
+  assert.equal(existsSync("components/features/product-try-on-workspace.tsx"), false);
+  assert.equal(existsSync("lib/wallet.ts"), false);
+  assert.equal(existsSync("app/api/razorpay"), false);
+  assert.doesNotMatch(read("components/features/product-client.tsx"), /TryOn|try-on/);
 });
 
 test("old product UUID URLs are intercepted before page streaming", () => {
@@ -99,20 +93,27 @@ test("old product UUID URLs are intercepted before page streaming", () => {
 
   assert.match(proxy, /matcher:\s*"\/product\/:slug"/);
   assert.match(proxy, /PRODUCT_UUID_PATTERN/);
-  assert.match(proxy, /NextResponse\.redirect\(new URL\(`\/product\/\$\{product\.slug\}`/);
   assert.match(proxy, /,\s*308\)/);
 });
 
-test("public product and combo detail pages expose static params", () => {
-  const productPage = read("app/product/[slug]/page.tsx");
-  const comboPage = read("app/combo/[id]/page.tsx");
+test("public product, category, collection and combo pages expose static params", () => {
+  for (const file of ["app/product/[slug]/page.tsx", "app/shop/[category]/page.tsx", "app/collections/[slug]/page.tsx", "app/combo/[id]/page.tsx"]) {
+    const page = read(file);
+    assert.doesNotMatch(page, /dynamic = "force-dynamic"/, file);
+    assert.match(page, /generateStaticParams/, file);
+  }
+});
 
-  assert.doesNotMatch(productPage, /dynamic = "force-dynamic"/);
-  assert.match(productPage, /generateStaticParams/);
-  assert.match(productPage, /getActiveProductStaticParams/);
-  assert.doesNotMatch(comboPage, /dynamic = "force-dynamic"/);
-  assert.match(comboPage, /generateStaticParams/);
-  assert.match(comboPage, /getActiveComboStaticParams/);
+test("orders can only be created from server-side routes, never a browser-callable action", () => {
+  const actions = read("lib/actions/orders.ts");
+  const createOrder = read("lib/orders/create-order.ts");
+
+  assert.match(actions, /^"use server";/);
+  assert.doesNotMatch(actions, /export async function createOrder/);
+  assert.match(createOrder, /^import "server-only";/);
+  assert.doesNotMatch(createOrder, /^["']use server["'];?$/m);
+  assert.match(read("app/api/orders/route.ts"), /createCheckoutQuote/);
+  assert.match(read("app/api/checkout/card/route.ts"), /createCheckoutQuote/);
 });
 
 test("footer and menu shells use theme tokens instead of fixed black and white", () => {
@@ -120,9 +121,8 @@ test("footer and menu shells use theme tokens instead of fixed black and white",
   const navbar = read("app/navbar.tsx");
 
   assert.match(footer, /bg-background text-foreground/);
-  assert.doesNotMatch(footer, /bg-neutral-950 text-white/);
   assert.match(navbar, /bg-background text-foreground/);
-  assert.doesNotMatch(navbar, /bg-neutral-950 text-white/);
+  assert.doesNotMatch(`${footer}\n${navbar}`, /bg-neutral-950 text-white/);
 });
 
 test("non-critical root effects are deferred out of the initial client path", () => {
@@ -136,41 +136,31 @@ test("non-critical root effects are deferred out of the initial client path", ()
   assert.match(cursorLoader, /prefers-reduced-motion: reduce/);
 });
 
-test("hero panels avoid layout-shift-prone layout animation", () => {
+test("hero panels avoid layout-shift-prone layout animation and read from merchandising config", () => {
   const hero = read("components/features/hero.tsx");
 
   assert.match(hero, /duration: 0\.46/);
-  assert.doesNotMatch(hero, /<motion\.div\s+key={slide\.src}[\s\S]*\slayout[\s\S]*role={isActive/);
+  assert.match(hero, /HERO_SLIDES/);
   assert.doesNotMatch(hero, /className="absolute inset-0"\s+layout/);
 });
 
-test("animated nav text and reels expose accessible fallbacks", () => {
+test("animated nav text keeps an accessible fallback", () => {
   const navbar = read("app/navbar.tsx");
-  const reels = read("components/features/shop-the-reels.tsx");
 
   assert.match(navbar, /<span className="sr-only">{text}<\/span>/);
   assert.doesNotMatch(navbar, /<span aria-label={text}/);
-  assert.match(reels, /<track/);
-  assert.match(reels, /kind="captions"/);
 });
 
-test("mobile reviews are capped to four cards", () => {
+test("reviews render only real testimonials and never fabricated ratings", () => {
   const reviews = read("components/features/real-reviews.tsx");
+  const productClient = read("components/features/product-client.tsx");
 
-  assert.match(reviews, /REVIEWS\.map\(\(review, index\)/);
-  assert.match(reviews, /index >= 4/);
-  assert.match(reviews, /max-md:hidden/);
-});
-
-test("shared buttons use circular pill geometry by default", () => {
-  const button = read("components/ui/button.tsx");
-
-  assert.match(button, /rounded-full/);
-  assert.doesNotMatch(button, /rounded-md text-sm font-medium/);
+  assert.match(reviews, /testimonials\.json/);
+  assert.doesNotMatch(reviews, /Verified Buyer|Star/);
+  assert.doesNotMatch(productClient, /people viewing|getMockProductStats|selling fast/);
 });
 
 test("wishlist is account-backed and has no localStorage fallback", () => {
-  const layout = read("app/layout.tsx");
   const navbar = read("app/navbar.tsx");
   const wishlistPage = read("app/wishlist/page.tsx");
   const productClient = read("components/features/product-client.tsx");
@@ -178,41 +168,36 @@ test("wishlist is account-backed and has no localStorage fallback", () => {
   assert.equal(existsSync("lib/wishlist-context.tsx"), false);
   assert.match(navbar, /getWishlistNavState/);
   assert.match(wishlistPage, /getServerSession/);
-  assert.match(wishlistPage, /getWishlistProducts/);
   assert.match(productClient, /getProductWishlist/);
-  assert.doesNotMatch(`${layout}\n${navbar}\n${wishlistPage}\n${productClient}`, /miti-wishlist|useWishlist|WishlistProvider/);
+  assert.doesNotMatch(`${navbar}\n${wishlistPage}\n${productClient}`, /miti-wishlist|useWishlist|WishlistProvider/);
 });
 
-test("theme first paint stays static and is repaired before hydration", () => {
+test("theme first paint stays static, defaults to the light ivory theme and is repaired before hydration", () => {
   const layout = read("app/layout.tsx");
-  const themeContext = read("lib/theme-context.tsx");
 
-  assert.match(layout, /miti-theme/);
   assert.doesNotMatch(layout, /cookies\(/);
   assert.doesNotMatch(layout, /next\/headers/);
-  assert.match(layout, /className="dark"/);
   assert.match(layout, /localStorage\.getItem\('miti-theme'\)/);
-  assert.match(layout, /document\.cookie/);
-  assert.match(themeContext, /document\.cookie = `miti-theme=\$\{theme\}/);
-  assert.match(layout, /<html lang="en" className="dark" suppressHydrationWarning>/);
+  assert.match(layout, /: 'light';/);
+  assert.match(layout, /<html lang="en" dir="ltr" className="light" suppressHydrationWarning>/);
 });
 
-test("google analytics tag is installed once at the root layout", () => {
+test("analytics are environment-driven with no hard-coded tracking IDs", () => {
   const layout = read("app/layout.tsx");
-  const tagIdMatches = layout.match(/G-6GDBLBWZW9/g) ?? [];
+  const analytics = read("components/analytics/analytics.tsx");
 
-  assert.match(layout, /import Script from "next\/script"/);
-  assert.match(layout, /const GOOGLE_TAG_ID = "G-6GDBLBWZW9"/);
-  assert.match(layout, /https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=\$\{GOOGLE_TAG_ID\}/);
-  assert.match(layout, /gtag\('config', '\$\{GOOGLE_TAG_ID\}'\)/);
-  assert.equal(tagIdMatches.length, 1);
+  assert.match(layout, /<Analytics \/>/);
+  assert.doesNotMatch(`${layout}\n${analytics}`, /["'`](?:G-[A-Z0-9]{6,}|GTM-[A-Z0-9]{4,})["'`]/);
+  assert.match(analytics, /NEXT_PUBLIC_GA4_ID/);
+  assert.match(analytics, /NEXT_PUBLIC_GTM_ID/);
+  assert.match(analytics, /NEXT_PUBLIC_META_PIXEL_ID/);
 });
 
 test("public media has explicit cache policy for repeat visits", () => {
   const nextConfig = read("next.config.ts");
 
   assert.match(nextConfig, /minimumCacheTTL: 60 \* 60 \* 24 \* 30/);
-  assert.match(nextConfig, /"\/hero\/:path\*"/);
-  assert.match(nextConfig, /"\/clothes\/:path\*"/);
+  assert.match(nextConfig, /"\/products\/:path\*"/);
+  assert.match(nextConfig, /"\/brand\/:path\*"/);
   assert.match(nextConfig, /stale-while-revalidate=2592000/);
 });

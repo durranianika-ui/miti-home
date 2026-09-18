@@ -4,10 +4,13 @@ import {
   getMarketingProductOptions,
 } from "@/lib/actions/marketing";
 import { AdminCampaignsClient } from "./campaigns-client";
+import { requireAdminPage } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
 export default async function CampaignsPage() {
+  await requireAdminPage("/admin/campaigns");
+
   const [campaigns, customers, products] = await Promise.all([
     getMarketingCampaigns(),
     getMarketingCustomerOptions(),

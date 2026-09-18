@@ -41,7 +41,10 @@ export function useShopCatalog(query: ShopCatalogQuery = {}, initialPage?: Produ
       const nextOffset = Number(lastPage.offset || 0) + Number(lastPage.limit || limit);
       return nextOffset < Number(lastPage.total || 0) ? nextOffset : undefined;
     },
-    select: (data) => data.pages.flatMap((page) => page.products || []),
+    select: (data) => ({
+      products: data.pages.flatMap((page) => page.products || []),
+      total: Number(data.pages[0]?.total ?? 0),
+    }),
     staleTime: 1000 * 60 * 5,
   });
 }

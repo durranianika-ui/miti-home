@@ -81,8 +81,9 @@ export default function NewCouponPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Coupon Code *</label>
+              <label htmlFor="coupon-code" className="text-sm font-medium">Coupon Code *</label>
               <input
+                id="coupon-code"
                 type="text"
                 required
                 value={formData.code}
@@ -99,8 +100,9 @@ export default function NewCouponPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Discount Type *</label>
+                <label htmlFor="coupon-type" className="text-sm font-medium">Discount Type *</label>
                 <select
+                  id="coupon-type"
                   required
                   value={formData.discountType}
                   onChange={(e) =>
@@ -116,10 +118,11 @@ export default function NewCouponPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <label htmlFor="coupon-value" className="text-sm font-medium">
                   Discount Value *
                 </label>
                 <input
+                  id="coupon-value"
                   type="number"
                   required
                   min="0"
@@ -137,8 +140,9 @@ export default function NewCouponPage() {
 
             {formData.discountType === "percentage" && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Max Discount (AED)</label>
+                <label htmlFor="coupon-max-discount" className="text-sm font-medium">Max Discount (AED)</label>
                 <input
+                  id="coupon-max-discount"
                   type="number"
                   min="0"
                   step="0.01"
@@ -156,8 +160,9 @@ export default function NewCouponPage() {
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Minimum Order Value (AED)</label>
+              <label htmlFor="coupon-min-order" className="text-sm font-medium">Minimum Order Value (AED)</label>
               <input
+                id="coupon-min-order"
                 type="number"
                 min="0"
                 step="0.01"
@@ -172,8 +177,9 @@ export default function NewCouponPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Valid Until</label>
+                <label htmlFor="coupon-valid-until" className="text-sm font-medium">Valid Until</label>
                 <input
+                  id="coupon-valid-until"
                   type="datetime-local"
                   value={formData.validUntil}
                   onChange={(e) =>
@@ -183,8 +189,9 @@ export default function NewCouponPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Max Uses</label>
+                <label htmlFor="coupon-max-uses" className="text-sm font-medium">Max Uses</label>
                 <input
+                  id="coupon-max-uses"
                   type="number"
                   min="1"
                   value={formData.maxUses}

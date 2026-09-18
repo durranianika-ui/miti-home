@@ -84,7 +84,7 @@ export function ProductGrid({
             {visible.length === 0 ? (
                 <p className="py-16 text-center text-sm text-muted-foreground">New pieces are on their way.</p>
             ) : layout === "scroll" ? (
-                <div className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 scrollbar-hide md:-mx-12 md:gap-6 md:px-12">
+                <div className="-mx-5 flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto px-5 pb-4 scrollbar-hide md:-mx-12 md:scroll-px-12 md:gap-6 md:px-12">
                     {visible.map((product) => (
                         <div key={product.id} className="w-[62vw] max-w-[300px] flex-none snap-start sm:w-[260px]">
                             <ProductCard product={product} sizes="(max-width: 640px) 62vw, 300px" />

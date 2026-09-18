@@ -4,6 +4,7 @@ import { getCustomers } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/button";
 import { formatPriceExact } from "@/lib/money";
 import { displayPhone, formatDate, inputClass } from "../_lib/format";
+import { requireAdminPage } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,8 @@ export default async function AdminCustomersPage({
 }: {
   searchParams: Promise<{ q?: string | string[] }>;
 }) {
+  await requireAdminPage("/admin/customers");
+
   const params = await searchParams;
   const q = (Array.isArray(params.q) ? params.q[0] : params.q)?.trim().slice(0, 100) ?? "";
   const customers = await getCustomers({ search: q || undefined, limit: 200 });

@@ -460,7 +460,7 @@ function ShopProductGrid({
     const baseUrl = normalizeSiteUrl()
 
     const {
-        data: products = [],
+        data,
         isLoading: loading,
         isError,
         refetch,
@@ -468,6 +468,8 @@ function ShopProductGrid({
         hasNextPage,
         isFetchingNextPage,
     } = useShopCatalog(query, isDefaultQuery ? initialCatalog : undefined)
+    const products = data?.products ?? []
+    const total = Math.max(data?.total ?? 0, products.length)
 
     const visibleProducts = products.slice(0, visibleCount)
     const hasMore = visibleCount < products.length || Boolean(hasNextPage)
@@ -544,7 +546,7 @@ function ShopProductGrid({
             ) : (
                 <>
                     <p className="mb-6 font-heading text-[10px] uppercase tabular-nums tracking-[0.18em] text-muted-foreground" aria-live="polite">
-                        {products.length} {products.length === 1 ? "piece" : "pieces"}{hasNextPage ? "+" : ""}
+                        {total} {total === 1 ? "piece" : "pieces"}
                     </p>
                     {visibleProducts.length > 0 ? (
                         <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">

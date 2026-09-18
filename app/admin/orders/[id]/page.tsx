@@ -18,6 +18,7 @@ import {
   paymentMethodLabel,
   paymentStatusDisplay,
 } from "../../_lib/format";
+import { requireAdminPage } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage("/admin/orders");
+
   const { id } = await params;
   if (!UUID_PATTERN.test(id)) notFound();
   const order = await getOrderById(id);

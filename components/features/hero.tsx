@@ -160,7 +160,7 @@ export function Hero() {
                       >
                         {activeSlide.title}
                       </motion.h1>
-                      <div className="mt-7 flex flex-nowrap items-center gap-2.5 sm:gap-3">
+                      <div className="mt-7 flex flex-wrap items-center gap-2.5 sm:gap-3">
                         <Link href={activeSlide.href} className="min-w-0 flex-none">
                           <Button
                             size="lg"
@@ -244,7 +244,7 @@ export function Hero() {
                 >
                   {activeSlide.title}
                 </motion.h1>
-                <div className="mt-7 flex flex-nowrap items-center gap-2.5">
+                <div className="mt-7 flex flex-wrap items-center gap-2.5">
                   <Link href={activeSlide.href} className="min-w-0 flex-none">
                     <Button
                       size="lg"

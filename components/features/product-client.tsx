@@ -647,7 +647,7 @@ export function ProductClient({ initialProduct }: { initialProduct: Product }) {
                                 ) : null}
                             </div>
 
-                            <div className="flex flex-wrap items-stretch gap-3">
+                            <div className="flex items-stretch gap-2 sm:gap-3">
                                 <div className="flex h-13 items-center border border-border" role="group" aria-label="Quantity">
                                     <button
                                         type="button"
@@ -673,7 +673,7 @@ export function ProductClient({ initialProduct }: { initialProduct: Product }) {
                                     type="button"
                                     onClick={() => addToBag(false)}
                                     disabled={soldOut}
-                                    className="flex h-13 min-w-[10rem] flex-1 items-center justify-center gap-2 bg-foreground px-6 font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-background transition-colors duration-500 hover:bg-brand hover:text-neutral-950 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="flex h-13 min-w-0 flex-1 items-center justify-center gap-2 bg-foreground px-4 sm:px-6 font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-background transition-colors duration-500 hover:bg-brand hover:text-neutral-950 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     {soldOut ? "Sold out" : added ? <><Check className="h-4 w-4" /> Added to bag</> : "Add to bag"}
                                 </button>
@@ -775,7 +775,7 @@ export function ProductClient({ initialProduct }: { initialProduct: Product }) {
                 {(product.relatedCombos?.length ?? 0) > 0 && (
                     <section className="mt-20 border-t border-border/60 px-5 pt-14 md:px-12 lg:px-16">
                         <h2 className="mb-8 font-display text-2xl md:text-3xl">Complete the set</h2>
-                        <div className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 scrollbar-hide md:mx-0 md:px-0">
+                        <div className="-mx-5 flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto px-5 pb-4 scrollbar-hide md:mx-0 md:scroll-px-0 md:px-0">
                             {product.relatedCombos.map((combo) => (
                                 <ViewportPrefetchLink key={combo.id} href={`/combo/${combo.id}`} className="group w-[78vw] max-w-[380px] flex-none snap-start">
                                     <div className="grid aspect-[2/1] grid-cols-2 gap-px overflow-hidden bg-muted">
@@ -800,7 +800,7 @@ export function ProductClient({ initialProduct }: { initialProduct: Product }) {
                 {(product.relatedProducts?.length ?? 0) > 0 && (
                     <section className="mt-20 border-t border-border/60 px-5 pt-14 md:px-12 lg:px-16">
                         <h2 className="mb-8 font-display text-2xl md:text-3xl">You may also like</h2>
-                        <div className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 scrollbar-hide md:mx-0 md:gap-6 md:px-0">
+                        <div className="-mx-5 flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto px-5 pb-4 scrollbar-hide md:mx-0 md:scroll-px-0 md:gap-6 md:px-0">
                             {product.relatedProducts.map((related) => (
                                 <div key={related.id} className="w-[60vw] max-w-[280px] flex-none snap-start">
                                     <ProductCard product={related} sizes="(max-width: 640px) 60vw, 280px" />
@@ -814,7 +814,7 @@ export function ProductClient({ initialProduct }: { initialProduct: Product }) {
                 {recentlyViewed.length > 0 && (
                     <section className="mt-16 border-t border-border/60 px-5 pt-14 md:px-12 lg:px-16">
                         <h2 className="mb-8 font-display text-2xl md:text-3xl">Recently viewed</h2>
-                        <div className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 scrollbar-hide md:mx-0 md:gap-6 md:px-0">
+                        <div className="-mx-5 flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto px-5 pb-4 scrollbar-hide md:mx-0 md:scroll-px-0 md:gap-6 md:px-0">
                             {recentlyViewed.map((item) => (
                                 <div key={item.id} className="w-[44vw] max-w-[220px] flex-none snap-start">
                                     <ProductCard product={item} sizes="(max-width: 640px) 44vw, 220px" />

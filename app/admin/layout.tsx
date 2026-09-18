@@ -48,7 +48,7 @@ export default async function AdminLayout({
         <AdminNav />
       </header>
 
-      <main className="p-4 sm:p-6">{children}</main>
+      <div className="p-4 sm:p-6">{children}</div>
     </div>
   );
 }

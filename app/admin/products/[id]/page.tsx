@@ -6,12 +6,15 @@ import {
   getProductVariants,
 } from "@/lib/actions/admin";
 import { ProductForm } from "../product-form";
+import { requireAdminPage } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage("/admin/products");
+
   const { id } = await params;
   if (!UUID_PATTERN.test(id)) notFound();
 

@@ -123,7 +123,7 @@ function StaggeredAnnouncementText({
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="inline-flex items-center justify-center overflow-hidden py-1 gap-x-1 md:gap-x-1.5 font-heading text-[9px] font-normal uppercase tracking-[0.22em] text-[#d9d0c2] dark:text-[#5f564d] sm:text-[10px] md:text-[11px] md:tracking-[0.28em] w-full max-w-full"
+      className="inline-flex items-center justify-center overflow-hidden py-1 gap-x-1 md:gap-x-1.5 font-heading text-[9px] font-normal uppercase tracking-[0.14em] sm:tracking-[0.22em] text-[#d9d0c2] dark:text-[#5f564d] sm:text-[10px] md:text-[11px] md:tracking-[0.28em] w-full max-w-full"
     >
       {words.map((word, idx) => (
         <span key={idx} className="relative inline-block overflow-hidden">
@@ -845,7 +845,7 @@ export function Navbar({ navigation }: { navigation: NavigationData }) {
               <Search className="h-4 w-4 stroke-[1.5]" />
             </button>
 
-            <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
+            <nav className="hidden lg:flex items-center space-x-0.5 xl:space-x-2" aria-label="Primary">
               {navigation.primary.map((link) => (
                 <Link
                   key={link.href}
@@ -865,7 +865,9 @@ export function Navbar({ navigation }: { navigation: NavigationData }) {
 
           {/* Right: Actions */}
           <div className="flex-1 flex items-center justify-end space-x-1.5 lg:space-x-3.5">
-            <ThemeToggleButton showLabel={false} variant="ghost" />
+            <span className="hidden md:inline-flex">
+              <ThemeToggleButton showLabel={false} variant="ghost" />
+            </span>
 
             <button
               type="button"

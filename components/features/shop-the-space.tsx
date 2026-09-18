@@ -141,7 +141,7 @@ export function ShopTheSpace({
                 <div className="relative">
                     <div
                         ref={scrollerRef}
-                        className="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2 md:gap-5"
+                        className="scrollbar-hide flex snap-x snap-mandatory scroll-px-1 gap-4 overflow-x-auto px-1 pb-2 md:gap-5"
                     >
                         {reels.map((reel) => (
                             <div
@@ -176,7 +176,8 @@ export function ShopTheSpace({
                                 />
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-black/10" />
-                                <p className="absolute left-4 top-4 z-10 font-heading text-[10px] font-medium uppercase tracking-[0.28em] text-white/90 drop-shadow">{reel.title}</p>
+                                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
+                                <p className="absolute left-4 top-4 z-10 font-heading text-[10px] font-medium uppercase tracking-[0.28em] text-white drop-shadow">{reel.title}</p>
                                 {reel.video && (
                                 <button
                                     type="button"

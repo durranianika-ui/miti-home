@@ -65,7 +65,7 @@ export function AdminCombosClient({
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Combos</h1>
         <p className="text-muted-foreground">
-          Pair two products into a set and cap the discount the shopping concierge may offer on it.
+          Pair two products into a set. The set saving is deducted automatically at checkout when both pieces are bought together.
         </p>
       </div>
 
@@ -87,26 +87,26 @@ export function AdminCombosClient({
             }}
           >
             <div className="space-y-2">
-              <label className="text-sm font-medium">Product A</label>
-              <select name="productAId" required className="w-full px-3 py-2 border rounded-lg bg-background">
+              <label htmlFor="combo-product-a" className="text-sm font-medium">Product A</label>
+              <select id="combo-product-a" name="productAId" required className="w-full px-3 py-2 border rounded-lg bg-background">
                 <option value="">Select product</option>
                 {comboProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Product B</label>
-              <select name="productBId" required className="w-full px-3 py-2 border rounded-lg bg-background">
+              <label htmlFor="combo-product-b" className="text-sm font-medium">Product B</label>
+              <select id="combo-product-b" name="productBId" required className="w-full px-3 py-2 border rounded-lg bg-background">
                 <option value="">Select product</option>
                 {comboProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Max concierge discount (AED)</label>
-              <input type="number" name="discountAmount" min="0" step="0.01" required defaultValue="0" className="w-full px-3 py-2 border rounded-lg bg-background" />
+              <label htmlFor="combo-saving" className="text-sm font-medium">Set saving (AED)</label>
+              <input id="combo-saving" type="number" name="discountAmount" min="0" step="0.01" required defaultValue="0" className="w-full px-3 py-2 border rounded-lg bg-background" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Display Order</label>
-              <input type="number" name="displayOrder" min="0" step="1" defaultValue="0" className="w-full px-3 py-2 border rounded-lg bg-background" />
+              <label htmlFor="combo-order" className="text-sm font-medium">Display Order</label>
+              <input id="combo-order" type="number" name="displayOrder" min="0" step="1" defaultValue="0" className="w-full px-3 py-2 border rounded-lg bg-background" />
             </div>
             <div className="md:col-span-4">
               <Button type="submit" disabled={createMutation.isPending}>
@@ -135,7 +135,7 @@ export function AdminCombosClient({
                       {combo.productA ? formatPrice(combo.productA.sellingPrice) : "N/A"} + {combo.productB ? formatPrice(combo.productB.sellingPrice) : "N/A"}
                     </p>
                     <p className="text-xs text-brand">
-                      Max concierge discount: {formatPrice(combo.discountAmount)}
+                      Set saving: {formatPrice(combo.discountAmount)}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-end gap-3 w-full">
@@ -155,12 +155,12 @@ export function AdminCombosClient({
                       }}
                     >
                       <div className="space-y-1 col-span-1">
-                        <label className="text-xs text-muted-foreground">Max concierge discount (AED)</label>
-                        <input type="number" name="discountAmount" min="0" step="0.01" defaultValue={Number(combo.discountAmount)} className="w-full sm:w-28 px-3 py-2 border rounded-lg bg-background text-sm" />
+                        <label htmlFor={`combo-${combo.id}-saving`} className="text-xs text-muted-foreground">Set saving (AED)</label>
+                        <input id={`combo-${combo.id}-saving`} type="number" name="discountAmount" min="0" step="0.01" defaultValue={Number(combo.discountAmount)} className="w-full sm:w-28 px-3 py-2 border rounded-lg bg-background text-sm" />
                       </div>
                       <div className="space-y-1 col-span-1">
-                        <label className="text-xs text-muted-foreground">Display Order</label>
-                        <input type="number" name="displayOrder" min="0" step="1" defaultValue={combo.displayOrder} className="w-full sm:w-28 px-3 py-2 border rounded-lg bg-background text-sm" />
+                        <label htmlFor={`combo-${combo.id}-order`} className="text-xs text-muted-foreground">Display Order</label>
+                        <input id={`combo-${combo.id}-order`} type="number" name="displayOrder" min="0" step="1" defaultValue={combo.displayOrder} className="w-full sm:w-28 px-3 py-2 border rounded-lg bg-background text-sm" />
                       </div>
                       <label className="flex items-center gap-2 pb-2 text-sm col-span-2">
                         <input type="checkbox" name="isActive" defaultChecked={combo.isActive} />

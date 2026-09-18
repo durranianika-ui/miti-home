@@ -22,6 +22,8 @@ export type CategoryTile = {
 /** Shop by Category — image-led tiles built from the live taxonomy. */
 export function CategoryTiles({ categories }: { categories: CategoryTile[] }) {
     if (categories.length === 0) return null
+    // A tall lead tile only when the remaining tiles fill complete 2-up rows beside it.
+    const featureFirst = categories.length % 2 === 1 && categories.length > 1
 
     return (
         <section className="bg-background px-5 py-16 md:px-12 md:py-24">
@@ -30,18 +32,18 @@ export function CategoryTiles({ categories }: { categories: CategoryTile[] }) {
             </ScrollReveal>
             <StaggerContainer
                 amount={0.05}
-                className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 lg:grid-cols-3"
+                className="-mx-5 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 lg:grid-cols-3"
             >
                 {categories.map((category, index) => (
                     <StaggerItem
                         key={category.href}
                         className={cn(
                             "w-[70vw] max-w-[320px] flex-none snap-start sm:w-auto sm:max-w-none",
-                            index === 0 && "lg:row-span-2",
+                            featureFirst && index === 0 && "lg:row-span-2",
                         )}
                     >
                         <ViewportPrefetchLink href={category.href} className="group relative block h-full overflow-hidden bg-muted">
-                            <div className={cn("relative aspect-[4/5] sm:aspect-[5/4]", index === 0 && "lg:aspect-auto lg:h-full lg:min-h-[36rem]")}>
+                            <div className={cn("relative aspect-[4/5] sm:aspect-[5/4]", featureFirst && index === 0 && "lg:aspect-auto lg:h-full lg:min-h-[36rem]")}>
                                 <Image
                                     src={normalizeProductImage(category.image)}
                                     alt=""
@@ -139,8 +141,8 @@ export function LifestyleBanner({
     const ref = useRef<HTMLElement>(null)
     const shouldReduceMotion = useReducedMotion()
     const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] })
-    const y = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? ["0%", "0%"] : ["-8%", "8%"])
-    const scale = useTransform(scrollYProgress, [0, 0.5, 1], shouldReduceMotion ? [1, 1, 1] : [1.12, 1.04, 1.12])
+    const y = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? ["0%", "0%"] : ["-5%", "5%"])
+    const scale = useTransform(scrollYProgress, [0, 0.5, 1], shouldReduceMotion ? [1, 1, 1] : [1.2, 1.13, 1.2])
 
     return (
         <section ref={ref} className="relative h-[78svh] min-h-[480px] overflow-hidden bg-[#2a2622] md:h-[92svh]">

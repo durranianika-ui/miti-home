@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import { Lato, Montserrat } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
-import { Navbar } from "@/app/navbar";
+import { NavbarGate } from "@/components/layout/navbar-gate";
 import { FooterGate } from "@/components/layout/footer-gate";
 import { CartProvider } from "@/lib/cart-context";
 import { ThemeProvider } from "@/components/ui/theme-provider";
@@ -151,7 +151,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <QueryProvider>
             <CartProvider>
-              <Navbar navigation={navigation} />
+              <NavbarGate navigation={navigation} />
               <div id="main-content-container" className="flex-1 flex flex-col">
                 <main id="main-content" className="flex-1 overflow-x-hidden relative">
                   <Suspense fallback={<RouteShellFallback />}>{children}</Suspense>

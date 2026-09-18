@@ -1,4 +1,4 @@
-DROP INDEX "coupon_code_idx";--> statement-breakpoint
+DROP INDEX IF EXISTS "coupon_code_idx";--> statement-breakpoint
 ALTER TABLE "coupons" ALTER COLUMN "discount_type" SET DEFAULT 'fixed';--> statement-breakpoint
 ALTER TABLE "coupons" ALTER COLUMN "valid_from" SET DEFAULT now();--> statement-breakpoint
 ALTER TABLE "orders" ALTER COLUMN "discount" SET DEFAULT '0';--> statement-breakpoint

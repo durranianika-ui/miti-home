@@ -1,44 +1,130 @@
 "use client"
 
-import { useCart } from "@/lib/cart-context"
+import { useCart, type CartItem } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import { X, Minus, Plus, ShoppingBag, Check } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { useSession } from "@/lib/auth-client"
 import { useEffect, useRef } from "react"
 import { normalizeProductImage } from "@/lib/image"
-import { FREE_SHIPPING_THRESHOLD } from "@/lib/constants"
+import { formatPrice } from "@/lib/money"
+import { trackEcommerce } from "@/lib/analytics"
+import { FREE_SHIPPING_THRESHOLD, FREE_SHIPPING_THRESHOLD_DISPLAY } from "@/lib/constants"
+
+const STANDARD_OPTION = "Standard"
+
+/** Cart lines may carry the product's option labels (added by set/PDP add-to-bag). */
+type CartLine = CartItem & { sizeLabel?: string; colorLabel?: string }
+
+function optionSummary(item: CartLine) {
+    const parts: string[] = []
+    if (item.size && item.size !== STANDARD_OPTION) {
+        parts.push(`${item.sizeLabel || "Size"}: ${item.size}`)
+    }
+    if (item.color) {
+        parts.push(`${item.colorLabel || "Colour"}: ${item.color}`)
+    }
+    return parts
+}
+
+function toAnalyticsItem(item: CartLine, quantity = item.quantity) {
+    const variant = [item.size !== STANDARD_OPTION ? item.size : null, item.color].filter(Boolean).join(" / ")
+    return {
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity,
+        ...(variant ? { variant } : {}),
+    }
+}
+
+function lineKey(item: CartLine) {
+    return `${item.comboGroupId || "single"}-${item.id}-${item.size}-${item.color || ""}`
+}
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export function CartDrawer() {
     const { items, isOpen, setIsOpen, removeItem, updateQuantity, totalItems, totalPrice, clearCart } = useCart()
-    const { data: session } = useSession()
-    const router = useRouter()
+    const reduceMotion = useReducedMotion()
     const drawerRef = useRef<HTMLDivElement>(null)
     const closeButtonRef = useRef<HTMLButtonElement>(null)
+    const returnFocusRef = useRef<HTMLElement | null>(null)
     const freeShippingUnlocked = totalPrice >= FREE_SHIPPING_THRESHOLD
     const freeShippingRemaining = Math.max(0, FREE_SHIPPING_THRESHOLD - totalPrice)
+    const freeShippingProgress = FREE_SHIPPING_THRESHOLD > 0 ? Math.min(100, Math.round((totalPrice / FREE_SHIPPING_THRESHOLD) * 100)) : 100
+    const hasSetItems = items.some((item) => item.comboGroupId)
 
-    // Focus trap: focus close button when drawer opens
+    // Move focus into the drawer when it opens and hand it back when it closes.
     useEffect(() => {
-        if (isOpen && closeButtonRef.current) {
-            closeButtonRef.current.focus()
+        if (isOpen) {
+            returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+            closeButtonRef.current?.focus()
+            return
         }
+        returnFocusRef.current?.focus?.()
+        returnFocusRef.current = null
     }, [isOpen])
 
-    // Close on Escape key
+    // Close on Escape; keep Tab inside the dialog.
     useEffect(() => {
         if (!isOpen) return
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
                 setIsOpen(false)
+                return
+            }
+            if (e.key !== "Tab" || !drawerRef.current) return
+            const focusable = Array.from(drawerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE))
+            if (focusable.length === 0) return
+            const first = focusable[0]
+            const last = focusable[focusable.length - 1]
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault()
+                last.focus()
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault()
+                first.focus()
             }
         }
         document.addEventListener("keydown", handleKeyDown)
         return () => document.removeEventListener("keydown", handleKeyDown)
     }, [isOpen, setIsOpen])
+
+    const handleRemove = (item: CartLine) => {
+        // Removing one piece of a set removes the whole set.
+        const removed = item.comboGroupId ? items.filter((line) => line.comboGroupId === item.comboGroupId) : [item]
+        trackEcommerce("remove_from_cart", { items: removed.map((line) => toAnalyticsItem(line)) })
+        removeItem(item.id, item.size, item.color, item.comboGroupId)
+    }
+
+    const handleDecrease = (item: CartLine) => {
+        if (item.quantity <= 1) {
+            handleRemove(item)
+            return
+        }
+        const affected = item.comboGroupId ? items.filter((line) => line.comboGroupId === item.comboGroupId) : [item]
+        trackEcommerce("remove_from_cart", { items: affected.map((line) => toAnalyticsItem(line, 1)) })
+        updateQuantity(item.id, item.size, item.quantity - 1, item.color, item.comboGroupId)
+    }
+
+    const handleClear = () => {
+        if (items.length > 0) {
+            trackEcommerce("remove_from_cart", { items: items.map((line) => toAnalyticsItem(line)) })
+        }
+        clearCart()
+    }
+
+    const handleCheckout = () => {
+        trackEcommerce("begin_checkout", { items: items.map((line) => toAnalyticsItem(line)), value: totalPrice })
+        setIsOpen(false)
+    }
+
+    const overlayTransition = { duration: reduceMotion ? 0 : 0.3, ease: [0.32, 0.72, 0, 1] as const }
+    const drawerTransition = reduceMotion
+        ? { duration: 0 }
+        : { type: "spring" as const, stiffness: 300, damping: 30 }
 
     return (
         <AnimatePresence>
@@ -49,10 +135,11 @@ export function CartDrawer() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                        transition={overlayTransition}
                         style={{ willChange: "opacity" }}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+                        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
                         onClick={() => setIsOpen(false)}
+                        aria-hidden="true"
                     />
 
                     {/* Drawer */}
@@ -60,153 +147,195 @@ export function CartDrawer() {
                         ref={drawerRef}
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Shopping cart"
+                        aria-labelledby="cart-drawer-title"
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        transition={drawerTransition}
                         style={{ willChange: "transform" }}
-                        className="fixed right-0 top-0 h-full w-full max-w-md bg-background border-l border-border/60 z-50 flex flex-col"
+                        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-border bg-background text-foreground"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-border/60">
+                        <div className="flex items-center justify-between border-b border-border px-6 py-5">
                             <div className="flex items-center gap-3">
-                                <ShoppingBag className="h-4 w-4" />
-                                <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">Cart ({totalItems})</h2>
+                                <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+                                <h2 id="cart-drawer-title" className="font-heading text-[11px] font-medium uppercase tracking-[0.3em]">
+                                    Your bag <span className="text-muted-foreground">({totalItems})</span>
+                                </h2>
                             </div>
-                            <Button ref={closeButtonRef} variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsOpen(false)} aria-label="Close cart">
-                                <X className="h-4 w-4" />
+                            <Button ref={closeButtonRef} variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setIsOpen(false)} aria-label="Close bag">
+                                <X className="h-4 w-4" aria-hidden="true" />
                             </Button>
                         </div>
 
+                        {/* Free-delivery progress */}
+                        {items.length > 0 && (
+                            <div className="border-b border-border px-6 py-4">
+                                <p className="text-xs text-foreground" aria-live="polite">
+                                    {freeShippingUnlocked ? (
+                                        <span className="flex items-center gap-2">
+                                            <Check className="h-3.5 w-3.5 text-brand-strong" aria-hidden="true" />
+                                            Your order qualifies for complimentary UAE delivery.
+                                        </span>
+                                    ) : (
+                                        <>
+                                            You are <span className="tabular-nums">{formatPrice(freeShippingRemaining)}</span> away from complimentary delivery.
+                                        </>
+                                    )}
+                                </p>
+                                <div
+                                    className="mt-3 h-px w-full bg-border"
+                                    role="progressbar"
+                                    aria-label={`Progress towards complimentary delivery over ${FREE_SHIPPING_THRESHOLD_DISPLAY}`}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-valuenow={freeShippingProgress}
+                                >
+                                    <div
+                                        className="h-px bg-brand transition-[width] duration-500 motion-reduce:transition-none"
+                                        style={{ width: `${freeShippingProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         {/* Items */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
                             {items.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-center space-y-5">
-                                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
-                                        <ShoppingBag className="h-7 w-7 text-muted-foreground" />
+                                <div className="flex h-full flex-col items-center justify-center space-y-6 text-center">
+                                    <div className="flex h-16 w-16 items-center justify-center border border-border">
+                                        <ShoppingBag className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <p className="text-sm font-medium">Nothing here yet</p>
-                                        <p className="text-xs text-muted-foreground max-w-[220px]">Browse our latest drops and find something bold. Free shipping on orders above ₹999.</p>
+                                    <div className="space-y-2">
+                                        <p className="font-display text-2xl font-light">Your bag is empty</p>
+                                        <p className="mx-auto max-w-[260px] text-xs leading-relaxed text-muted-foreground">
+                                            Discover pieces for a more beautiful everyday. Complimentary UAE delivery on orders over {FREE_SHIPPING_THRESHOLD_DISPLAY}.
+                                        </p>
                                     </div>
-                                    <Button variant="outline" className="rounded-none text-xs uppercase tracking-[0.1em]" onClick={() => { setIsOpen(false); router.push("/shop"); }}>
-                                        Explore the shop
-                                    </Button>
+                                    <div className="flex w-full max-w-[260px] flex-col gap-3">
+                                        <Link
+                                            href="/new"
+                                            onClick={() => setIsOpen(false)}
+                                            className="flex h-11 items-center justify-center bg-foreground font-heading text-[11px] uppercase tracking-[0.22em] text-background transition-colors hover:bg-brand hover:text-neutral-950"
+                                        >
+                                            Shop new arrivals
+                                        </Link>
+                                        <Link
+                                            href="/shop"
+                                            onClick={() => setIsOpen(false)}
+                                            className="flex h-11 items-center justify-center border border-foreground font-heading text-[11px] uppercase tracking-[0.22em] text-foreground transition-colors hover:bg-foreground hover:text-background"
+                                        >
+                                            Shop all
+                                        </Link>
+                                    </div>
                                 </div>
                             ) : (
-                                items.map((item) => (
-                                    <div key={`${item.comboGroupId || "single"}-${item.id}-${item.size}-${item.color || ''}`} className="flex gap-4 pb-5 border-b border-border/40">
-                                        <Image
-                                            src={normalizeProductImage(item.image)}
-                                            alt={item.name}
-                                            width={80}
-                                            height={96}
-                                            className="w-20 h-24 object-cover flex-shrink-0 bg-muted/30"
-                                        />
-                                        <div className="flex-1 space-y-1">
-                                            <h3 className="font-medium text-sm leading-tight">{item.name}</h3>
-                                            {item.comboName && (
-                                                <p className="text-[10px] uppercase tracking-[0.15em] text-brand">
-                                                    Combo: {item.comboName}
-                                                </p>
-                                            )}
-                                            {!(item.size === "One Size" && !item.color) && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    Size: {item.size}{item.color && ` · ${item.color}`}
-                                                </p>
-                                            )}
-                                            <p className="font-semibold text-sm tabular-nums">{item.displayPrice}</p>
-                                            <div className="flex items-center gap-2 pt-2">
+                                <ul className="space-y-5">
+                                    {items.map((line) => {
+                                        const item = line as CartLine
+                                        const options = optionSummary(item)
+                                        return (
+                                            <li key={lineKey(item)} className="flex gap-4 border-b border-border/60 pb-5">
+                                                <div className="relative aspect-square w-20 flex-shrink-0 overflow-hidden bg-muted">
+                                                    <Image
+                                                        src={normalizeProductImage(item.image)}
+                                                        alt={item.name}
+                                                        fill
+                                                        sizes="80px"
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                                <div className="min-w-0 flex-1 space-y-1">
+                                                    <h3 className="text-sm leading-snug">{item.name}</h3>
+                                                    {item.comboName && (
+                                                        <p className="font-heading text-[10px] uppercase tracking-[0.2em] text-brand-strong">
+                                                            Part of a set
+                                                        </p>
+                                                    )}
+                                                    {options.length > 0 && (
+                                                        <p className="text-xs text-muted-foreground">{options.join(" · ")}</p>
+                                                    )}
+                                                    <p className="text-sm tabular-nums">
+                                                        {formatPrice(item.price)}
+                                                        {item.quantity > 1 && (
+                                                            <span className="ml-2 text-xs text-muted-foreground">
+                                                                {formatPrice(item.price * item.quantity)} total
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 pt-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="h-7 w-7 rounded-none"
+                                                            aria-label={`Decrease quantity of ${item.name}`}
+                                                            onClick={() => handleDecrease(item)}
+                                                        >
+                                                            <Minus className="h-3 w-3" aria-hidden="true" />
+                                                        </Button>
+                                                        <span className="w-6 text-center text-sm tabular-nums" aria-label={`Quantity ${item.quantity}`}>
+                                                            {item.quantity}
+                                                        </span>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="h-7 w-7 rounded-none"
+                                                            aria-label={`Increase quantity of ${item.name}`}
+                                                            onClick={() => updateQuantity(item.id, item.size, item.quantity + 1, item.color, item.comboGroupId)}
+                                                        >
+                                                            <Plus className="h-3 w-3" aria-hidden="true" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
                                                 <Button
-                                                    variant="outline"
+                                                    variant="ghost"
                                                     size="icon"
-                                                    className="h-7 w-7 rounded-none"
-                                                    aria-label={`Decrease quantity of ${item.name}`}
-                                                    onClick={() => updateQuantity(item.id, item.size, item.quantity - 1, item.color, item.comboGroupId)}
+                                                    className="h-7 w-7 self-start rounded-none text-muted-foreground hover:text-foreground"
+                                                    aria-label={item.comboGroupId ? `Remove the set containing ${item.name} from bag` : `Remove ${item.name} from bag`}
+                                                    onClick={() => handleRemove(item)}
                                                 >
-                                                    <Minus className="h-3 w-3" />
+                                                    <X className="h-3.5 w-3.5" aria-hidden="true" />
                                                 </Button>
-                                                <span className="w-6 text-center text-sm tabular-nums">{item.quantity}</span>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="h-7 w-7 rounded-none"
-                                                    aria-label={`Increase quantity of ${item.name}`}
-                                                    onClick={() => updateQuantity(item.id, item.size, item.quantity + 1, item.color, item.comboGroupId)}
-                                                >
-                                                    <Plus className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 self-start text-muted-foreground hover:text-foreground"
-                                            aria-label={`Remove ${item.name} from cart`}
-                                            onClick={() => removeItem(item.id, item.size, item.color, item.comboGroupId)}
-                                        >
-                                            <X className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-                                ))
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
                             )}
                         </div>
 
                         {/* Footer */}
                         {items.length > 0 && (
-                            <div className="p-6 border-t border-border/60 space-y-4">
-                                <div
-                                    className={`border px-4 py-3 text-sm font-semibold ${
-                                        freeShippingUnlocked
-                                            ? "border-emerald-700/20 bg-emerald-50 text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"
-                                            : "border-border/70 bg-secondary/20 text-foreground"
-                                    }`}
-                                >
-                                    {freeShippingUnlocked ? (
-                                        <span className="flex items-center gap-2">
-                                            <Check className="h-4 w-4" />
-                                            You’ve unlocked free shipping!
-                                        </span>
-                                    ) : (
-                                        <span className="block">
-                                            Add ₹{freeShippingRemaining.toLocaleString("en-IN")} more to unlock free shipping
-                                        </span>
-                                    )}
+                            <div className="space-y-4 border-t border-border px-6 py-5">
+                                <div className="flex items-baseline justify-between">
+                                    <span className="font-heading text-[11px] font-medium uppercase tracking-[0.3em]">Subtotal</span>
+                                    <span className="text-base tabular-nums">{formatPrice(totalPrice)}</span>
                                 </div>
-                                <div className="flex justify-between text-sm font-semibold uppercase tracking-[0.1em]">
-                                    <span>Total</span>
-                                    <span className="tabular-nums">₹{totalPrice.toLocaleString("en-IN")}</span>
-                                </div>
-                                {!session ? (
-                                    <div className="space-y-2">
-                                        <Button
-                                            className="w-full h-13 rounded-none text-xs uppercase tracking-[0.2em] font-semibold"
-                                            onClick={() => {
-                                                setIsOpen(false)
-                                                router.push("/account?redirect=/checkout")
-                                            }}
-                                        >
-                                            Sign in to checkout
-                                        </Button>
-                                        <p className="text-[10px] text-center text-muted-foreground tracking-wide">
-                                            Sign in required to place an order
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <Link href="/checkout" onClick={() => setIsOpen(false)}>
-                                        <Button className="w-full h-13 rounded-none text-xs uppercase tracking-[0.2em] font-semibold">
-                                            Checkout
-                                        </Button>
-                                    </Link>
-                                )}
-                                <Button
-                                    variant="ghost"
-                                    className="w-full text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
-                                    onClick={clearCart}
+                                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                    Prices include VAT. Delivery{hasSetItems ? " and set savings are" : " is"} calculated at checkout.
+                                </p>
+                                <Link
+                                    href="/checkout"
+                                    onClick={handleCheckout}
+                                    className="flex h-12 w-full items-center justify-center bg-foreground font-heading text-[11px] uppercase tracking-[0.22em] text-background transition-colors hover:bg-brand hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                 >
-                                    Clear cart
-                                </Button>
+                                    Checkout
+                                </Link>
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsOpen(false)}
+                                        className="font-heading text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
+                                    >
+                                        Continue shopping
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleClear}
+                                        className="font-heading text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
+                                    >
+                                        Clear bag
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </motion.div>

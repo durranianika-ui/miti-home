@@ -178,39 +178,39 @@ export async function computeComboDiscountFromItems(items: ComboLinkedItem[]) {
 
   for (const [groupId, groupItems] of groups.entries()) {
     if (groupItems.length !== 2) {
-      throw new Error(`Invalid combo group: ${groupId}`);
+      throw new Error(`This set is incomplete (${groupId}). Please remove it from your bag and add it again.`);
     }
 
     const comboId = groupItems[0].comboId;
     if (!comboId || groupItems.some((item) => item.comboId !== comboId)) {
-      throw new Error(`Invalid combo linkage in group: ${groupId}`);
+      throw new Error(`This set is incomplete (${groupId}). Please remove it from your bag and add it again.`);
     }
 
     const combo = comboMap.get(comboId);
     if (!combo) {
-      throw new Error("Invalid or inactive combo selected");
+      throw new Error("A set in your bag is no longer available. Please remove it and try again.");
     }
 
     if (groupItems.some((item) => !Number.isInteger(item.quantity) || item.quantity <= 0)) {
-      throw new Error("Invalid combo quantity");
+      throw new Error("Invalid set quantity");
     }
 
     const quantity = groupItems[0].quantity;
     if (groupItems[1].quantity !== quantity) {
-      throw new Error("Combo item quantities must match");
+      throw new Error("Both pieces of a set must have the same quantity");
     }
 
     const selectedPair = canonicalizeComboPair(groupItems[0].productId, groupItems[1].productId);
     const storedPair = canonicalizeComboPair(combo.productAId, combo.productBId);
 
     if (selectedPair[0] !== storedPair[0] || selectedPair[1] !== storedPair[1]) {
-      throw new Error("Combo products do not match selected items");
+      throw new Error("The pieces in this set do not match. Please remove it and add it again.");
     }
 
     const groupSubtotal = groupItems.reduce((sum, item) => {
       const unitPrice = item.unitPrice ?? priceMap.get(item.productId);
       if (unitPrice === undefined) {
-        throw new Error("Unable to determine combo item price");
+        throw new Error("Unable to price a set in your bag");
       }
       return sum + (unitPrice * item.quantity);
     }, 0);

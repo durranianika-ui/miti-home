@@ -1,15 +1,21 @@
 "use client";
 
-import { useMemo, useState, use } from "react";
+import { use, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Check } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { normalizeProductImage } from "@/lib/image";
+import { formatPrice } from "@/lib/money";
+import { buildProductPath } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 import { ViewportPrefetchLink } from "@/components/ui/viewport-prefetch-link";
 
-interface ProductVariant {
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface ComboProductVariant {
   id: string;
   productId: string;
   size: string;
@@ -17,16 +23,28 @@ interface ProductVariant {
   stock: number;
 }
 
-interface ComboProduct {
+export interface ComboProductColor {
+  name: string;
+  hex: string;
+  images?: string[];
+}
+
+export interface ComboProduct {
   id: string;
   name: string;
+  slug?: string | null;
   sellingPrice: string;
   mrp: string;
   images: string[];
   sizes: string[];
-  colors: { name: string; hex: string }[];
-  variants: ProductVariant[];
+  sizeLabel?: string | null;
+  colors: ComboProductColor[];
+  colorLabel?: string | null;
+  variants: ComboProductVariant[];
   category: string;
+  stock?: number | null;
+  material?: string | null;
+  dimensions?: string | null;
 }
 
 export interface Combo {
@@ -36,276 +54,375 @@ export interface Combo {
   productB: ComboProduct;
 }
 
-const NUMBER_SIZE_CATEGORIES = ["jogger", "jeans", "cargo", "shorts"];
+// ---------------------------------------------------------------------------
+// Pricing & option helpers (shared with the combo detail page)
+// ---------------------------------------------------------------------------
 
-function formatPrice(value: string | number) {
-  const amount = typeof value === "number" ? value : Number(value);
-  return `₹${amount.toLocaleString("en-IN")}`;
+export const STANDARD_OPTION = "Standard";
+export const LOW_STOCK_THRESHOLD = 3;
+
+export function getComboPricing(combo: Combo) {
+  const total = Number(combo.productA.sellingPrice) + Number(combo.productB.sellingPrice);
+  const saving = Math.min(Math.max(0, Number(combo.discountAmount) || 0), total);
+  return { total, saving, setPrice: total - saving };
 }
 
-function getVariantStock(variantMap: Map<string, number>, size: string, color: string | null) {
-  return variantMap.get(`${size}|${color}`) ?? 0;
+export function comboTitle(combo: Combo) {
+  return `${combo.productA.name} & ${combo.productB.name}`;
 }
 
-function isColorAvailable(variantMap: Map<string, number>, colorName: string, selectedSize: string | null) {
-  if (!selectedSize) return false;
-  return getVariantStock(variantMap, selectedSize, colorName) > 0;
+export function productHref(product: ComboProduct) {
+  return buildProductPath(product.slug || product.id);
 }
 
-function sizeOptions(product: ComboProduct) {
-  if (NUMBER_SIZE_CATEGORIES.includes(product.category)) {
-    return product.sizes.filter((size) => /^\d+$/.test(size));
-  }
-  return product.sizes;
+function variantKey(size: string, color: string | null) {
+  return `${size}|${color}`;
+}
+
+export type ComboOptions = ReturnType<typeof useComboOptions>;
+
+/**
+ * Selection state for one product in a set. Auto-selects a lone "Standard"
+ * option (and hides its selector) and a lone colour; everything else is
+ * stock-aware against the product's variant rows.
+ */
+export function useComboOptions(product: ComboProduct) {
+  const sizes = product.sizes.length > 0 ? product.sizes : [STANDARD_OPTION];
+  const colors = product.colors;
+  const hasColors = colors.length > 0;
+  const hasVariants = product.variants.length > 0;
+  const productStock = Math.max(0, Number(product.stock ?? 0));
+  const sizeLabel = product.sizeLabel?.trim() || "Size";
+  const colorLabel = product.colorLabel?.trim() || "Colour";
+  const hideSizeSelector = sizes.length === 1 && sizes[0] === STANDARD_OPTION;
+  const hideColorSelector = colors.length === 1;
+
+  const variants = product.variants;
+  // O(1) stock lookups while rendering option buttons.
+  const variantMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const variant of variants) {
+      map.set(variantKey(variant.size, variant.color), variant.stock);
+    }
+    return map;
+  }, [variants]);
+
+  const [size, setSizeState] = useState<string | null>(sizes.length === 1 ? sizes[0] : null);
+  const [color, setColor] = useState<string | null>(colors.length === 1 ? colors[0].name : null);
+
+  const stockFor = (optionSize: string, optionColor: string | null) =>
+    hasVariants ? variantMap.get(variantKey(optionSize, optionColor)) ?? 0 : productStock;
+
+  const isSizeAvailable = (optionSize: string) => {
+    if (!hasVariants) return productStock > 0;
+    return variants.some((variant) => variant.size === optionSize && variant.stock > 0);
+  };
+
+  const isColorAvailable = (colorName: string) => {
+    if (!hasVariants) return productStock > 0;
+    if (size) return stockFor(size, colorName) > 0;
+    return variants.some((variant) => variant.color === colorName && variant.stock > 0);
+  };
+
+  const setSize = (next: string) => {
+    setSizeState(next);
+    // Drop a colour that is not stocked in the newly chosen option.
+    if (color && colors.length > 1 && hasVariants && stockFor(next, color) <= 0) {
+      setColor(null);
+    }
+  };
+
+  const selectionComplete = Boolean(size && (!hasColors || color));
+  const selectedStock = selectionComplete && size ? stockFor(size, hasColors ? color : null) : null;
+  const ready = selectedStock !== null && selectedStock > 0;
+  const lowStock = ready && selectedStock !== null && selectedStock <= LOW_STOCK_THRESHOLD ? selectedStock : null;
+
+  const selectedColor = colors.find((option) => option.name === color) ?? null;
+  const image = normalizeProductImage(selectedColor?.images?.[0] ?? product.images?.[0]);
+
+  return {
+    product,
+    sizes,
+    colors,
+    hasColors,
+    sizeLabel,
+    colorLabel,
+    hideSizeSelector,
+    hideColorSelector,
+    size,
+    color,
+    setSize,
+    setColor,
+    isSizeAvailable,
+    isColorAvailable,
+    selectionComplete,
+    selectedStock,
+    ready,
+    lowStock,
+    selectedColor,
+    image,
+  };
+}
+
+/** Builds a cart line for `addCombo`. Option labels ride along so the cart can say "Finish: Mirror Silver". */
+export function buildComboCartLine(options: ComboOptions) {
+  const { product } = options;
+  const line = {
+    id: product.id,
+    name: product.name,
+    price: Number(product.sellingPrice),
+    displayPrice: formatPrice(product.sellingPrice),
+    image: options.image,
+    size: options.size ?? STANDARD_OPTION,
+    color: options.color || undefined,
+    sizeLabel: options.sizeLabel,
+    colorLabel: options.colorLabel,
+  };
+  return line;
+}
+
+// ---------------------------------------------------------------------------
+// Option picker
+// ---------------------------------------------------------------------------
+
+export function ComboOptionPicker({
+  options,
+  idPrefix,
+  size = "sm",
+}: {
+  options: ComboOptions;
+  idPrefix: string;
+  size?: "sm" | "md";
+}) {
+  const {
+    product,
+    sizes,
+    colors,
+    hasColors,
+    sizeLabel,
+    colorLabel,
+    hideSizeSelector,
+    hideColorSelector,
+  } = options;
+  const legendClass = "font-heading text-[10px] font-medium uppercase tracking-[0.3em] text-muted-foreground";
+  const showSoldOut = options.selectionComplete && !options.ready;
+
+  return (
+    <div className="space-y-4">
+      {!hideSizeSelector && (
+        <fieldset className="space-y-2">
+          <legend className={legendClass}>
+            {sizeLabel}
+            {options.size && <span className="ml-2 normal-case tracking-normal text-foreground">{options.size}</span>}
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {sizes.map((option) => {
+              const available = options.isSizeAvailable(option);
+              const selected = options.size === option;
+              return (
+                <button
+                  key={`${idPrefix}-size-${option}`}
+                  type="button"
+                  disabled={!available}
+                  aria-pressed={selected}
+                  aria-label={available ? `${sizeLabel} ${option} for ${product.name}` : `${sizeLabel} ${option} for ${product.name}, sold out`}
+                  onClick={() => options.setSize(option)}
+                  className={cn(
+                    "border px-3 font-heading text-[10px] uppercase tracking-[0.18em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    size === "md" ? "h-10 min-w-12" : "h-9 min-w-10",
+                    selected
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border bg-background text-foreground hover:border-foreground",
+                    !available && "cursor-not-allowed border-border/50 text-muted-foreground line-through opacity-50 hover:border-border/50",
+                  )}
+                >
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+
+      {hasColors && !hideColorSelector && (
+        <fieldset className="space-y-2">
+          <legend className={legendClass}>
+            {colorLabel}
+            {options.color && <span className="ml-2 normal-case tracking-normal text-foreground">{options.color}</span>}
+          </legend>
+          <div className="flex flex-wrap gap-2.5">
+            {colors.map((colorOption) => {
+              const available = options.isColorAvailable(colorOption.name);
+              const selected = options.color === colorOption.name;
+              return (
+                <button
+                  key={`${idPrefix}-color-${colorOption.name}`}
+                  type="button"
+                  disabled={!available}
+                  aria-pressed={selected}
+                  title={colorOption.name}
+                  aria-label={
+                    available
+                      ? `${colorLabel} ${colorOption.name} for ${product.name}`
+                      : `${colorLabel} ${colorOption.name} for ${product.name}, unavailable`
+                  }
+                  onClick={() => options.setColor(colorOption.name)}
+                  className={cn(
+                    "rounded-full border border-border transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    size === "md" ? "h-8 w-8" : "h-7 w-7",
+                    selected && "ring-2 ring-foreground ring-offset-2 ring-offset-background",
+                    !available && "cursor-not-allowed opacity-30",
+                  )}
+                  style={{ backgroundColor: colorOption.hex }}
+                />
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+
+      {hasColors && hideColorSelector && options.color && (
+        <p className="text-xs text-muted-foreground">
+          {colorLabel}: <span className="text-foreground">{options.color}</span>
+        </p>
+      )}
+
+      <p className="min-h-4 text-xs text-muted-foreground" aria-live="polite">
+        {options.lowStock !== null
+          ? `Only ${options.lowStock} left`
+          : showSoldOut
+            ? "Currently unavailable in this selection"
+            : null}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Card
+// ---------------------------------------------------------------------------
+
+function ComboProductTile({ product, href, image }: { product: ComboProduct; href: string; image: string }) {
+  return (
+    <ViewportPrefetchLink href={href} className="group block space-y-3">
+      <div className="relative aspect-square overflow-hidden bg-muted">
+        <Image
+          src={image}
+          alt={product.name}
+          fill
+          sizes="(max-width: 768px) 50vw, 22vw"
+          className="object-cover transition-transform duration-700 motion-safe:group-hover:scale-[1.03]"
+        />
+      </div>
+      <div className="space-y-1">
+        <p className="line-clamp-2 text-sm leading-snug text-foreground">{product.name}</p>
+        <p className="text-xs tabular-nums text-muted-foreground">{formatPrice(product.sellingPrice)}</p>
+      </div>
+    </ViewportPrefetchLink>
+  );
 }
 
 export function ComboCard({ combo, interactive }: { combo: Combo; interactive: boolean }) {
   const { addCombo } = useCart();
-  const [selectedSizeA, setSelectedSizeA] = useState<string | null>(null);
-  const [selectedColorA, setSelectedColorA] = useState<string | null>(null);
-  const [selectedSizeB, setSelectedSizeB] = useState<string | null>(null);
-  const [selectedColorB, setSelectedColorB] = useState<string | null>(null);
+  const optionsA = useComboOptions(combo.productA);
+  const optionsB = useComboOptions(combo.productB);
   const [added, setAdded] = useState(false);
+  const { total, saving, setPrice } = getComboPricing(combo);
+  const canAdd = optionsA.ready && optionsB.ready;
 
-  const maxDiscountAmount = Number(combo.discountAmount);
-  const originalTotal = Number(combo.productA.sellingPrice) + Number(combo.productB.sellingPrice);
-  const discountValue = Math.min(Math.max(0, maxDiscountAmount), originalTotal);
+  const detailHref = `/combo/${combo.id}`;
 
-  const requiredColorA = combo.productA.colors.length > 0;
-  const requiredColorB = combo.productB.colors.length > 0;
-
-  const variantsA = combo.productA.variants;
-  // Performance optimization: Memoized Map for O(1) variant stock lookups
-  // Prevents repetitive O(N) array traversals during component render/updates
-  const variantMapA = useMemo(() => {
-    const map = new Map<string, number>();
-    if (!variantsA) return map;
-    variantsA.forEach((v) => {
-      map.set(`${v.size}|${v.color}`, v.stock);
+  const handleAdd = () => {
+    if (!canAdd) return;
+    addCombo({
+      comboId: combo.id,
+      comboName: comboTitle(combo),
+      maxDiscountAmount: saving,
+      items: [buildComboCartLine(optionsA), buildComboCartLine(optionsB)],
     });
-    return map;
-  }, [variantsA]);
-
-  const variantsB = combo.productB.variants;
-  // Performance optimization: Memoized Map for Product B variants
-  const variantMapB = useMemo(() => {
-    const map = new Map<string, number>();
-    if (!variantsB) return map;
-    variantsB.forEach((v) => {
-      map.set(`${v.size}|${v.color}`, v.stock);
-    });
-    return map;
-  }, [variantsB]);
-
-  const selectedStockA = selectedSizeA
-    ? getVariantStock(variantMapA, selectedSizeA, requiredColorA ? selectedColorA : null)
-    : null;
-  const selectedStockB = selectedSizeB
-    ? getVariantStock(variantMapB, selectedSizeB, requiredColorB ? selectedColorB : null)
-    : null;
-
-  const canAdd = Boolean(
-    selectedSizeA &&
-    selectedSizeB &&
-    (!requiredColorA || selectedColorA) &&
-    (!requiredColorB || selectedColorB) &&
-    selectedStockA &&
-    selectedStockA > 0 &&
-    selectedStockB &&
-    selectedStockB > 0
-  );
-
-  const previewHref = interactive ? `/product/${combo.productA.id}` : `/combo/${combo.id}`;
-  const secondaryPreviewHref = interactive ? `/product/${combo.productB.id}` : `/combo/${combo.id}`;
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
 
   return (
-    <Card className="rounded-none border-border/60">
-      <CardContent className="p-4 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <ViewportPrefetchLink href={previewHref} className="group space-y-2">
-            <div className="relative aspect-[3/4] overflow-hidden bg-muted/30">
-              <Image
-                src={normalizeProductImage(combo.productA.images?.[0])}
-                alt={combo.productA.name}
-                fill
-                sizes="(max-width: 768px) 50vw, 20vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            </div>
-            <p className="text-xs font-medium line-clamp-2">{combo.productA.name}</p>
-            <p className="text-xs text-muted-foreground">{formatPrice(combo.productA.sellingPrice)}</p>
-          </ViewportPrefetchLink>
+    <article className="flex h-full flex-col border border-border bg-background" aria-label={comboTitle(combo)}>
+      <div className="grid grid-cols-2 gap-3 p-4 sm:gap-4 sm:p-5">
+        <ComboProductTile
+          product={combo.productA}
+          href={interactive ? productHref(combo.productA) : detailHref}
+          image={optionsA.image}
+        />
+        <ComboProductTile
+          product={combo.productB}
+          href={interactive ? productHref(combo.productB) : detailHref}
+          image={optionsB.image}
+        />
+      </div>
 
-          <ViewportPrefetchLink href={secondaryPreviewHref} className="group space-y-2">
-            <div className="relative aspect-[3/4] overflow-hidden bg-muted/30">
-              <Image
-                src={normalizeProductImage(combo.productB.images?.[0])}
-                alt={combo.productB.name}
-                fill
-                sizes="(max-width: 768px) 50vw, 20vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            </div>
-            <p className="text-xs font-medium line-clamp-2">{combo.productB.name}</p>
-            <p className="text-xs text-muted-foreground">{formatPrice(combo.productB.sellingPrice)}</p>
-          </ViewportPrefetchLink>
-        </div>
-
-        {interactive && (
-        <div className="space-y-4 border-t border-border/60 pt-4">
-          <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Product A size</p>
-            <div className="flex flex-wrap gap-2">
-              {sizeOptions(combo.productA).map((size) => (
-                <Button
-                  key={`a-${size}`}
-                  type="button"
-                  size="sm"
-                  variant={selectedSizeA === size ? "default" : "outline"}
-                  className="rounded-none text-[10px]"
-                  onClick={() => setSelectedSizeA(size)}
-                >
-                  {size}
-                </Button>
-              ))}
-            </div>
-            {requiredColorA && (
-              <div className="flex flex-wrap gap-2">
-                {combo.productA.colors.map((color) => {
-                  const available = isColorAvailable(variantMapA, color.name, selectedSizeA);
-                  return (
-                    <button
-                      key={`a-${color.name}`}
-                      type="button"
-                      onClick={() => {
-                        if (available) setSelectedColorA(color.name);
-                      }}
-                      disabled={!available}
-                      className={`w-7 h-7 rounded-full border transition-all ${
-                        selectedColorA === color.name ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""
-                      } ${available ? "" : "opacity-30 cursor-not-allowed"}`}
-                      style={{ backgroundColor: color.hex }}
-                      title={color.name}
-                      aria-label={
-                        available
-                          ? `${selectedColorA === color.name ? "Selected" : "Select"} ${color.name} color for ${combo.productA.name}`
-                          : `${color.name} color unavailable for ${combo.productA.name}`
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
+      {interactive && (
+        <div className="grid gap-6 border-t border-border p-4 sm:grid-cols-2 sm:p-5">
+          <div className="space-y-3">
+            <p className="line-clamp-1 text-xs text-foreground">{combo.productA.name}</p>
+            <ComboOptionPicker options={optionsA} idPrefix={`${combo.id}-a`} />
           </div>
-
-          <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Product B size</p>
-            <div className="flex flex-wrap gap-2">
-              {sizeOptions(combo.productB).map((size) => (
-                <Button
-                  key={`b-${size}`}
-                  type="button"
-                  size="sm"
-                  variant={selectedSizeB === size ? "default" : "outline"}
-                  className="rounded-none text-[10px]"
-                  onClick={() => setSelectedSizeB(size)}
-                >
-                  {size}
-                </Button>
-              ))}
-            </div>
-            {requiredColorB && (
-              <div className="flex flex-wrap gap-2">
-                {combo.productB.colors.map((color) => {
-                  const available = isColorAvailable(variantMapB, color.name, selectedSizeB);
-                  return (
-                    <button
-                      key={`b-${color.name}`}
-                      type="button"
-                      onClick={() => {
-                        if (available) setSelectedColorB(color.name);
-                      }}
-                      disabled={!available}
-                      className={`w-7 h-7 rounded-full border transition-all ${
-                        selectedColorB === color.name ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""
-                      } ${available ? "" : "opacity-30 cursor-not-allowed"}`}
-                      style={{ backgroundColor: color.hex }}
-                      title={color.name}
-                      aria-label={
-                        available
-                          ? `${selectedColorB === color.name ? "Selected" : "Select"} ${color.name} color for ${combo.productB.name}`
-                          : `${color.name} color unavailable for ${combo.productB.name}`
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
+          <div className="space-y-3">
+            <p className="line-clamp-1 text-xs text-foreground">{combo.productB.name}</p>
+            <ComboOptionPicker options={optionsB} idPrefix={`${combo.id}-b`} />
           </div>
         </div>
-        )}
-      </CardContent>
+      )}
 
-      <CardFooter className="border-t border-border/60 pt-4 pb-4 px-4 flex-col items-start gap-3">
-        <div className="space-y-1">
-          {maxDiscountAmount > 0 && (
-            <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-semibold">
-              Max bargain on combo: {formatPrice(maxDiscountAmount)}
+      <div className="mt-auto space-y-4 border-t border-border p-4 sm:p-5">
+        <div className="flex items-end justify-between gap-4">
+          <div className="space-y-1">
+            <p className="font-heading text-[10px] font-medium uppercase tracking-[0.3em] text-muted-foreground">Together</p>
+            <p className="flex items-baseline gap-2 tabular-nums">
+              <span className="text-base text-foreground">{formatPrice(setPrice)}</span>
+              {saving > 0 && <span className="text-xs text-muted-foreground line-through">{formatPrice(total)}</span>}
             </p>
-          )}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground tabular-nums">Combo total: {formatPrice(originalTotal)}</span>
-            <span className="text-green-600 dark:text-green-400 tabular-nums">Bargain cap: {formatPrice(discountValue)}</span>
           </div>
+          {saving > 0 && (
+            <p className="text-right text-xs text-brand-strong">Save {formatPrice(saving)} as a set</p>
+          )}
         </div>
 
         {interactive ? (
-          <Button
-            className="w-full rounded-none text-[10px] uppercase tracking-[0.15em]"
+          <button
+            type="button"
             disabled={!canAdd}
-            onClick={() => {
-              if (!selectedSizeA || !selectedSizeB) return;
-
-              addCombo({
-                comboId: combo.id,
-                comboName: `${combo.productA.name} + ${combo.productB.name}`,
-                maxDiscountAmount,
-                items: [
-                  {
-                    id: combo.productA.id,
-                    name: combo.productA.name,
-                    price: Number(combo.productA.sellingPrice),
-                    displayPrice: formatPrice(combo.productA.sellingPrice),
-                    image: normalizeProductImage(combo.productA.images?.[0]),
-                    size: selectedSizeA,
-                    color: selectedColorA || undefined,
-                  },
-                  {
-                    id: combo.productB.id,
-                    name: combo.productB.name,
-                    price: Number(combo.productB.sellingPrice),
-                    displayPrice: formatPrice(combo.productB.sellingPrice),
-                    image: normalizeProductImage(combo.productB.images?.[0]),
-                    size: selectedSizeB,
-                    color: selectedColorB || undefined,
-                  },
-                ],
-              });
-
-              setAdded(true);
-              setTimeout(() => setAdded(false), 1500);
-            }}
+            onClick={handleAdd}
+            className="flex h-11 w-full items-center justify-center gap-2 bg-foreground font-heading text-[11px] uppercase tracking-[0.22em] text-background transition-colors hover:bg-brand hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-foreground disabled:hover:text-background"
           >
-            {added ? "Added Combo" : "Add Combo to Cart"}
-          </Button>
+            {added ? (
+              <>
+                <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                Added to bag
+              </>
+            ) : canAdd ? (
+              "Add the set to bag"
+            ) : (
+              "Select options"
+            )}
+          </button>
         ) : (
-          <Button asChild className="w-full rounded-none text-[10px] uppercase tracking-[0.15em]">
-            <ViewportPrefetchLink href={`/combo/${combo.id}`}>Customize this combo</ViewportPrefetchLink>
-          </Button>
+          <ViewportPrefetchLink
+            href={detailHref}
+            className="flex h-11 w-full items-center justify-center border border-foreground font-heading text-[11px] uppercase tracking-[0.22em] text-foreground transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            View the set
+          </ViewportPrefetchLink>
         )}
-      </CardFooter>
-    </Card>
+      </div>
+    </article>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Section
+// ---------------------------------------------------------------------------
+
+function isPromise<T>(value: unknown): value is Promise<T> {
+  return Boolean(value) && typeof (value as { then?: unknown }).then === "function";
 }
 
 export function ComboSection({
@@ -319,15 +436,13 @@ export function ComboSection({
   mobileLimit?: number;
   initialCombos?: Combo[] | Promise<Combo[]>;
 }) {
-  const resolvedInitialCombos = initialCombos && typeof (initialCombos as any).then === "function"
-    ? use(initialCombos as Promise<Combo[]>)
-    : initialCombos as Combo[] | undefined;
+  const resolvedInitialCombos = isPromise<Combo[]>(initialCombos) ? use(initialCombos) : initialCombos;
 
   const { data: combos = [], isLoading: loading } = useQuery({
     queryKey: ["combos", limit],
     queryFn: async () => {
       const response = await fetch(`/api/combos?limit=${limit}`);
-      if (!response.ok) throw new Error("Failed to load combos");
+      if (!response.ok) throw new Error("Failed to load sets");
       const data = await response.json();
       return (data.combos || []) as Combo[];
     },
@@ -336,26 +451,29 @@ export function ComboSection({
     staleTime: 1000 * 60 * 5,
   });
 
-  const hasCombos = useMemo(() => combos.length > 0, [combos.length]);
-
-  if (!loading && !hasCombos) {
+  if (!loading && combos.length === 0) {
     return null;
   }
 
   return (
-    <section className="py-16 md:py-24 px-6 md:px-12 bg-background">
-      <div className="flex flex-col items-center mb-8 md:mb-12">
-        <p className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-3">Bundle deals</p>
-        <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight">Combos</h2>
+    <section className="bg-background px-6 py-16 md:px-12 md:py-24" aria-labelledby="complete-the-set-heading">
+      <div className="mb-10 flex flex-col items-center text-center md:mb-14">
+        <p className="mb-3 font-heading text-[10px] font-medium uppercase tracking-[0.3em] text-brand-strong">Better together</p>
+        <h2 id="complete-the-set-heading" className="font-display text-3xl font-light tracking-tight sm:text-4xl md:text-5xl">
+          Complete the set
+        </h2>
+        <p className="mt-4 max-w-md text-sm text-muted-foreground">
+          Pieces chosen to sit beautifully side by side, with a quiet saving when you bring them home together.
+        </p>
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[...Array(Math.min(limit, 2))].map((_, index) => (
-            <div key={index} className="rounded-none border border-border/60 p-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="aspect-[3/4] animate-pulse bg-muted" />
-                <div className="aspect-[3/4] animate-pulse bg-muted" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2" aria-hidden="true">
+          {Array.from({ length: Math.min(limit, 2) }, (_, index) => (
+            <div key={index} className="border border-border p-4 sm:p-5">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="aspect-square animate-pulse bg-muted" />
+                <div className="aspect-square animate-pulse bg-muted" />
               </div>
               <div className="mt-4 space-y-2">
                 <div className="h-3 w-2/3 animate-pulse bg-muted" />
@@ -365,7 +483,7 @@ export function ComboSection({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {combos.map((combo, index) => (
             <div key={combo.id} className={index >= mobileLimit ? "hidden md:block" : undefined}>
               <ComboCard combo={combo} interactive={interactive} />

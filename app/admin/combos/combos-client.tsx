@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getProducts } from "@/lib/actions/admin";
 import { createCombo, deleteCombo, getAdminCombos, updateCombo } from "@/lib/actions/combos";
 import { ADMIN_QUERY_OPTIONS } from "@/lib/admin-query-options";
+import { formatPrice } from "@/lib/money";
 import { useRouter } from "next/navigation";
 
 type AdminCombo = Awaited<ReturnType<typeof getAdminCombos>>[number];
@@ -28,7 +29,7 @@ export function AdminCombosClient({
     ...ADMIN_QUERY_OPTIONS,
   });
   const { data: productRows = initialProducts } = useQuery({
-    queryKey: ["admin-products"],
+    queryKey: ["admin-combo-products"],
     queryFn: () => getProducts({ isActive: true, limit: 200 }),
     initialData: initialProducts,
     ...ADMIN_QUERY_OPTIONS,
@@ -57,14 +58,14 @@ export function AdminCombosClient({
     onSuccess: invalidateCombos,
   });
 
-  const clothingProducts = productRows.filter((product) => product.category !== "accessory");
+  const comboProducts = productRows;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Combos</h1>
         <p className="text-muted-foreground">
-          Pair two clothing products and set a max bargain discount amount.
+          Pair two products into a set and cap the discount the shopping concierge may offer on it.
         </p>
       </div>
 
@@ -89,18 +90,18 @@ export function AdminCombosClient({
               <label className="text-sm font-medium">Product A</label>
               <select name="productAId" required className="w-full px-3 py-2 border rounded-lg bg-background">
                 <option value="">Select product</option>
-                {clothingProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                {comboProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Product B</label>
               <select name="productBId" required className="w-full px-3 py-2 border rounded-lg bg-background">
                 <option value="">Select product</option>
-                {clothingProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                {comboProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Max Bargain Discount (₹)</label>
+              <label className="text-sm font-medium">Max concierge discount (AED)</label>
               <input type="number" name="discountAmount" min="0" step="0.01" required defaultValue="0" className="w-full px-3 py-2 border rounded-lg bg-background" />
             </div>
             <div className="space-y-2">
@@ -131,10 +132,10 @@ export function AdminCombosClient({
                       {combo.productA?.name || "Missing Product A"} + {combo.productB?.name || "Missing Product B"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {combo.productA ? `₹${combo.productA.sellingPrice}` : "N/A"} + {combo.productB ? `₹${combo.productB.sellingPrice}` : "N/A"}
+                      {combo.productA ? formatPrice(combo.productA.sellingPrice) : "N/A"} + {combo.productB ? formatPrice(combo.productB.sellingPrice) : "N/A"}
                     </p>
                     <p className="text-xs text-brand">
-                      Max bargain discount: ₹{Number(combo.discountAmount).toLocaleString("en-IN")}
+                      Max concierge discount: {formatPrice(combo.discountAmount)}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-end gap-3 w-full">
@@ -154,7 +155,7 @@ export function AdminCombosClient({
                       }}
                     >
                       <div className="space-y-1 col-span-1">
-                        <label className="text-xs text-muted-foreground">Max Bargain Discount (₹)</label>
+                        <label className="text-xs text-muted-foreground">Max concierge discount (AED)</label>
                         <input type="number" name="discountAmount" min="0" step="0.01" defaultValue={Number(combo.discountAmount)} className="w-full sm:w-28 px-3 py-2 border rounded-lg bg-background text-sm" />
                       </div>
                       <div className="space-y-1 col-span-1">

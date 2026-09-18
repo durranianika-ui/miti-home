@@ -1,231 +1,265 @@
+import Link from "next/link";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { getOrderById } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/button";
-import { OrderStatusSelect } from "../status-select";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { formatPriceExact, toAmount } from "@/lib/money";
+import { PRICES_INCLUDE_VAT, VAT_RATE } from "@/lib/constants";
+import { normalizeProductImage } from "@/lib/image";
+import { formatUaeAddressLines, fullName } from "@/lib/uae";
+import { OrderFulfilmentForm } from "../status-select";
 import { RefundPanel } from "../refund-panel";
-import { notFound } from "next/navigation";
+import {
+  ORDER_STATUSES,
+  displayPhone,
+  formatDateTime,
+  orderNumber,
+  paymentMethodLabel,
+  paymentStatusDisplay,
+} from "../../_lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOrderDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function Row({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
+  return (
+    <div className={`flex justify-between gap-4 text-sm ${className ?? ""}`}>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right">{value}</dd>
+    </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg border border-border">
+      <div className="border-b border-border bg-muted/50 p-4">
+        <h2 className="font-semibold">{title}</h2>
+      </div>
+      <div className="space-y-2 p-4 text-sm">{children}</div>
+    </section>
+  );
+}
+
+export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!UUID_PATTERN.test(id)) notFound();
   const order = await getOrderById(id);
+  if (!order) notFound();
 
-  if (!order) {
-    notFound();
-  }
-
-  const address = order.shippingAddress as {
-    name: string;
-    phone: string;
-    email?: string;
-    address: string;
-    city: string;
-    state?: string;
-    pincode: string;
-  } | null;
-  const refundedPaise = order.refunds.reduce((sum, refund) => sum + refund.amountPaise, 0);
+  const address = order.shippingAddress;
+  const addressLines = formatUaeAddressLines(address);
+  const customerName = address ? fullName(address) : order.customer?.name ?? "Guest";
+  const email = order.customerEmail ?? address?.email ?? order.customer?.email ?? null;
+  const phone = displayPhone(address?.phone);
+  const statusMeta = ORDER_STATUSES.find((status) => status.value === order.status);
+  const payment = paymentStatusDisplay(order.paymentStatus);
+  const discount = toAmount(order.discount);
+  const couponDiscount = toAmount(order.couponDiscount);
+  const bargainDiscount = toAmount(order.bargainDiscount);
+  const codFee = toAmount(order.codFee);
+  const shipping = toAmount(order.shipping);
+  const vat = toAmount(order.vatAmount);
+  const otherDiscount = Math.max(0, Math.round((discount - couponDiscount - bargainDiscount) * 100) / 100);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5">
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-center">
         <div className="flex items-center gap-4">
-          <Link href="/admin/orders">
-            <Button variant="ghost" size="icon" aria-label="Back to orders" className="rounded-none">
+          <Button asChild variant="ghost" size="icon" aria-label="Back to orders">
+            <Link href="/admin/orders">
               <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Order #{order.id.slice(0, 8).toUpperCase()}
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Placed on {new Date(order.createdAt).toLocaleDateString("en-IN", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Order {orderNumber(order.id)}</h1>
+            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">Placed {formatDateTime(order.createdAt)} (Dubai time)</p>
           </div>
         </div>
-        <div className="flex items-center sm:ml-auto">
-          <OrderStatusSelect orderId={order.id} currentStatus={order.status} />
-        </div>
+        <span className={`self-start rounded-full px-3 py-1 text-sm font-medium sm:self-auto ${statusMeta?.className ?? "bg-muted"}`}>
+          {statusMeta?.label ?? order.status}
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Order Items */}
-        <div className="lg:col-span-2 border rounded-lg">
-          <div className="p-4 border-b bg-muted/50">
-            <h2 className="font-semibold">Order Items</h2>
-          </div>
-          <div className="divide-y">
-            {order.items.map((item) => (
-              <div key={item.id} className="p-4 flex gap-4">
-                {item.productImage && (
-                  <div
-                    className="w-16 h-20 bg-cover bg-center bg-neutral-900 rounded flex-shrink-0"
-                    style={{ backgroundImage: `url(${item.productImage})` }}
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{item.productName}</p>
-                  <div className="text-sm text-muted-foreground space-y-0.5">
-                    <p>Size: {item.size}{item.color ? ` · Color: ${item.color}` : ""}</p>
-                    <p>Qty: {item.quantity}</p>
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="font-medium">₹{parseFloat(item.totalPrice).toLocaleString("en-IN")}</p>
-                  <p className="text-sm text-muted-foreground">₹{parseFloat(item.unitPrice).toLocaleString("en-IN")} each</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      {order.paymentStatus === "refund_due" && (
+        <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          This order was cancelled after payment. Issue the refund in the payment provider dashboard, then mark it refunded below.
+        </div>
+      )}
 
-          {/* Price Breakdown */}
-          <div className="p-4 border-t bg-muted/20 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Subtotal</span>
-              <span>₹{parseFloat(order.subtotal).toLocaleString("en-IN")}</span>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <section className="rounded-lg border border-border">
+            <div className="border-b border-border bg-muted/50 p-4">
+              <h2 className="font-semibold">Items ({order.items.length})</h2>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Shipping</span>
-              <span>{parseFloat(order.shipping) === 0 ? "FREE" : `₹${parseFloat(order.shipping).toLocaleString("en-IN")}`}</span>
-            </div>
-            {order.couponCode && (
-              <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                <span>Discount ({order.couponCode})</span>
-                <span>-₹{parseFloat(order.discount).toLocaleString("en-IN")}</span>
+            <ul className="divide-y divide-border">
+              {order.items.map((item) => (
+                <li key={item.id} className="flex gap-4 p-4">
+                  <Image
+                    src={normalizeProductImage(item.productImage)}
+                    alt=""
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 shrink-0 rounded bg-muted object-cover"
+                    unoptimized
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">
+                      {item.productId ? (
+                        <Link href={`/admin/products/${item.productId}`} className="hover:underline">
+                          {item.productName}
+                        </Link>
+                      ) : (
+                        item.productName
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.size}
+                      {item.color ? ` · ${item.color}` : ""} · Qty {item.quantity}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="font-medium">{formatPriceExact(item.totalPrice)}</p>
+                    <p className="text-xs text-muted-foreground">{formatPriceExact(item.unitPrice)} each</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <dl className="space-y-2 border-t border-border bg-muted/20 p-4">
+              <Row label="Subtotal" value={formatPriceExact(order.subtotal)} />
+              {couponDiscount > 0 && (
+                <Row
+                  label={`Coupon${order.couponCode ? ` (${order.couponCode})` : ""}`}
+                  value={`-${formatPriceExact(couponDiscount)}`}
+                  className="text-green-700 dark:text-green-400"
+                />
+              )}
+              {bargainDiscount > 0 && (
+                <Row label="Concierge offer" value={`-${formatPriceExact(bargainDiscount)}`} className="text-green-700 dark:text-green-400" />
+              )}
+              {otherDiscount > 0 && (
+                <Row
+                  label={couponDiscount === 0 && order.couponCode ? `Discount (${order.couponCode})` : "Discount"}
+                  value={`-${formatPriceExact(otherDiscount)}`}
+                  className="text-green-700 dark:text-green-400"
+                />
+              )}
+              <Row label="Delivery" value={shipping === 0 ? "Free" : formatPriceExact(shipping)} />
+              {codFee > 0 && <Row label="Cash on delivery fee" value={formatPriceExact(codFee)} />}
+              <div className="flex justify-between border-t border-border pt-2 text-lg font-bold">
+                <dt>Total</dt>
+                <dd>{formatPriceExact(order.total)}</dd>
               </div>
-            )}
-            {order.codFee && parseFloat(order.codFee) > 0 && (
-              <div className="flex justify-between text-sm text-orange-600 dark:text-orange-400">
-                <span>COD Fee</span>
-                <span>+₹{parseFloat(order.codFee).toLocaleString("en-IN")}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-bold text-lg pt-2 border-t">
-              <span>Total</span>
-              <span>₹{parseFloat(order.total).toLocaleString("en-IN")}</span>
-            </div>
-          </div>
+              <Row label={`${PRICES_INCLUDE_VAT ? "Includes" : "Plus"} VAT (${Math.round(VAT_RATE * 1000) / 10}%)`} value={formatPriceExact(vat)} className="text-xs" />
+              {order.currency && order.currency !== "AED" && <Row label="Currency" value={order.currency} />}
+            </dl>
+          </section>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Customer Info */}
-          <div className="border rounded-lg">
-            <div className="p-4 border-b bg-muted/50">
-              <h2 className="font-semibold">Customer</h2>
-            </div>
-            <div className="p-4 space-y-2 text-sm">
-              <p className="font-medium">{address?.name || "Guest"}</p>
-              {address?.phone && <p className="text-muted-foreground">{address.phone}</p>}
-              {address?.email && <p className="text-muted-foreground">{address.email}</p>}
-            </div>
-          </div>
+          <Panel title="Fulfilment">
+            <OrderFulfilmentForm
+              orderId={order.id}
+              currentStatus={order.status}
+              courier={order.courier}
+              trackingNumber={order.trackingNumber}
+            />
+          </Panel>
 
-          {/* Shipping Address */}
-          <div className="border rounded-lg">
-            <div className="p-4 border-b bg-muted/50">
-              <h2 className="font-semibold">Shipping Address</h2>
-            </div>
-            <div className="p-4 text-sm space-y-1">
-              {address ? (
-                <>
-                  <p>{address.name}</p>
-                  <p className="text-muted-foreground">{address.address}</p>
-                  <p className="text-muted-foreground">
-                    {address.city}{address.state ? `, ${address.state}` : ""} - {address.pincode}
+          <Panel title="Customer">
+            <p className="font-medium">{customerName || "Guest"}</p>
+            {email && (
+              <p>
+                <a href={`mailto:${email}`} className="text-muted-foreground hover:text-foreground hover:underline">
+                  {email}
+                </a>
+              </p>
+            )}
+            {phone && address?.phone && (
+              <p>
+                <a href={`tel:${address.phone}`} className="text-muted-foreground hover:text-foreground hover:underline">
+                  {phone}
+                </a>
+              </p>
+            )}
+            {order.customer ? (
+              <p className="text-xs text-muted-foreground">
+                Registered customer · {order.customer.ordersCount} order{order.customer.ordersCount === 1 ? "" : "s"}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Guest checkout</p>
+            )}
+          </Panel>
+
+          <Panel title="Delivery address">
+            {addressLines.length > 0 ? (
+              <address className="space-y-0.5 not-italic">
+                <p className="font-medium">{customerName}</p>
+                {addressLines.map((line) => (
+                  <p key={line} className="text-muted-foreground">
+                    {line}
                   </p>
-                  <p className="text-muted-foreground">{address.phone}</p>
-                </>
-              ) : (
-                <p className="text-muted-foreground">No address provided</p>
-              )}
-            </div>
-          </div>
-
-          {/* Payment Info */}
-          <div className="border rounded-lg">
-            <div className="p-4 border-b bg-muted/50">
-              <h2 className="font-semibold">Payment</h2>
-            </div>
-            <div className="p-4 space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Method</span>
-                <span className="font-medium uppercase">{order.paymentMethod || "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status</span>
-                <span className={`font-medium ${
-                  order.paymentStatus === "paid" 
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-yellow-600 dark:text-yellow-400"
-                }`}>
-                  {order.paymentStatus === "paid" ? "Paid" : "Pending"}
-                </span>
-              </div>
-              {order.razorpayPaymentId && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment ID</span>
-                  <span className="font-mono text-xs">{order.razorpayPaymentId}</span>
-                </div>
-              )}
-              {order.razorpayOrderId && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Razorpay Order</span>
-                  <span className="font-mono text-xs">{order.razorpayOrderId}</span>
-                </div>
-              )}
-              {order.paymentMethod === "cod" && (
-                <div className="mt-2 p-3 bg-orange-500/10 border border-orange-500/30 rounded">
-                  <p className="font-medium text-orange-600 dark:text-orange-400">Cash on Delivery</p>
-                  {order.codFee && parseFloat(order.codFee) > 0 && (
-                    <p className="text-muted-foreground mt-1">COD Fee: ₹{parseFloat(order.codFee)}</p>
-                  )}
-                  {order.codRemainingAmount && (
-                    <p className="text-muted-foreground">Amount to collect: ₹{parseFloat(order.codRemainingAmount).toLocaleString("en-IN")}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Bargain Info (if applicable) */}
-          <RefundPanel orderId={order.id} total={order.total} refundedPaise={refundedPaise} eligible={order.paymentStatus === "paid"} />
-
-          {/* Bargain Info (if applicable) */}
-          {(order.bargainDiscount || order.bargainScore) && (
-            <div className="border rounded-lg">
-              <div className="p-4 border-b bg-muted/50">
-                <h2 className="font-semibold">Bargain AI</h2>
-              </div>
-              <div className="p-4 space-y-2 text-sm">
-                {order.bargainDiscount && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Discount</span>
-                    <span className="text-green-600 dark:text-green-400">₹{parseFloat(order.bargainDiscount)}</span>
-                  </div>
+                ))}
+                {address?.instructions && (
+                  <p className="mt-2 rounded bg-muted p-2 text-xs">
+                    <span className="font-medium">Instructions:</span> {address.instructions}
+                  </p>
                 )}
-                {order.bargainScore !== null && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Score</span>
-                    <span>{order.bargainScore}/10</span>
-                  </div>
-                )}
+              </address>
+            ) : (
+              <p className="text-muted-foreground">No address provided</p>
+            )}
+          </Panel>
+
+          <Panel title="Payment">
+            <dl className="space-y-2">
+              <Row label="Method" value={paymentMethodLabel(order.paymentMethod)} />
+              {order.paymentProvider && order.paymentProvider !== "cod" && (
+                <Row label="Provider" value={<span className="capitalize">{order.paymentProvider}</span>} />
+              )}
+              <Row label="Status" value={<span className={`font-medium ${payment.className}`}>{payment.label}</span>} />
+              {order.paymentReference && (
+                <Row label="Reference" value={<span className="break-all font-mono text-xs">{order.paymentReference}</span>} />
+              )}
+              {order.paymentTransactionId && (
+                <Row label="Transaction" value={<span className="break-all font-mono text-xs">{order.paymentTransactionId}</span>} />
+              )}
+            </dl>
+            {order.paymentMethod === "cod" && (
+              <div className="mt-2 rounded border border-orange-500/30 bg-orange-500/10 p-3">
+                <p className="font-medium text-orange-700 dark:text-orange-400">Cash on delivery</p>
+                <p className="text-muted-foreground">
+                  Amount to collect:{" "}
+                  {formatPriceExact(order.codRemainingAmount !== null ? order.codRemainingAmount : order.total)}
+                </p>
               </div>
-            </div>
-          )}
+            )}
+          </Panel>
+
+          <RefundPanel
+            orderId={order.id}
+            total={order.total}
+            paymentMethod={order.paymentMethod}
+            paymentProvider={order.paymentProvider}
+            paymentStatus={order.paymentStatus}
+            paymentReference={order.paymentReference}
+            paymentTransactionId={order.paymentTransactionId}
+            hasCustomerAccount={Boolean(order.userId)}
+            storeCredits={order.storeCredits.map((credit) => ({
+              id: credit.id,
+              code: credit.code,
+              discountValue: credit.discountValue,
+              usedCount: credit.usedCount,
+              maxUses: credit.maxUses,
+              validUntil: credit.validUntil,
+              isActive: credit.isActive,
+              createdAt: credit.createdAt,
+            }))}
+          />
         </div>
       </div>
     </div>

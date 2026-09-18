@@ -18,9 +18,9 @@ export async function GET(req: NextRequest) {
       limit,
     });
   } catch (error) {
-    console.error("Failed to fetch combos:", error);
+    console.error("Failed to fetch sets:", error);
     return NextResponse.json(
-      { error: "Failed to fetch combos" },
+      { error: "Failed to fetch sets" },
       { status: 500 }
     );
   }

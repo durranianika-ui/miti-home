@@ -11,6 +11,7 @@ import { getPublicComboMutationPaths } from "@/lib/public-cache";
 export type ComboInput = {
   productAId: string;
   productBId: string;
+  /** Fixed AED saving applied at checkout when both pieces are bought together. */
   discountAmount: number;
   displayOrder?: number;
   isActive?: boolean;
@@ -24,34 +25,29 @@ function revalidatePublicComboMutationPaths(comboId?: string | null) {
 
 async function validateComboProducts(productAId: string, productBId: string) {
   if (productAId === productBId) {
-    throw new Error("A combo must contain two different products");
+    throw new Error("A set must contain two different products");
   }
 
   const rows = await db
     .select({
       id: products.id,
-      category: products.category,
       isActive: products.isActive,
     })
     .from(products)
     .where(inArray(products.id, [productAId, productBId]));
 
   if (rows.length !== 2) {
-    throw new Error("Selected combo products were not found");
-  }
-
-  if (rows.some((row) => row.category === "accessory")) {
-    throw new Error("Combos can only be created with clothing products");
+    throw new Error("Selected set products were not found");
   }
 
   if (rows.some((row) => !row.isActive)) {
-    throw new Error("Only active products can be used in combos");
+    throw new Error("Only active products can be used in sets");
   }
 }
 
 function validateDiscountAmount(discountAmount: number) {
   if (!Number.isFinite(discountAmount) || discountAmount < 0) {
-    throw new Error("Combo max bargain discount must be 0 or more");
+    throw new Error("Set saving must be 0 or more");
   }
 }
 
@@ -68,7 +64,7 @@ export async function createCombo(input: ComboInput) {
     .where(and(eq(combos.productAId, productAId), eq(combos.productBId, productBId)));
 
   if (existing) {
-    throw new Error("A combo for this product pair already exists");
+    throw new Error("A set for this product pair already exists");
   }
 
   const [combo] = await db
@@ -115,7 +111,7 @@ export async function updateCombo(id: string, updates: { discountAmount?: number
     .returning();
 
   if (!combo) {
-    throw new Error("Combo not found");
+    throw new Error("Set not found");
   }
 
   revalidatePublicComboMutationPaths(combo.id);

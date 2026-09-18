@@ -23,6 +23,7 @@ import {
   type CampaignDraftInput,
 } from "@/lib/marketing/types";
 import { cn } from "@/lib/utils";
+import { formatPrice } from "@/lib/money";
 
 type Campaign = Awaited<ReturnType<typeof getMarketingCampaigns>>[number];
 type CustomerOption = {
@@ -62,7 +63,7 @@ function audienceLabel(audience: Campaign["audience"]) {
     case "recentBuyers":
       return `Recent ${audience.days ?? RECENT_BUYER_DAYS}d`;
     case "highSpenders":
-      return `High spend ₹${audience.minimumSpend ?? DEFAULT_HIGH_SPENDER_MINIMUM}`;
+      return `High spend ${formatPrice(audience.minimumSpend ?? DEFAULT_HIGH_SPENDER_MINIMUM)}`;
     case "buyers":
       return "Buyers";
     case "all":
@@ -279,7 +280,7 @@ export function AdminCampaignsClient({
     <div className="mx-auto max-w-7xl space-y-10 px-2 py-10 sm:px-4 md:py-14">
       <div className="border-b border-border/40 pb-7">
         <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground">
-          XILAR LEDGER // CAMPAIGN DESK
+          MITI HOME // CAMPAIGN DESK
         </span>
         <div className="mt-3 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
@@ -404,7 +405,7 @@ export function AdminCampaignsClient({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">{product.name}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs opacity-70">
-                          <span>₹{product.sellingPrice}</span>
+                          <span>{formatPrice(product.sellingPrice)}</span>
                           {product.isPremium && <span>Premium</span>}
                           {product.isFeatured && <span>Best seller</span>}
                           {product.isNew && <span>New</span>}
@@ -509,7 +510,7 @@ export function AdminCampaignsClient({
 
             {audienceType === "highSpenders" && (
               <label className="mt-4 block space-y-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Minimum spend</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Minimum spend (AED)</span>
                 <input type="number" min={1} value={minimumSpend} onChange={(event) => { setLastTestSignature(null); setMinimumSpend(Number(event.target.value)); }} className="h-10 w-full border border-input bg-secondary/20 px-3 text-sm outline-none focus:ring-1 focus:ring-ring" />
               </label>
             )}

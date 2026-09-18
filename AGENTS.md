@@ -1,162 +1,205 @@
-# XILAR E-Commerce — Copilot Instructions
+# Miti Home E-Commerce — Agent Instructions
 
 > [!IMPORTANT]
-> **Design Philosophy & Visual Styling:**
-> For all design context, colors, typography, motion rules, animations, interactive mechanics, performance safeguards, and accessibility guidance, you **must** refer to [.impeccable.md](file:///c:/Users/fateless/Documents/Projects/xilar/.impeccable.md). Keep this instructions file focused on backend/frontend engineering architecture, implementation rules, and seasoned awards-level design-engineering principles.
+> **Design philosophy & visual styling:** for colours, typography, motion rules, interactive mechanics, performance safeguards and accessibility guidance, refer to [.impeccable.md](.impeccable.md). Brand and audience context lives in [PRODUCT.md](PRODUCT.md); domain vocabulary lives in [CONTEXT.md](CONTEXT.md). Keep this file focused on engineering architecture, implementation rules and design-engineering principles.
 
-CHECK IF YOU HAVE SKILLS FOR THE TECHNOLOGY YOU'RE TRYING TO IMPLEMENT. IF PRESENT, REFER TO THE SKILLS FIRST AND THEN PROCEED. USE THE ASK QUESTIONS TOOL AT THE SLIGHTEST BIT OF CONFUSION
+Miti Home is a Dubai-based luxury home-décor and lifestyle store ("Luxury Living — Beautiful spaces. A better you."). It sells in AED with VAT-inclusive prices, delivers within the UAE only, supports cash on delivery and takes card payments through a hosted payment provider when one is configured.
+
+CHECK IF YOU HAVE SKILLS FOR THE TECHNOLOGY YOU'RE TRYING TO IMPLEMENT. IF PRESENT, REFER TO THE SKILLS FIRST AND THEN PROCEED. ASK QUESTIONS AT THE SLIGHTEST BIT OF CONFUSION.
 
 No bandaid fixes. Fix root causes.
 No backward-compatibility shims (early-stage product).
-For each task map out the full scope where the changes are needed like db, api, frontend etc. and then implement all at once.
+For each task map out the full scope where the changes are needed (db, api, frontend, emails, SEO) and implement all of it at once.
 
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router), React 19, TypeScript 5
 - **Database:** Neon PostgreSQL (serverless) via Drizzle ORM (`lib/db/schema.ts`, `lib/db/index.ts`)
 - **Auth:** Better Auth with admin plugin (`lib/auth.ts`, `lib/auth-server.ts`, `lib/auth-client.ts`)
-- **Payments:** Razorpay (order creation + signature verification) — `lib/razorpay.ts`, `app/api/razorpay/`
-- **AI:** OpenRouter via Vercel AI SDK — `lib/openrouter.ts`, `app/api/bargain/route.ts`
-- **Images:** Cloudinary CDN with auto-format/quality — `lib/cloudinary.ts`
-- **Styling:** Tailwind CSS 4 + `cn()` utility from `lib/utils.ts`, Lucide icons, Framer Motion
+- **Payments:** provider-agnostic hosted card checkout (`lib/payments/`), Stripe Checkout implementation; cash on delivery (`lib/checkout/cod.ts`)
+- **Email:** Resend (`lib/email.ts`, `lib/email-layout.ts`)
+- **AI (optional):** checkout bargain concierge via OpenRouter + Vercel AI SDK (`lib/openrouter.ts`, `app/api/bargain/route.ts`); semantic product search via Gemini embeddings + Pinecone
+- **Images:** Cloudinary CDN in production, local `public/products/<slug>/<n>.webp` for the seeded catalogue
+- **Styling:** Tailwind CSS 4 (tokens in `app/globals.css`) + `cn()` from `lib/utils.ts`, Lucide icons, Framer Motion, GSAP
 
 ## Architecture
 
 ```
-app/              → Pages & API routes (App Router)
-  admin/          → Admin dashboard (requires admin role)
-  api/            → Route handlers (auth, products, orders, bargain, razorpay, coupons, upload)
-  shop/           → Store pages with gender/category filtering
-  product/[id]/   → Product detail (dynamic route)
+app/                → Pages & API routes (App Router)
+  admin/            → Admin dashboard (requires admin role): products, categories, collections,
+                      orders, customers, coupons, combos, campaigns, newsletter
+  api/              → Route handlers: auth, products, orders (COD), checkout/card, webhooks/payments/[provider],
+                      bargain, coupons, combos, newsletter, search, upload
+  shop/             → Catalogue; shop/[category] is the category landing page
+  product/[id]/     → Product detail (slug-based URLs)
+  checkout/         → Checkout; checkout/complete is the hosted-payment return page
+  orders/           → Customer order history + COD self-cancellation
+  policies/         → Delivery, returns, refunds, exchange, privacy, terms
+  about/, contact/, gallery/, new/
 components/
-  features/       → Domain components (bargain-ai, cart-drawer, checkout-bargain, product-client, shop-client)
-  layout/         → Navbar, sidebar
-  ui/             → Primitives (Button, Card) — shadcn-style with variant props, NOT shadcn/ui
+  analytics/        → Env-driven analytics loader (GTM / GA4 / Meta Pixel / Vercel)
+  brand/            → Wordmark
+  features/         → Domain components (hero, product-client, shop-client, cart-drawer, gallery-client,
+                      shop-the-space, angled-gallery-band, checkout-bargain…)
+  effects/          → Directional marquee and other motion effects
+  layout/           → Footer
+  seo/              → <JsonLd> + structured-data re-exports
+  ui/               → Primitives (Button, Card, ScrollReveal…) — shadcn-style variant props, NOT shadcn/ui
 lib/
-  actions/        → Server actions (admin.ts, orders.ts, bargain.ts) — all DB mutations go here
-  checkout/       → Server-owned checkout quote, pricing, and validation module
-  coupon-validation.ts → Public coupon validation and discount math; do not import public coupon rules from admin actions
-  bargain/        → Bargain prompt, display labels, pure rules, and DB eligibility context
-  db/             → Drizzle schema & connection
-  *-context.tsx   → Client providers (cart, wishlist, theme) using localStorage
-types/index.ts    → Shared TypeScript interfaces
-drizzle/          → Migration SQL files
+  brand.ts          → BRAND, CONTACT, LEGAL, SOCIAL_LINKS, whatsappHref(), BRAND_ASSETS
+  constants.ts      → UAE commerce configuration (currency, VAT, delivery, COD, emirates, after-sales windows)
+  money.ts          → formatPrice / formatPriceExact / vatPortion / toMinorUnits
+  uae.ts            → UAE address + phone validation shared by client and server
+  taxonomy.ts       → Category and collection reads
+  product-catalog.ts→ Public catalogue queries (lexical + optional semantic search)
+  checkout/         → quote.ts (server price contract), pricing.ts (pure money math), validation.ts,
+                      cod.ts (COD eligibility), card-checkout.ts (hosted card session lifecycle)
+  orders/           → create-order.ts — the single, server-only order write path
+  payments/         → CardPaymentProvider interface (types.ts), provider registry (index.ts), stripe.ts
+  actions/          → Server actions (admin, orders, bargain, combos, marketing, wishlist)
+  bargain/          → Bargain prompt, pure rules (logic.ts) and DB eligibility context
+  email.ts          → Transactional + marketing email senders
+  email-layout.ts   → Shared branded HTML email shell
+  db/               → Drizzle schema & connection
+  *-context.tsx     → Client providers (cart, theme) using localStorage
+data/catalog/       → miti-home-catalog.json — source catalogue (categories, collections, products)
+scripts/            → seed-catalog.ts, db-migrate.ts, backfill-product-search.ts
+drizzle/            → Migration SQL files
 ```
 
 ## Key Patterns
 
+### Brand & configuration are data, not copy
+- Anything customer-facing that names the brand, its contact details, socials or legal identity reads from `lib/brand.ts`. Never hard-code the brand name, email, phone or address in components.
+- `CONTACT.email` may be a placeholder (`CONTACT.emailIsPlaceholder`). `CONTACT.phone`, `CONTACT.whatsapp`, `LEGAL.tradeLicence`, `LEGAL.vatTrn` and `SOCIAL_LINKS` may be empty — render those elements only when configured. `whatsappHref()` returns `null` when WhatsApp is unset.
+- Commercial terms live in `lib/constants.ts` and are overridable per environment via `NEXT_PUBLIC_*` variables: `FREE_SHIPPING_THRESHOLD`, `SHIPPING_FEE`, `COD_ENABLED`, `COD_FEE`, `COD_MAX_ORDER_TOTAL`, `DELIVERY_ESTIMATE`, `SHIPPING_EMIRATES`, `COD_ALLOWED_EMIRATES`, `RETURN_WINDOW_DAYS`, `EXCHANGE_WINDOW_DAYS`, `VAT_RATE`, `PRICES_INCLUDE_VAT`. **Policy pages, emails, banners and FAQs must interpolate these values — never hard-code numbers.**
+- `lib/brand.ts`, `lib/constants.ts`, `lib/money.ts`, `lib/uae.ts` and `lib/checkout/cod.ts` must stay free of `@/` imports (they use relative `.ts` imports) because the node test runner loads them directly.
+
+### Money
+- Currency is AED everywhere; prices are displayed VAT-inclusive (5% UAE VAT by default).
+- Format every customer-facing amount with `formatPrice()` from `lib/money.ts` ("AED 1,250"; the ISO code is used instead of the dirham sign so it renders in every font). Use `formatPriceExact()` for invoices, order records and admin tables.
+- `vatPortion(total)` gives the VAT contained in a VAT-inclusive total; `toMinorUnits()` converts to fils for payment providers.
+
 ### Data Mutations & Server Actions
-All database writes use server actions in `lib/actions/`. API route handlers call these actions — never write to DB directly from routes. Admin actions enforce `requireAdmin()` from `lib/auth-server.ts`.
+All database writes go through server actions in `lib/actions/` or server-only modules (`lib/orders/create-order.ts`, `lib/checkout/card-checkout.ts`). Route handlers orchestrate — they never write to the DB inline. Admin actions enforce `requireAdmin()` from `lib/auth-server.ts`.
 
 ### Auth Guards
-- `getServerSession()` — get current session (pages/routes)
-- `requireAuth()` / `requireAdmin()` — throw if unauthorized (server actions)
-- Client: `useSession()` hook from `lib/auth-client.ts`
+- `getServerSession()` — current session (pages/routes)
+- `requireAuth()` / `requireAdmin()` — throw if unauthorised (server actions)
+- Client: `useSession()` from `lib/auth-client.ts`
 
-### Client State (Cart, Wishlist, Theme)
-Stored in `localStorage` (keys: `xilar-cart`, `xilar-wishlist`, `xilar-theme`). Provided via React Context from `lib/*-context.tsx`. No server-side cart — entirely client-driven.
+### Client State
+The cart and theme live in `localStorage` (`miti-cart`, `miti-theme`) via React Context in `lib/*-context.tsx`. The cart is a convenience payload, never a pricing authority. The wishlist is account-backed (`wishlist` table, `lib/actions/wishlist.ts`).
 
-### Pricing & Security
-- Server always recalculates totals from DB prices — never trust client amounts
-- COD order creation, Razorpay order creation, and Razorpay verification must all use `createCheckoutQuote()` from `lib/checkout/quote.ts`
-- Pure money math belongs in `lib/checkout/pricing.ts`; route handlers should not duplicate subtotal/shipping/discount logic
-- Razorpay signature verification on payment confirmation (`app/api/razorpay/verify/route.ts`)
-- Coupon validation runs server-side with all business rules (expiry, limits, min order, user restrictions)
-- Shipping: free ≥ ₹999, else ₹99 (see `lib/constants.ts` for source of truth)
-- COD: ₹50 fee, cancellable by the owning customer only while `pending` or `confirmed`; cancellation restores stock and rolls back user metrics
+### Pricing & Checkout Security
+- The server always re-prices from the database. Every checkout path uses `createCheckoutQuote()` from `lib/checkout/quote.ts`; pure money math (subtotal, combo and coupon discounts, delivery, COD fee) lives in `lib/checkout/pricing.ts`. Route handlers never duplicate it.
+- Delivery: `SHIPPING_FEE` below `FREE_SHIPPING_THRESHOLD`, free at or above it. UAE-only; addresses are validated by `sanitizeUaeAddress()` in `lib/uae.ts` against `SHIPPING_EMIRATES`.
+- Coupon validation runs server-side with all business rules (expiry, limits, minimum order, user restriction) — `lib/coupon-validation.ts`. Do not import public coupon rules from admin actions.
 
-### Bargain AI (Discount Negotiation)
-- Checkout component (`components/features/checkout-bargain.tsx`) streams AI chat via `/api/bargain`
-- Progressive offer and finalization rules live in `lib/bargain/logic.ts` and have unit tests
-- DB-backed bargain eligibility context lives in `lib/bargain/context.ts`; the route should not query product/combo caps inline
-- Coupon/session DB writes live in `lib/actions/bargain.ts`; `/api/bargain` should orchestrate streaming only
-- Generates ephemeral coupons (prefix `BRG-`, 5-min expiry) stored in `coupons` and `bargainSessions` tables only after persistence succeeds
-- Product page AI (`components/features/bargain-ai.tsx`) answers questions locally — no API calls
+### Order Write Path
+`createOrderRecord()` in `lib/orders/create-order.ts` is the **single** order intake write path. It is `server-only` and intentionally not a `"use server"` file, so it cannot be called from the browser. Coupon consumption, order rows, order-item snapshots, stock mutation and customer metrics happen in one transaction; it then sends the order confirmation email and revalidates public inventory. Callers must pass a quote from `createCheckoutQuote()`.
 
-### Payment & Checkout Flow
-Two payment paths in `app/checkout/page.tsx`:
-- **COD:** POST `/api/orders` → creates order directly with `paymentStatus="pending"`, adds ₹50 COD fee
-- **Online (Razorpay):** POST `/api/razorpay` (create order) → open Razorpay modal → POST `/api/razorpay/verify` (signature verification + amount check with ±₹1 tolerance) → `createOrder()` with `paymentStatus="paid"`
-- Server recalculates totals in both paths — client amounts are never trusted
-- Razorpay payment methods: UPI, Card, NetBanking (validated in verify route)
-- `createOrder()` stays the single order intake write path. Coupon consumption, stock mutation, user metrics, and order item snapshots must remain atomic.
-- Placeholder admin settings are intentionally removed. Do not re-add fake settings controls without a real persistence model.
+### Payment Paths
+- **Cash on delivery:** `POST /api/orders` → quote → `getCodUnavailableReason()` (`lib/checkout/cod.ts`: `COD_ENABLED`, emirate in `COD_ALLOWED_EMIRATES`, total ≤ `COD_MAX_ORDER_TOTAL`) → `createOrderRecord()` with `paymentStatus: "pending"` and the `COD_FEE` added by the quote.
+- **Card (hosted):** `POST /api/checkout/card` → `startCardCheckout()` freezes the server quote in `checkout_sessions` and redirects to the provider's hosted page. No order or stock change happens until payment is confirmed. `finalizeCardCheckout()` idempotently turns a paid session into an order; it is called from both the provider webhook (`/api/webhooks/payments/[provider]`, signature-verified, de-duplicated in `payment_webhook_events`) and the `/checkout/complete` return page, serialised by a row lock. The provider amount must match the frozen quote (`assertProviderAmountMatchesQuote`).
+- **Providers:** implement `CardPaymentProvider` (`lib/payments/types.ts`) and register it in `lib/payments/index.ts`. `PAYMENT_PROVIDER` selects the implementation (default `stripe`; needs `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`). When no provider is configured `getCardPaymentProvider()` returns `null` and the storefront hides the card option — never present a payment method that cannot take money. We never handle card data.
 
-### Store Credits & Refunds
-- `issueStoreCredit()` in `lib/actions/admin.ts` generates `CREDIT-XXXXXXXX` prefixed coupons
-- Adds 5% bonus on top of refund amount (e.g., ₹1000 refund → ₹1050 credit)
-- Fixed-value coupons, user-specific, valid 30-60 days
-- `getUserStoreCredits()` fetches active credits for a user
+### Cancellations, Refunds & Store Credit
+- Customers can cancel their own **COD** orders while the status is `pending` or `confirmed` (`lib/order-cancellation.ts`); cancellation restores stock and rolls back customer metrics. Paid (card) orders are cancelled by the team so the card can be refunded.
+- `issueStoreCredit()` in `lib/actions/admin.ts` creates a single-use, user-bound, fixed-value `CREDIT-XXXXXXXX` coupon (default validity 180 days) for the exact refund amount.
+
+### Emails
+- `lib/email.ts` sends auth, welcome, order confirmation, order status and marketing batch emails via Resend. Sender identity is env-driven (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, optional `RESEND_REPLY_TO`); without an API key non-critical emails are skipped with a log line.
+- Every email renders through `renderEmailLayout()` in `lib/email-layout.ts` (brand colours in `EMAIL_COLORS`); escape user content with `escapeHtml()`. Marketing emails must carry the tokenised unsubscribe link (`/unsubscribe/marketing`).
+
+### Analytics
+`components/analytics/analytics.tsx` is fully environment-driven: `NEXT_PUBLIC_GTM_ID`, `NEXT_PUBLIC_GA4_ID` (loaded directly only when no GTM container is set), `NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_VERCEL_ANALYTICS=true`. IDs are pattern-validated; nothing loads in development unless `NEXT_PUBLIC_ANALYTICS_IN_DEV=true`.
+
+### Bargain Concierge (optional)
+- Off unless `NEXT_PUBLIC_FEATURE_BARGAIN_AI=true` (`BARGAIN_AI_ENABLED`); `/api/bargain` returns 404 when disabled and 503 when OpenRouter is not configured.
+- Checkout component (`components/features/checkout-bargain.tsx`) streams chat via `/api/bargain`. Offer and finalisation rules live in `lib/bargain/logic.ts` (unit-tested); DB eligibility context in `lib/bargain/context.ts`; coupon/session writes in `lib/actions/bargain.ts`.
+- Generates fixed-value, user-bound `BRG-` coupons with a 5-minute expiry, persisted together with a `bargain_sessions` row.
 
 ### Content Pages
-- `app/collections/` — curated product collections (Essentials, Summer '26)
-- `app/policies/` — store policies with subpages: `exchange/`, `refunds/`, `returns/`, `shipping/`
-- `app/about/` — about page
-- `app/new/` — new arrivals page
+- `app/about/` — brand story; `app/contact/` — customer care details (mailto only; no form backend)
+- `app/policies/` — index plus `shipping/`, `returns/`, `refunds/`, `exchange/`, `privacy/`, `terms/`; each carries a "Last updated" date
+- `app/gallery/` — draggable infinite product canvas; `app/new/` — new arrivals
 
 ### UI Components
-Custom shadcn-inspired primitives in `components/ui/`. Use `cn()` for class merging. Button supports variants: `default | outline | ghost | link | destructive` and sizes: `default | sm | lg | icon`.
+Custom primitives in `components/ui/`. Use `cn()` for class merging. Button variants: `default | outline | ghost | link | destructive`; sizes: `default | sm | lg | icon`. `ScrollReveal`, `StaggerContainer`, `StaggerItem` in `components/ui/scroll-reveal.tsx` already respect reduced motion.
 
 ## Database
 
-Schema in `lib/db/schema.ts`. Key tables: `user`, `products`, `orders`, `order_items`, `coupons`, `bargainSessions`, `wishlist`. Enums: `user_role`, `order_status`, `product_category`, `product_gender`.
+Schema in `lib/db/schema.ts`. Key tables:
+- Better Auth: `user`, `session`, `account`, `verification`
+- Catalogue: `products` (`category` holds a `categories.slug`; `material`, `dimensions`, `sizeLabel`/`colorLabel` name the PDP options, e.g. "Dimensions" / "Finish"), `product_variants` (per size/colour stock), `categories`, `collections` + `collection_products` (ordered membership), `combos`, `product_search_index_state`, `product_recommendations`
+- Commerce: `orders`, `order_items` (snapshots), `coupons`, `checkout_sessions` (frozen quote for hosted card payments), `payment_webhook_events` (idempotency)
+- Marketing & engagement: `newsletter_subscribers`, `marketing_campaigns`, `marketing_campaign_recipients`, `marketing_email_suppressions`, `bargain_sessions`, `wishlist`
 
-**Commands:** `npm run db:generate` → `npm run db:push` (apply schema changes), `npm run db:studio` (browse data)
+Enums: `user_role`, `order_status` (`pending → confirmed → processing → shipped → delivered`, or `cancelled`).
+
+**Commands:** `npm run db:generate` → `npm run db:migrate` (or `db:push` in development), `npm run db:studio`. Seed the catalogue with `scripts/seed-catalog.ts` from `data/catalog/miti-home-catalog.json`. Tests: `npm test` (node test runner over `lib/*.test.ts`).
 
 ## Environment Variables
 
-Required: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `OPENROUTER_API_KEY`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+- **Core:** `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`
+- **Payments:** `PAYMENT_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- **Email:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO`
+- **Images:** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+- **Brand & legal:** `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_CONTACT_PHONE`, `NEXT_PUBLIC_CONTACT_WHATSAPP`, `NEXT_PUBLIC_CONTACT_ADDRESS`, `NEXT_PUBLIC_CONTACT_HOURS`, `NEXT_PUBLIC_LEGAL_NAME`, `NEXT_PUBLIC_TRADE_LICENCE`, `NEXT_PUBLIC_VAT_TRN`, `NEXT_PUBLIC_SOCIAL_*`, `SECURITY_CONTACT_EMAIL`
+- **Commerce terms:** `NEXT_PUBLIC_VAT_RATE`, `NEXT_PUBLIC_PRICES_INCLUDE_VAT`, `NEXT_PUBLIC_FREE_SHIPPING_THRESHOLD_AED`, `NEXT_PUBLIC_SHIPPING_FEE_AED`, `NEXT_PUBLIC_DELIVERY_ESTIMATE`, `NEXT_PUBLIC_SHIPPING_EMIRATES`, `NEXT_PUBLIC_COD_ENABLED`, `NEXT_PUBLIC_COD_FEE_AED`, `NEXT_PUBLIC_COD_MAX_ORDER_AED`, `NEXT_PUBLIC_COD_EMIRATES`, `NEXT_PUBLIC_RETURN_WINDOW_DAYS`, `NEXT_PUBLIC_EXCHANGE_WINDOW_DAYS`
+- **Analytics:** `NEXT_PUBLIC_GTM_ID`, `NEXT_PUBLIC_GA4_ID`, `NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_VERCEL_ANALYTICS`, `NEXT_PUBLIC_ANALYTICS_IN_DEV`
+- **Optional AI/search:** `NEXT_PUBLIC_FEATURE_BARGAIN_AI`, `OPENROUTER_API_KEY`, `GEMINI_API_KEYS`, `PINECONE_API_KEY`, `PINECONE_INDEX`, `PINECONE_NAMESPACE`
+- **Optional auth:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 
 ## Conventions
 
-- Import paths use `@/` alias (maps to project root)
-- Currency is INR (₹) throughout
-- Product images: JSON arrays in DB, served via Cloudinary in prod, local `/clothes/` in dev
-- Order items snapshot product data at purchase time (name, price, image) for historical accuracy
-- Pages use metadata exports for SEO; root layout includes Open Graph & JSON-LD
-- Dark mode default (`html.dark`), toggle via ThemeProvider
+- Import paths use the `@/` alias (maps to project root), except in the node-test-loaded modules listed above.
+- Order items snapshot product data at purchase time (name, price, image) for historical accuracy.
+- Pages use metadata exports for SEO; the root layout applies the `%s | Miti Home` title template, Open Graph and JSON-LD.
+- Light (ivory) theme is the default; dark mode is available via the ThemeProvider.
+- UK/UAE English spelling in customer copy ("colour", "organiser", "personalised").
 
 ## Search Engine Optimization (SEO) Rules
 
-All new features, pages, routing changes, and modifications must strictly follow these rules to maintain and improve search engine crawlability, ranking authority, and indexing health:
+All new features, pages, routing changes and modifications must follow these rules to protect crawlability, ranking authority and indexing health:
 
 ### 1. Routing & Link Paths
-- **Slugs Over IDs:** All public-facing product paths must use the product's unique `slug` (e.g., `/product/seoul-black-tee`) instead of its database UUID. Database actions (such as cart additions or wishlist triggers) must continue to use `product.id`.
-- **Absolute URLs:** When constructing URLs for links, sitemaps, structured schemas, or meta tags, always use helper functions `buildProductPath(slug)` or `buildProductUrl(slug, baseUrl)` from `@/lib/seo` to guarantee uniform canonicalization.
-- **Client Navigation:** Use Next.js client-side `<Link>` tags for internal routing to enable proper page prefetching; avoid standard anchor `<a>` tags except for external locations.
+- **Slugs over IDs:** public product paths use the product's `slug` (e.g. `/product/smoked-glass-ambient-table-lamp`), never its UUID. Cart and wishlist actions continue to use `product.id`.
+- **Absolute URLs:** build URLs for links, sitemaps, schemas and meta tags with `buildProductPath(slug)` / `buildProductUrl(slug, baseUrl)` and `normalizeSiteUrl()` from `@/lib/seo`.
+- **Client navigation:** use Next.js `<Link>` for internal routes; plain `<a>` only for external, `mailto:`, `tel:` and WhatsApp links.
 
 ### 2. Metadata API & Robots Configuration
-- **Meta Exports:** Every public-facing page route must export a descriptive `Metadata` object or implement a dynamic `generateMetadata` function that provides a clean title, description, and canonical URL.
-- **Indexing Exclusions (Noindex):** All private, user-specific, or system-oriented pages (including `/admin/*`, `/account`, `/checkout`, `/orders`, `/wishlist`, `/unsubscribe`, and `/api/*`) must specify `robots: { index: false, follow: false }` inside their layouts/pages.
-- **Dynamic Sitemap Integration:** Any new public content routes (such as new collections, policy directories, or blogs) must be registered in [sitemap.ts](file:///c:/Users/fateless/Documents/Projects/xilar/app/sitemap.ts).
+- **Meta exports:** every public page exports `Metadata` (or `generateMetadata`) with a clean title, description and canonical URL.
+- **Noindex:** private or system pages (`/admin/*`, `/account`, `/checkout`, `/orders`, `/wishlist`, `/unsubscribe`, `/api/*`) set `robots: { index: false, follow: false }`.
+- **Sitemap:** register new public routes (categories, collections, policies, content pages) in `app/sitemap.ts`.
 
 ### 3. Structured Data (JSON-LD)
-- **JSON-LD Injections:** Public pages must inject Schema.org JSON-LD scripts using the `<JsonLd data={...} />` component from `@/lib/structured-data` to enable Google rich snippets:
+- Inject Schema.org JSON-LD with `<JsonLd data={...} />` from `@/components/seo/structured-data`:
   - **Homepage / About:** `organizationJsonLd()` and `webSiteJsonLd()`.
-  - **Product Pages:** `productJsonLd()` and `breadcrumbJsonLd()`.
-  - **Category / Listing Page:** `collectionJsonLd()` (populated with initial products) and `breadcrumbJsonLd()`.
-  - **FAQ Sections:** `faqJsonLd()`.
-- **XSS Prevention:** Always serialize JSON-LD markup with the `safeJsonLdStringify` helper to prevent HTML parsing exploits.
+  - **Product pages:** `productJsonLd()` and `breadcrumbJsonLd()`.
+  - **Category / listing pages:** `collectionJsonLd()` (with initial products) and `breadcrumbJsonLd()`.
+  - **FAQ sections:** `faqJsonLd()`.
+- `<JsonLd>` serialises with `safeJsonLdStringify` to prevent HTML-parsing exploits — never inline JSON-LD by hand.
 
-### 4. Next.js Static Hydration & Crawl Budget
-- **Avoid Global dynamic = 'force-dynamic':** Keep catalog and landing pages statically pre-rendered (SSG/ISR) by avoiding page-level query-driven dynamic rendering. Delegate parameters like search term queries and filters to client components (`ShopClient`), or render them as static shells.
-- **Index Bloat Prevention (X-Robots-Tag):** When adding new query-driven filter parameters or search paths to the catalog, update `next.config.ts` headers to inject `X-Robots-Tag: noindex, follow` for those paths, protecting domain authority.
+### 4. Static Rendering & Crawl Budget
+- **Avoid `dynamic = "force-dynamic"`** on catalogue and landing pages; keep them statically rendered (SSG/ISR). Push search terms and filters into client components (`ShopClient`) or static shells.
+- **Index-bloat prevention:** when adding query-driven filter parameters, update `CATALOG_NOINDEX_PARAMS` in `lib/seo.ts` and the `X-Robots-Tag: noindex, follow` headers in `next.config.ts`.
 
 ## Seasoned Awards-Level Design Principles
 
-When implementing or refactoring UI components and pages, you must filter every choice through the "seasoned awards-level" design lens. This requires strict engineering discipline to balance interactive engagement with professional restraint:
+Filter every UI choice through a "seasoned, awards-level" lens: calm luxury, not spectacle.
 
-- **The "Too Much" Trap vs. Restraint:**
-  - **Avoid hyperactivity:** Do not stack multiple heavy motion triggers (e.g., scroll parallax, auto-playing video/sliders, text marquees, and scale transitions) in the same viewport. Let elements breathe.
-  - **Ditch lingering delays:** Transitions should feel responsive, not lazy. Keep durations under `500ms` (standard is `250ms–400ms`) and use exponential eases (like `cubic-bezier(0.16, 1, 0.3, 1)` or GSAP `power4.out`). Avoid slow linear transitions.
-  - **Restrain hover states:** Never overlap hover effects. If a card scales up, do not also blur the background, rotate the image, and animate a border. Pick one subtle response (e.g., opacity fade, crop zoom, or light Y-lift) and execute it cleanly.
-  - **Whitespace is feature space:** Never compress grid elements or crowd typography to fit content. Clean gutters, generous vertical margins (`py-16` to `py-28`), and clear grid alignments are mandatory.
-- **Micro-Interaction Mechanics:**
-  - Prevent user gestures (e.g., drags, scroll triggers, click states) from causing layout shifts or overlapping with loading animations.
-  - Check `useReducedMotion()` for all physics, inertial drags, and 3D rotations, providing clean fades and instant changes when active.
+- **The "too much" trap vs. restraint:**
+  - **Avoid hyperactivity:** never stack several heavy motion triggers (scroll parallax, autoplay video, marquees, scale transitions) in one viewport. Let pieces breathe.
+  - **No lingering delays:** transitions should feel responsive — under `500ms` for UI (typically `250–400ms`) with exponential eases (`cubic-bezier(0.16, 1, 0.3, 1)` or GSAP `power4.out`). Signature set-pieces (gallery intro, lightbox FLIP) are the only exceptions.
+  - **Restrain hover states:** one subtle response per element (opacity, gentle crop zoom or a light Y-lift) — never several at once.
+  - **Whitespace is feature space:** generous vertical rhythm (`py-16 md:py-24` and up), clean gutters, no crowded grids.
+- **Micro-interaction mechanics:**
+  - Gestures (drags, scroll triggers, clicks) must not cause layout shift or collide with loading animations.
+  - Check `useReducedMotion()` for all physics, inertial drags and 3D transforms; provide clean fades or instant state changes when active.
 
 ## Design Context
 
-- Refer to [.impeccable.md](.impeccable.md) for the full design context, brand personality, aesthetic direction, motion rules, and accessibility guidance.
-- Keep this file focused on repo-wide engineering, implementation rules, and seasoned design-engineering principles.
-
+- Refer to [.impeccable.md](.impeccable.md) for the full design system, motion rules and accessibility guidance.
+- Keep this file focused on repo-wide engineering, implementation rules and design-engineering principles.

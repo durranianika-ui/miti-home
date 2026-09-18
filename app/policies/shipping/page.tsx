@@ -1,184 +1,169 @@
 import type { Metadata } from "next"
+import type { ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, Truck, Clock, MapPin, IndianRupee, Package } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { JsonLd, breadcrumbJsonLd } from "@/components/seo/structured-data"
+import { BRAND, CONTACT } from "@/lib/brand"
+import {
+    COD_ALLOWED_EMIRATES,
+    COD_ENABLED,
+    COD_FEE,
+    COD_MAX_ORDER_TOTAL,
+    DELIVERY_ESTIMATE,
+    FREE_SHIPPING_THRESHOLD_DISPLAY,
+    SHIPPING_EMIRATES,
+    SHIPPING_FEE,
+    UAE_EMIRATES,
+} from "@/lib/constants"
+import { formatPrice } from "@/lib/money"
 import { normalizeSiteUrl } from "@/lib/seo"
 
+const LAST_UPDATED = "18 September 2026"
+
 export const metadata: Metadata = {
-    title: "Shipping Policy — Free Delivery Above ₹999",
-    description:
-        "XILAR shipping policy: free shipping above ₹999, standard delivery ₹99, COD available with ₹50 fee. 5–7 business day delivery across India.",
+    title: "Delivery Policy",
+    description: `${BRAND.name} delivers across the UAE ${DELIVERY_ESTIMATE}. ${formatPrice(SHIPPING_FEE)} delivery, complimentary on orders of ${FREE_SHIPPING_THRESHOLD_DISPLAY} or more${
+        COD_ENABLED ? "; cash on delivery available" : ""
+    }.`,
     alternates: {
         canonical: "/policies/shipping",
     },
     openGraph: {
-        title: "Shipping Policy | XILAR",
-        description:
-            "Free shipping above ₹999, standard delivery ₹99, COD available with ₹50 fee. 5–7 business day delivery.",
+        title: `Delivery Policy | ${BRAND.name}`,
+        description: `Delivery across the UAE ${DELIVERY_ESTIMATE}. Complimentary on orders of ${FREE_SHIPPING_THRESHOLD_DISPLAY} or more.`,
         url: "/policies/shipping",
     },
 }
 
+function listJoin(items: readonly string[]) {
+    if (items.length <= 1) return items.join("")
+    return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+    return (
+        <section className="space-y-4">
+            <h2 className="font-heading text-[11px] font-medium uppercase tracking-[0.26em] text-foreground">{title}</h2>
+            <div className="space-y-3 text-sm leading-7 text-muted-foreground">{children}</div>
+        </section>
+    )
+}
+
 export default function ShippingPolicyPage() {
     const baseUrl = normalizeSiteUrl()
+    const allEmirates = SHIPPING_EMIRATES.length === UAE_EMIRATES.length
+    const codEverywhere = COD_ALLOWED_EMIRATES.length === SHIPPING_EMIRATES.length
+
+    const charges = [
+        { label: `Orders under ${FREE_SHIPPING_THRESHOLD_DISPLAY}`, value: formatPrice(SHIPPING_FEE) },
+        { label: `Orders of ${FREE_SHIPPING_THRESHOLD_DISPLAY} or more`, value: "Complimentary" },
+        ...(COD_ENABLED ? [{ label: "Cash on delivery handling", value: `+ ${formatPrice(COD_FEE)}` }] : []),
+    ]
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-background">
             <JsonLd
                 data={breadcrumbJsonLd(baseUrl, [
                     { name: "Home", url: "/" },
-                    { name: "Store Policies", url: "/policies" },
-                    { name: "Shipping Policy", url: "/policies/shipping" },
+                    { name: "Customer Care", url: "/policies" },
+                    { name: "Delivery Policy", url: "/policies/shipping" },
                 ])}
             />
-            <div className="px-6 md:px-12 py-14 md:py-20 border-b border-border/60">
-                <Link href="/policies" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 mb-4 uppercase tracking-[0.15em] transition-colors duration-300">
-                    <ArrowLeft className="h-3 w-3" /> Back to policies
-                </Link>
-                <div className="flex items-center gap-3 mb-2">
-                    <Truck className="h-5 w-5 text-brand" />
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Policy</p>
-                </div>
-                <h1 className="font-display text-4xl md:text-6xl">Shipping policy</h1>
-                <p className="text-sm text-muted-foreground mt-2">Fast and reliable delivery</p>
-            </div>
 
-            <div className="p-6 md:px-12 max-w-3xl space-y-8">
-                {/* Free Shipping */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <IndianRupee className="h-4 w-4 text-brand" /> Free shipping
-                    </h2>
-                    <div className="p-6 bg-brand/5 border border-brand/20 text-center">
-                        <p className="text-2xl font-black tracking-tight uppercase">Free shipping</p>
-                        <p className="text-sm mt-2 tabular-nums">on orders above ₹999</p>
-                        <p className="text-xs text-muted-foreground mt-3">
-                            No minimum items. Just hit ₹999 and shipping is on us.
-                        </p>
-                    </div>
-                </section>
-
-                {/* Standard Shipping */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em]">Standard shipping</h2>
-                    <div className="p-4 bg-secondary/10 border border-border/60">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <p className="font-medium text-sm">Orders below ₹999</p>
-                                <p className="text-xs text-muted-foreground">Standard delivery fee applies</p>
-                            </div>
-                            <div className="text-xl font-semibold tabular-nums">₹99</div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* COD */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Package className="h-4 w-4 text-orange-500" /> Cash on delivery
-                    </h2>
-                    <div className="p-4 bg-orange-500/5 border border-orange-500/20">
-                        <div className="flex justify-between items-center mb-3">
-                            <div>
-                                <p className="font-medium text-sm text-orange-600 dark:text-orange-400">COD available</p>
-                                <p className="text-xs text-muted-foreground">Pay when you receive your order</p>
-                            </div>
-                            <div className="text-xl font-semibold text-orange-600 dark:text-orange-400 tabular-nums">+₹50</div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            A flat COD handling fee of ₹50 is added to all Cash on Delivery orders. 
-                            This covers the additional logistics and risk involved in COD shipments.
-                        </p>
-                    </div>
-                </section>
-
-                {/* Delivery Time */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-brand" /> Delivery time
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="p-4 bg-secondary/10 border border-border/60">
-                            <p className="font-medium text-sm">Metro cities</p>
-                            <p className="text-xl font-semibold mt-2">3–5 days</p>
-                            <p className="text-[10px] text-muted-foreground mt-1">Delhi, Mumbai, Bangalore, Chennai, Kolkata, Hyderabad</p>
-                        </div>
-                        <div className="p-4 bg-secondary/10 border border-border/60">
-                            <p className="font-medium text-sm">Rest of India</p>
-                            <p className="text-xl font-semibold mt-2">5–7 days</p>
-                            <p className="text-[10px] text-muted-foreground mt-1">Tier 2/3 cities and other locations</p>
-                        </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                        * Delivery times are estimates and may vary due to unforeseen circumstances, holidays, or remote locations.
+            <header className="border-b border-border px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto max-w-3xl">
+                    <Link
+                        href="/policies"
+                        className="inline-flex items-center gap-1.5 font-heading text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-300 hover:text-foreground"
+                    >
+                        <ArrowLeft className="h-3 w-3" /> All policies
+                    </Link>
+                    <p className="mt-10 font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand-strong">
+                        Policy
                     </p>
-                </section>
+                    <h1 className="font-display mt-4 text-4xl leading-tight md:text-6xl">Delivery</h1>
+                    <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground">
+                        Carefully packed in {BRAND.city} and delivered to your door, {DELIVERY_ESTIMATE}.
+                    </p>
+                    <p className="mt-6 text-xs text-muted-foreground">Last updated {LAST_UPDATED}</p>
+                </div>
+            </header>
 
-                {/* Serviceable Areas */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-brand" /> Serviceable areas
-                    </h2>
-                    <div className="p-4 bg-secondary/10 border border-border/60">
-                        <p className="font-medium text-sm">We deliver across India</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            We ship to most PIN codes in India. Some remote areas may have limited service or longer delivery times.
+            <div className="mx-auto max-w-3xl space-y-12 px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <Section title="Where we deliver">
+                    <p>
+                        We deliver within the United Arab Emirates only
+                        {allEmirates ? ", to all seven emirates: " : ", currently to "}
+                        {listJoin(SHIPPING_EMIRATES)}. We are not able to ship outside the UAE at present.
+                    </p>
+                </Section>
+
+                <Section title="Delivery times">
+                    <p>
+                        Orders are delivered {DELIVERY_ESTIMATE} once confirmed. Timings are estimates and may be longer
+                        during public holidays, peak seasons or for more remote addresses. We will always let you know if
+                        your order is going to take longer than expected.
+                    </p>
+                </Section>
+
+                <Section title="Delivery charges">
+                    <p>All prices, including delivery charges, are in UAE dirhams (AED) and include VAT.</p>
+                    <dl className="divide-y divide-border border-y border-border">
+                        {charges.map((row) => (
+                            <div key={row.label} className="flex items-baseline justify-between gap-4 py-4">
+                                <dt className="text-sm text-foreground">{row.label}</dt>
+                                <dd className="text-sm tabular-nums text-foreground">{row.value}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                </Section>
+
+                {COD_ENABLED ? (
+                    <Section title="Cash on delivery">
+                        <p>
+                            You can pay in cash when your order arrives
+                            {codEverywhere ? "" : ` in ${listJoin(COD_ALLOWED_EMIRATES)}`}. A handling fee of{" "}
+                            {formatPrice(COD_FEE)} is added at checkout. Cash on delivery is available on orders up to{" "}
+                            {formatPrice(COD_MAX_ORDER_TOTAL)}; larger orders are paid by card.
                         </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            To check if we deliver to your location, enter your PIN code at checkout.
-                        </p>
-                    </div>
-                </section>
+                        <p>Please have the exact amount ready — our courier partners may not always carry change.</p>
+                    </Section>
+                ) : null}
 
-                {/* Tracking */}
-                <section className="space-y-4">
-                    <h2 className="text-xl font-bold uppercase tracking-tight">Order Tracking</h2>
-                    <div className="p-4 bg-secondary/20 border border-border">
-                        <ul className="space-y-2 text-sm">
-                            <li className="flex items-start gap-2">
-                                <span className="text-brand font-bold">•</span>
-                                <span>You&apos;ll receive a tracking ID via email/SMS once your order ships</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="text-brand font-bold">•</span>
-                                <span>Track your order anytime from the &quot;My Orders&quot; page</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="text-brand font-bold">•</span>
-                                <span>We partner with trusted couriers for safe and reliable delivery</span>
-                            </li>
-                        </ul>
-                    </div>
-                </section>
+                <Section title="Large and furniture pieces">
+                    <p>
+                        Furniture and oversized pieces are delivered by arrangement. Our team will contact you after you
+                        order to agree a delivery date and time, and to check access — lifts, parking, loading bays and
+                        any building permits your community requires.
+                    </p>
+                </Section>
 
-                {/* Summary Table */}
-                <section className="space-y-4">
-                    <h2 className="text-xl font-bold uppercase tracking-tight">Quick Summary</h2>
-                    <div className="border border-border overflow-hidden">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-secondary/50">
-                                    <th className="p-3 text-left font-bold uppercase">Order Value</th>
-                                    <th className="p-3 text-right font-bold uppercase">Shipping</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr className="border-t border-border">
-                                    <td className="p-3">Above ₹999</td>
-                                    <td className="p-3 text-right text-green-600 dark:text-green-400 font-bold">FREE</td>
-                                </tr>
-                                <tr className="border-t border-border">
-                                    <td className="p-3">Below ₹999</td>
-                                    <td className="p-3 text-right">₹99</td>
-                                </tr>
-                                <tr className="border-t border-border bg-orange-500/5">
-                                    <td className="p-3">COD Extra Fee</td>
-                                    <td className="p-3 text-right text-orange-600 dark:text-orange-400">+₹50</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+                <Section title="Receiving your order">
+                    <p>
+                        Please inspect your order when it arrives. If the outer packaging is visibly damaged, note it with
+                        the courier and take a photograph before opening. If anything inside is damaged or incorrect, let
+                        us know within 48 hours of delivery with photographs of the item and its packaging, and we will put
+                        it right — see our <Link href="/policies/returns" className="text-foreground underline underline-offset-4">returns policy</Link>.
+                    </p>
+                </Section>
+
+                <Section title="Following your order">
+                    <p>
+                        You will receive an email confirming your order, and another as its status changes. You can view
+                        your orders at any time from{" "}
+                        <Link href="/orders" className="text-foreground underline underline-offset-4">
+                            My orders
+                        </Link>
+                        .
+                    </p>
+                </Section>
+
+                <p className="border-t border-border pt-8 text-xs text-muted-foreground">
+                    Questions? Contact us at{" "}
+                    <a href={`mailto:${CONTACT.email}`} className="underline underline-offset-4 hover:text-foreground">
+                        {CONTACT.email}
+                    </a>
+                </p>
             </div>
         </div>
     )

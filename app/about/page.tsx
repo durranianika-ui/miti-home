@@ -1,82 +1,119 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ArrowUpRight } from "lucide-react"
 import { JsonLd, breadcrumbJsonLd, organizationJsonLd, webSiteJsonLd } from "@/components/seo/structured-data"
-import { CONTACT_EMAIL, CONTACT_PHONE } from "@/lib/constants"
+import { ScrollReveal, StaggerContainer, StaggerItem } from "@/components/ui/scroll-reveal"
+import { BRAND } from "@/lib/brand"
+import { normalizeSiteUrl } from "@/lib/seo"
 
 export const metadata: Metadata = {
-    title: "About XILAR — Our Story",
-    description:
-        "Learn about XILAR — Gen-Z streetwear built on streetwise minimalism, bold design, and affordable luxury. Led by Founder Aman Somvanshi and CTO Aditya Singh in Lucknow.",
+    title: "Our Story",
+    description: `${BRAND.name} is a ${BRAND.city}-based home lifestyle brand curating beautiful, useful and unexpected products for modern living — décor, lighting, smart storage and entertaining essentials, delivered across the UAE.`,
     alternates: {
         canonical: "/about",
     },
     openGraph: {
-        title: "About XILAR — Our Story",
-        description:
-            "Gen-Z streetwear built on streetwise minimalism, bold design, and affordable luxury. Led by Founder Aman Somvanshi and CTO Aditya Singh in Lucknow.",
+        title: `Our Story | ${BRAND.name}`,
+        description: `${BRAND.promise} A ${BRAND.city}-based home lifestyle brand curating beautiful, useful and unexpected products for modern living.`,
         url: "/about",
     },
 }
 
-const teamMembers = [
+const whatWeDo = [
+    { title: "We discover", body: "We research global trends, makers and products to find pieces worth bringing home." },
+    { title: "We curate", body: "We select only what meets our standards of beauty, quality and usefulness." },
     {
-        index: "01",
-        role: "CTO",
-        name: "Aditya Singh",
-        shortName: (
-            <>
-                Aditya <br />
-                Singh
-            </>
-        ),
-        image: "/team/lead.jpg",
-        description:
-            "Aditya is a skilled developer with expertise in modern web technologies and a passion for creating seamless user experiences.",
+        title: "We create experience",
+        body: "From our website to our packaging, every touchpoint is designed to feel considered and luxurious.",
     },
-    {
-        index: "02",
-        role: "Founder",
-        name: "Aman Somvanshi",
-        shortName: (
-            <>
-                Aman <br />
-                Somvanshi
-            </>
-        ),
-        image: "/team/founder.jpeg",
-        description:
-            "Aman is the founder of XILAR, with a vision to create a brand that resonates with Gen-Z consumers and delivers on the promise of affordable luxury."
-    },
-    // {
-    //     index: "03",
-    //     role: "Project Manager",
-    //     name: "Michael Brown",
-    //     shortName: (
-    //         <>
-    //             Michael <br />
-    //             Brown
-    //         </>
-    //     ),
-    //     image: "/team/team-3.jpg",
-    //     description:
-    //         "Michael ensures projects are delivered on time and within scope, maintaining excellent communication with clients and the team.",
-    // },
+    { title: "We deliver", body: `Fast, reliable delivery across ${BRAND.city} and the UAE.` },
 ]
 
+const whatWeSell = [
+    {
+        title: "Home Décor",
+        href: "/shop/home-decor",
+        image: "/products/deer-family-sculpture-set/2.webp",
+        alt: "Three polished silver deer sculptures of different heights in a warmly lit alcove",
+    },
+    {
+        title: "Lighting",
+        href: "/shop/lighting",
+        image: "/products/teardrop-smoked-glass-pendant/1.webp",
+        alt: "Teardrop smoked glass pendant light hanging beside a grey upholstered bed",
+    },
+    {
+        title: "Smart Storage & Organisation",
+        href: "/shop/smart-storage",
+        image: "/products/vanity-tissue-tray-organiser/1.webp",
+        alt: "Cream leather vanity tray with built-in tissue box holding perfume bottles and a diffuser",
+    },
+    {
+        title: "Home Entertainment",
+        href: "/shop/home-entertainment",
+        image: "/products/kinetic-perpetual-motion-sculpture/1.webp",
+        alt: "Brushed silver kinetic perpetual-motion sculpture on a black base",
+    },
+    {
+        title: "Why Didn't I Have This Before?",
+        href: "/shop/clever-finds",
+        image: "/products/astronaut-digital-clock/1.webp",
+        alt: "White astronaut figure with a mirrored helmet holding a digital clock on a desk",
+    },
+]
+
+const processSteps = [
+    { title: "Research", body: "Global trends, makers and materials." },
+    { title: "Shortlist", body: "Only pieces that are beautiful, useful or unexpected." },
+    { title: "Sample & test", body: "Each piece is sampled and checked for quality." },
+    { title: "Launch", body: "Photographed, described and introduced with care." },
+    { title: "Measure & scale", body: "We listen to what you love and grow from there." },
+]
+
+const whyMiti = [
+    "Curated, not crowded",
+    "Design-led and lifestyle-focused",
+    "Quality over quantity",
+    "Unique and unexpected finds",
+    "Strong content and community",
+    "A luxury experience at every touchpoint",
+]
+
+const whatWeDont = [
+    "We don't sell everything",
+    "We don't compete on price",
+    "We don't compromise on quality",
+    "We don't follow trends blindly",
+    "We don't look like generic stores",
+]
+
+const ourCustomer = [
+    { title: "Design conscious", body: "Notices the details, and cares how a room looks and feels." },
+    { title: "Modern lifestyle", body: "Wants a home that works as beautifully as it looks." },
+    { title: "Experience seekers", body: "Enjoys discovery, hosting and the small rituals of home." },
+    { title: "Value quality", body: "Would rather own fewer, better things." },
+]
+
+const eyebrow = "font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand-strong"
+
+function BrandRule({ className = "" }: { className?: string }) {
+    return (
+        <div className={`brand-rule w-40 text-[10px] ${className}`}>
+            <span className="h-1.5 w-1.5 rotate-45 bg-brand" />
+        </div>
+    )
+}
+
 export default function AboutPage() {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-    const manifestoText =
-        "We challenge norms, embrace change, pioneer progress. We are innovators merging art and technology to craft experiences that surprise, delight, and evolve."
+    const baseUrl = normalizeSiteUrl()
 
     return (
-        <div className="flex min-h-screen flex-col">
+        <div className="flex min-h-screen flex-col bg-background">
             <JsonLd
                 data={breadcrumbJsonLd(baseUrl, [
                     { name: "Home", url: "/" },
-                    { name: "About", url: "/about" },
+                    { name: "Our Story", url: "/about" },
                 ])}
             />
             <JsonLd
@@ -86,137 +123,219 @@ export default function AboutPage() {
                 }}
             />
 
-            <section className="px-6 pb-16 pt-24 md:px-12 md:pb-24 md:pt-[22svh] lg:px-16">
-                <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[0.8fr_1.2fr] md:gap-14">
-                    <div className="flex flex-col justify-between gap-8">
-                        <p className="max-w-[24rem] text-[10px] font-semibold uppercase tracking-[0.36em] text-muted-foreground">
-                            Street ready. Built for movement.
-                        </p>
-                        <p className="max-w-[22rem] text-sm leading-7 text-muted-foreground">
-                            We are building an Indian streetwear house for visual shoppers who want premium confidence without luxury-store distance.
-                        </p>
-                    </div>
-
-                    <div className="grid gap-8">
-                        <h1 className="font-display max-w-5xl text-6xl leading-[0.88] md:text-8xl lg:text-9xl">
-                            About XILAR
+            {/* Hero */}
+            <section className="px-4 pb-16 pt-16 sm:px-6 md:px-12 md:pb-24 md:pt-24">
+                <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2 md:gap-16">
+                    <div>
+                        <p className={eyebrow}>Our story</p>
+                        <h1 className="font-display mt-6 text-4xl leading-[1.1] sm:text-5xl md:text-6xl">
+                            {BRAND.promise}
                         </h1>
-                        <div className="relative h-[48svh] min-h-[24rem] overflow-hidden bg-muted md:h-[56svh]">
-                            <Image
-                                src="/logo.jpeg"
-                                alt="XILAR streetwear editorial"
-                                fill
-                                sizes="(max-width: 768px) 100vw, 68vw"
-                                priority
-                                className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent" />
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="border-t border-border/60 px-6 py-16 md:px-12 md:py-24 lg:px-16">
-                <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[0.78fr_1.22fr]">
-                    <div>
-                        <p className="sticky top-28 text-[10px] font-semibold uppercase tracking-[0.36em] text-muted-foreground">
-                            Manifesto
+                        <BrandRule className="mt-10" />
+                        <p className="mt-10 max-w-lg text-base leading-8 text-muted-foreground">
+                            {BRAND.name} is a {BRAND.city}-based home lifestyle brand that curates beautiful, useful and
+                            unexpected products for modern living. We discover the finest pieces for your home — from
+                            statement décor and unique lighting to smart storage solutions and entertaining essentials —
+                            to help you create beautiful spaces and a better you.
                         </p>
                     </div>
-                    <div className="min-h-[70svh] md:min-h-[85svh]">
-                        <div className="sticky top-24 md:top-28">
-                            <h1 className="max-w-[72ch] font-display text-5xl leading-[1.125] md:text-7xl lg:text-[6.5rem]">
-                                {manifestoText}
-                            </h1>
-                        </div>
+                    <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted">
+                        <Image
+                            src="/products/resting-figures-sculpture-pair/1.webp"
+                            alt="Two abstract ceramic figure sculptures, one sand and one terracotta, resting against a stack of books in dappled light"
+                            fill
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                            priority
+                            className="object-cover"
+                        />
                     </div>
                 </div>
             </section>
 
-            <section className="border-t border-border/60 px-6 py-16 md:px-12 md:py-24 lg:px-16">
-                <div className="mx-auto max-w-7xl">
-                    <p className="mb-8 text-[10px] font-semibold uppercase tracking-[0.36em] text-muted-foreground">
-                        The studio line
+            {/* Brand statement */}
+            <section className="bg-secondary px-4 py-16 sm:px-6 md:px-12 md:py-28">
+                <ScrollReveal className="mx-auto max-w-4xl text-center">
+                    <p className={eyebrow}>Our brand</p>
+                    <p className="font-display mt-8 text-3xl leading-snug md:text-5xl md:leading-tight">
+                        Modern luxury living — warm, calm and timeless.
                     </p>
-                    <h2 className="font-display max-w-6xl text-5xl leading-[0.96] md:text-7xl lg:text-8xl">
-                        <span>From corners of globe,</span>
-                        <span className="block md:pl-[18vw]">we are united by</span>
-                        <span className="block md:pl-[38vw]">creativity</span>
-                    </h2>
-                    <div className="mt-16 space-y-16 md:mt-20 md:space-y-24">
-                        {teamMembers.map((member, index) => (
-                            <article
-                                key={member.name}
-                                className={`relative flex flex-col ${
-                                    index === 1 ? "md:left-[40%]" : index === 2 ? "md:left-[15%]" : ""
-                                }`}
-                            >
-                                <div className="mb-3 md:mb-4">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                                        {member.role}
-                                    </p>
-                                </div>
-                                <div className="flex flex-col md:flex-row md:items-center">
-                                    <div className="relative w-full aspect-[7/10] md:w-[350px] md:h-[500px] md:aspect-auto overflow-hidden bg-muted flex-shrink-0">
-                                        <Image
-                                            src={member.image}
-                                            alt={member.name}
-                                            fill
-                                            sizes="(max-width: 768px) 100vw, 350px"
-                                            className="object-cover"
-                                        />
-                                    </div>
-                                    <div className="hidden md:flex relative flex-col gap-16 -left-8 w-[calc(100%-500px)]">
-                                        <div className="text-[3rem] font-light leading-none">
-                                            <p>{member.shortName}</p>
-                                        </div>
-                                        <div className="flex gap-8">
-                                            <div className="w-20 h-20 aspect-square flex items-center justify-center border border-foreground/35 rounded-full flex-shrink-0">
-                                                <ArrowRight className="h-6 w-6" />
-                                            </div>
-                                            <div className="w-[35%]">
-                                                <p className="text-sm leading-6 text-muted-foreground">
-                                                    {member.description}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="mt-3 md:mt-4">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground md:block hidden">
-                                        ({member.index})
-                                    </p>
-                                    <h3 className="text-3xl font-light mt-2 md:hidden block">
-                                        {member.name}
-                                    </h3>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
-                </div>
+                    <p className="font-display-caps mt-8 text-xs text-muted-foreground md:text-sm">
+                        Not just a store. A lifestyle.
+                    </p>
+                </ScrollReveal>
             </section>
 
-            <section className="px-6 py-16 md:px-12 md:py-24 lg:px-16">
-                <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1.1fr_0.9fr] md:items-end">
-                    <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.36em] text-muted-foreground">
-                            Get in touch
-                        </p>
-                        <h2 className="font-display mt-6 text-5xl leading-none md:text-7xl">
-                            Bold. Luxury. Affordable.
+            {/* What we do */}
+            <section className="px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto max-w-7xl">
+                    <div className="max-w-2xl">
+                        <p className={eyebrow}>What we do</p>
+                        <h2 className="font-display mt-5 text-3xl leading-tight md:text-5xl">
+                            Every piece is found, chosen and delivered with intent
                         </h2>
                     </div>
-                    <div className="grid gap-5 md:justify-end">
-                        <div className="text-sm leading-7 text-muted-foreground md:text-right">
-                            <p className="font-medium text-foreground">{CONTACT_EMAIL}</p>
-                            <p>{CONTACT_PHONE}</p>
+                    <StaggerContainer className="mt-12 grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+                        {whatWeDo.map((item, index) => (
+                            <StaggerItem key={item.title} className="bg-background p-6 md:p-8">
+                                <p className="font-heading text-[11px] tabular-nums tracking-[0.1em] text-brand-strong">
+                                    {String(index + 1).padStart(2, "0")}
+                                </p>
+                                <h3 className="font-heading mt-6 text-[12px] font-medium uppercase tracking-[0.24em]">
+                                    {item.title}
+                                </h3>
+                                <p className="mt-3 text-sm leading-7 text-muted-foreground">{item.body}</p>
+                            </StaggerItem>
+                        ))}
+                    </StaggerContainer>
+                </div>
+            </section>
+
+            {/* What we sell */}
+            <section className="border-t border-border px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto max-w-7xl">
+                    <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                        <div className="max-w-2xl">
+                            <p className={eyebrow}>What we sell</p>
+                            <h2 className="font-display mt-5 text-3xl leading-tight md:text-5xl">
+                                Beautiful, useful and unexpected
+                            </h2>
                         </div>
-                        <Button asChild variant="outline" className="h-13 rounded-full px-7 text-xs font-semibold uppercase tracking-[0.2em]">
-                            <Link href="/shop">
-                                Shop the edit
-                                <ArrowRight className="h-3.5 w-3.5" />
-                            </Link>
-                        </Button>
+                        <Link
+                            href="/shop"
+                            className="inline-flex items-center gap-1.5 font-heading text-[10px] uppercase tracking-[0.22em] text-brand-strong underline-offset-4 hover:underline"
+                        >
+                            Shop everything <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                        </Link>
+                    </div>
+                    <StaggerContainer className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-5">
+                        {whatWeSell.map((category) => (
+                            <StaggerItem key={category.href}>
+                                <Link href={category.href} className="group block">
+                                    <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                                        <Image
+                                            src={category.image}
+                                            alt={category.alt}
+                                            fill
+                                            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                                            className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]"
+                                        />
+                                    </div>
+                                    <h3 className="font-heading mt-4 text-[11px] font-medium uppercase leading-5 tracking-[0.2em] transition-colors duration-300 group-hover:text-brand-strong">
+                                        {category.title}
+                                    </h3>
+                                </Link>
+                            </StaggerItem>
+                        ))}
+                    </StaggerContainer>
+                </div>
+            </section>
+
+            {/* Our process */}
+            <section className="bg-neutral-950 px-4 py-16 text-neutral-50 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto max-w-7xl">
+                    <p className="font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand">
+                        Our process
+                    </p>
+                    <h2 className="font-display mt-5 max-w-2xl text-3xl leading-tight md:text-5xl">
+                        From discovery to your door
+                    </h2>
+                    <ol className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6">
+                        {processSteps.map((step, index) => (
+                            <li key={step.title} className="border-t border-white/20 pt-6">
+                                <p className="font-heading text-[11px] tabular-nums tracking-[0.1em] text-brand">
+                                    {String(index + 1).padStart(2, "0")}
+                                </p>
+                                <h3 className="font-heading mt-4 text-[12px] font-medium uppercase tracking-[0.22em]">
+                                    {step.title}
+                                </h3>
+                                <p className="mt-3 text-sm leading-7 text-white/70">{step.body}</p>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            </section>
+
+            {/* Why Miti Home / what we don't do */}
+            <section className="px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-2 md:gap-20">
+                    <ScrollReveal>
+                        <p className={eyebrow}>Why {BRAND.name}</p>
+                        <h2 className="font-display mt-5 text-3xl leading-tight md:text-4xl">What we stand for</h2>
+                        <ul className="mt-10 divide-y divide-border border-y border-border">
+                            {whyMiti.map((item) => (
+                                <li key={item} className="flex items-center gap-4 py-4 text-base">
+                                    <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rotate-45 bg-brand" />
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                    </ScrollReveal>
+                    <ScrollReveal delay={0.08}>
+                        <p className={eyebrow}>By design</p>
+                        <h2 className="font-display mt-5 text-3xl leading-tight md:text-4xl">What we don&apos;t do</h2>
+                        <ul className="mt-10 divide-y divide-border border-y border-border">
+                            {whatWeDont.map((item) => (
+                                <li key={item} className="py-4 text-base text-muted-foreground">
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                    </ScrollReveal>
+                </div>
+            </section>
+
+            {/* Our customer */}
+            <section className="border-t border-border bg-secondary px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto max-w-7xl">
+                    <p className={eyebrow}>Who we curate for</p>
+                    <h2 className="font-display mt-5 max-w-2xl text-3xl leading-tight md:text-5xl">
+                        For people who care how home feels
+                    </h2>
+                    <StaggerContainer className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+                        {ourCustomer.map((trait) => (
+                            <StaggerItem key={trait.title}>
+                                <h3 className="font-heading text-[12px] font-medium uppercase tracking-[0.22em]">
+                                    {trait.title}
+                                </h3>
+                                <p className="mt-3 text-sm leading-7 text-muted-foreground">{trait.body}</p>
+                            </StaggerItem>
+                        ))}
+                    </StaggerContainer>
+                </div>
+            </section>
+
+            {/* Vision & mission */}
+            <section className="px-4 py-16 sm:px-6 md:px-12 md:py-28">
+                <div className="mx-auto grid max-w-6xl gap-14 md:grid-cols-2 md:gap-20">
+                    <ScrollReveal>
+                        <p className={eyebrow}>Our vision</p>
+                        <p className="font-display mt-6 text-2xl leading-snug md:text-3xl">{BRAND.vision}</p>
+                    </ScrollReveal>
+                    <ScrollReveal delay={0.08}>
+                        <p className={eyebrow}>Our mission</p>
+                        <p className="font-display mt-6 text-2xl leading-snug md:text-3xl">{BRAND.mission}</p>
+                    </ScrollReveal>
+                </div>
+            </section>
+
+            {/* Close */}
+            <section className="border-t border-border px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+                    <BrandRule />
+                    <p className="font-display-caps mt-8 text-lg md:text-2xl">{BRAND.signOff}</p>
+                    <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+                        <Link
+                            href="/shop"
+                            className="inline-flex h-12 items-center justify-center bg-foreground px-7 font-heading text-[11px] uppercase tracking-[0.22em] text-background transition-colors duration-300 hover:bg-brand hover:text-neutral-950"
+                        >
+                            Explore the collection
+                        </Link>
+                        <Link
+                            href="/contact"
+                            className="inline-flex h-12 items-center justify-center border border-foreground px-7 font-heading text-[11px] uppercase tracking-[0.22em] text-foreground transition-colors duration-300 hover:border-brand hover:bg-brand hover:text-neutral-950"
+                        >
+                            Contact us
+                        </Link>
                     </div>
                 </div>
             </section>

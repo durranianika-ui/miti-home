@@ -10,23 +10,27 @@ import { X, ArrowRight } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { normalizeProductImage } from "@/lib/image";
+import { formatPrice } from "@/lib/money";
+import { BRAND } from "@/lib/brand";
 
-export type XilarGalleryItem = {
+export type MitiGalleryItem = {
   id: string;
   title: string;
   src: string;
   href: string;
   price?: string;
+  /** Display name of the product's category, e.g. "Lighting". */
+  category?: string;
 };
 
-
-const FALLBACK_ITEMS: XilarGalleryItem[] = [
-  { id: "fallback-shirt", title: "XILAR Shirt", src: "/clothes/shirt1.jpeg", href: "/shop" },
-  { id: "fallback-topwear", title: "XILAR Topwear", src: "/clothes/topwear-men1.jpeg", href: "/shop" },
-  { id: "fallback-denim", title: "XILAR Denim", src: "/clothes/denim1.jpeg", href: "/shop" },
-  { id: "fallback-printed", title: "XILAR Printed Shirt", src: "/clothes/shirts8.jpeg", href: "/shop" },
-  { id: "fallback-jacket", title: "XILAR Jacket", src: "/clothes/jackets-men1.jpeg", href: "/shop" },
-  { id: "fallback-women", title: "XILAR Womenswear", src: "/clothes/topwear-women.jpeg", href: "/shop" },
+/** Used only to fill the canvas when the catalogue has fewer than six images. */
+const FALLBACK_ITEMS: MitiGalleryItem[] = [
+  { id: "fallback-resting-figures", title: "Resting Figures Sculpture Pair", src: "/products/resting-figures-sculpture-pair/1.webp", href: "/shop" },
+  { id: "fallback-table-lamp", title: "Smoked Glass Ambient Table Lamp", src: "/products/smoked-glass-ambient-table-lamp/1.webp", href: "/shop" },
+  { id: "fallback-deer-family", title: "Deer Family Sculpture Set", src: "/products/deer-family-sculpture-set/2.webp", href: "/shop" },
+  { id: "fallback-vanity-tray", title: "Vanity Tissue Tray Organiser", src: "/products/vanity-tissue-tray-organiser/1.webp", href: "/shop" },
+  { id: "fallback-teardrop-pendant", title: "Teardrop Smoked Glass Pendant", src: "/products/teardrop-smoked-glass-pendant/1.webp", href: "/shop" },
+  { id: "fallback-moai-tissue-box", title: "Moai Tissue Box", src: "/products/moai-tissue-box-silver/1.webp", href: "/shop" },
 ];
 
 const ITEM_WIDTH = 126;
@@ -36,14 +40,14 @@ function modulo(index: number, length: number) {
   return ((index % length) + length) % length;
 }
 
-function formatPrice(price?: string) {
+function galleryPrice(price?: string) {
   if (!price) return null;
   const parsed = Number(price);
-  if (!Number.isFinite(parsed)) return null;
-  return `Rs. ${parsed.toLocaleString("en-IN")}`;
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return formatPrice(parsed);
 }
 
-export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
+export function GalleryClient({ items }: { items: MitiGalleryItem[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const activeCardRef = useRef<HTMLDivElement>(null);
@@ -69,7 +73,7 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
     activeKey: null as string | null,
   });
 
-  const [active, setActive] = useState<{ item: XilarGalleryItem; rect: DOMRect; key: string } | null>(null);
+  const [active, setActive] = useState<{ item: MitiGalleryItem; rect: DOMRect; key: string } | null>(null);
   const [introDone, setIntroDone] = useState(false);
   const introRanRef = useRef(false);
   const shouldReduceMotion = useReducedMotion();
@@ -549,7 +553,8 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
     };
   }, [active, closeActive]);
 
-  const activePrice = formatPrice(active?.item.price);
+  const activePrice = galleryPrice(active?.item.price);
+  const activeDetail = [active?.item.category, activePrice].filter(Boolean).join(" · ");
   const portalTarget = typeof document === "undefined" ? null : document.body;
 
   const overlay = active ? (
@@ -615,10 +620,10 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
         }
         onClick={(event) => event.stopPropagation()}
       >
-        <p data-gallery-detail className="text-[10px] font-semibold uppercase tracking-[0.32em] text-white/65">
-          {activePrice || "XILAR"}
+        <p data-gallery-detail className="font-heading text-[10px] font-medium uppercase tracking-[0.32em] text-white/75">
+          {activeDetail || BRAND.name}
         </p>
-        <h2 className="font-display mt-2 text-4xl leading-none md:text-5xl" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)" }}>
+        <h2 className="font-display mt-3 text-4xl leading-[1.05] md:text-5xl" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0% 100%)" }}>
           {active.item.title.split(" ").map((word, index) => (
             <span key={`${word}-${index}`} data-gallery-word className="mr-[0.16em] inline-block will-change-transform">
               {word}
@@ -628,10 +633,10 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
         <Button
           data-gallery-detail
           asChild
-          className="mt-5 rounded-full bg-white px-6 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-950 pointer-events-auto hover:bg-brand hover:text-white"
+          className="pointer-events-auto mt-6 h-12 rounded-none bg-white px-7 font-heading text-[11px] font-normal uppercase tracking-[0.22em] text-neutral-950 hover:bg-brand hover:text-neutral-950"
         >
           <Link href={active.item.href}>
-            Shop product
+            View the piece
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </Button>

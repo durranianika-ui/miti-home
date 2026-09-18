@@ -1,137 +1,182 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { FileText, RefreshCw, Truck, CreditCard } from "lucide-react"
+import { ArrowUpRight } from "lucide-react"
 import { JsonLd, breadcrumbJsonLd, faqJsonLd } from "@/components/seo/structured-data"
+import { BRAND, CONTACT } from "@/lib/brand"
+import {
+    COD_ENABLED,
+    COD_FEE,
+    DELIVERY_ESTIMATE,
+    EXCHANGE_WINDOW_DAYS,
+    FREE_SHIPPING_THRESHOLD_DISPLAY,
+    RETURN_WINDOW_DAYS,
+    SHIPPING_FEE,
+} from "@/lib/constants"
+import { formatPrice } from "@/lib/money"
 import { normalizeSiteUrl } from "@/lib/seo"
 
 export const metadata: Metadata = {
-    title: "Store Policies — Exchange, Returns, Refunds & Shipping",
-    description:
-        "Read XILAR policies on exchanges, returns, wallet refunds, and shipping.",
+    title: "Customer Care & Policies",
+    description: `Delivery, returns, refunds, exchanges, privacy and terms of sale for ${BRAND.name} — curated home décor delivered across the UAE.`,
     alternates: {
         canonical: "/policies",
     },
     openGraph: {
-        title: "Store Policies | XILAR",
-        description:
-            "Read XILAR policies on exchanges, returns, refunds, and shipping. Free shipping above ₹999.",
+        title: `Customer Care & Policies | ${BRAND.name}`,
+        description: `How ${BRAND.name} delivers, returns, refunds and exchanges across the UAE. Complimentary delivery on orders over ${FREE_SHIPPING_THRESHOLD_DISPLAY}.`,
         url: "/policies",
     },
 }
 
+const policies = [
+    {
+        title: "Delivery",
+        description: `Delivery ${DELIVERY_ESTIMATE}. Complimentary on orders over ${FREE_SHIPPING_THRESHOLD_DISPLAY}.`,
+        href: "/policies/shipping",
+    },
+    {
+        title: "Returns",
+        description: `Changed your mind? Return unused pieces within ${RETURN_WINDOW_DAYS} days of delivery.`,
+        href: "/policies/returns",
+    },
+    {
+        title: "Refunds",
+        description: "How and when your money comes back — card, cash on delivery or store credit.",
+        href: "/policies/refunds",
+    },
+    {
+        title: "Exchanges",
+        description: `A different finish or size of the same piece, within ${EXCHANGE_WINDOW_DAYS} days of delivery.`,
+        href: "/policies/exchange",
+    },
+    {
+        title: "Privacy",
+        description: "What we collect, why we collect it and the choices you have.",
+        href: "/policies/privacy",
+    },
+    {
+        title: "Terms of sale",
+        description: "Pricing, orders, payment, cancellations and the law that applies.",
+        href: "/policies/terms",
+    },
+    {
+        title: "Contact us",
+        description: "Speak with our customer care team in Dubai.",
+        href: "/contact",
+    },
+]
+
 export default function PoliciesPage() {
     const baseUrl = normalizeSiteUrl()
 
-    const policies = [
+    const summary = [
         {
-            title: "Exchange Policy",
-            description: "Size or color issues? We've got you covered within 48 hours.",
-            href: "/policies/exchange",
-            icon: RefreshCw,
+            label: "Delivery",
+            text: `${DELIVERY_ESTIMATE}. ${formatPrice(SHIPPING_FEE)} per order, complimentary over ${FREE_SHIPPING_THRESHOLD_DISPLAY}.${
+                COD_ENABLED ? ` Cash on delivery available (${formatPrice(COD_FEE)} fee).` : ""
+            }`,
         },
         {
-            title: "Return Policy",
-            description: "Returns accepted only for defective/damaged products.",
-            href: "/policies/returns",
-            icon: FileText,
+            label: "Returns",
+            text: `Within ${RETURN_WINDOW_DAYS} days of delivery, unused and in the original packaging.`,
         },
         {
-            title: "Refund Policy",
-            description: "Approved refunds are credited to your XILAR wallet.",
-            href: "/policies/refunds",
-            icon: CreditCard,
+            label: "Refunds",
+            text: "To your original card, or by bank transfer or store credit for cash-on-delivery orders.",
         },
         {
-            title: "Shipping Policy",
-            description: "Free shipping on orders above ₹999.",
-            href: "/policies/shipping",
-            icon: Truck,
+            label: "Exchanges",
+            text: `Within ${EXCHANGE_WINDOW_DAYS} days for a different finish or size of the same piece, subject to availability.`,
         },
     ]
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-background">
             <JsonLd
                 data={breadcrumbJsonLd(baseUrl, [
                     { name: "Home", url: "/" },
-                    { name: "Store Policies", url: "/policies" },
+                    { name: "Customer Care", url: "/policies" },
                 ])}
             />
             <JsonLd
                 data={faqJsonLd([
                     {
-                        question: "What is XILAR's exchange policy?",
-                        answer: "Exchanges are accepted within 48 hours of delivery for size or color issues only. Product must be unused with tags intact.",
+                        question: `Where does ${BRAND.name} deliver?`,
+                        answer: `We deliver across the United Arab Emirates, ${DELIVERY_ESTIMATE}. Delivery is ${formatPrice(SHIPPING_FEE)} per order and complimentary on orders over ${FREE_SHIPPING_THRESHOLD_DISPLAY}.`,
                     },
                     {
-                        question: "Does XILAR accept returns?",
-                        answer: "Returns are accepted only for defective or damaged products. An unboxing video is required as proof.",
+                        question: `What is ${BRAND.name}'s return policy?`,
+                        answer: `Unused items in their original packaging can be returned within ${RETURN_WINDOW_DAYS} days of delivery. Items marked final sale, personalised or made-to-order pieces and opened hygiene items cannot be returned.`,
                     },
                     {
-                        question: "How does XILAR handle refunds?",
-                        answer: "Approved refunds are credited at their exact value to your account-bound XILAR wallet. Wallet credit does not expire and cannot be withdrawn or transferred.",
+                        question: "How are refunds paid?",
+                        answer: "Card payments are refunded to the original card. Cash-on-delivery orders are refunded by bank transfer or as single-use store credit — the choice is yours.",
                     },
                     {
-                        question: "What are XILAR's shipping charges?",
-                        answer: "Free shipping on orders above ₹999. Standard delivery is ₹99. Cash on Delivery is available with an additional ₹50 fee.",
+                        question: `Can I exchange an item?`,
+                        answer: `Yes — within ${EXCHANGE_WINDOW_DAYS} days of delivery you can exchange a piece for a different finish or size of the same product, subject to stock.`,
                     },
                 ])}
             />
-            <div className="px-6 md:px-12 py-14 md:py-20 border-b border-border/60">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium mb-3">Legal</p>
-                <h1 className="font-display text-4xl md:text-6xl">Store policies</h1>
-                <p className="text-sm text-muted-foreground mt-2">
-                    Everything you need to know about exchanges, returns, refunds, and shipping.
-                </p>
-            </div>
 
-            <div className="p-6 md:px-12 max-w-4xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <header className="border-b border-border px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto max-w-5xl">
+                    <p className="font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand-strong">
+                        Customer care
+                    </p>
+                    <h1 className="font-display mt-5 text-4xl leading-tight md:text-6xl">Policies &amp; care</h1>
+                    <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground">
+                        The details behind every {BRAND.name} order — written plainly, so you always know what to expect.
+                    </p>
+                </div>
+            </header>
+
+            <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <ul className="grid grid-cols-1 border-l border-t border-border sm:grid-cols-2">
                     {policies.map((policy) => (
-                        <Link
-                            key={policy.href}
-                            href={policy.href}
-                            className="group p-6 border border-border/60 hover:border-foreground/40 transition-all duration-300"
-                        >
-                            <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 bg-secondary/50 flex items-center justify-center flex-shrink-0">
-                                    <policy.icon className="h-4 w-4 text-muted-foreground" />
-                                </div>
+                        <li key={policy.href} className="border-b border-r border-border">
+                            <Link
+                                href={policy.href}
+                                className="group flex h-full flex-col justify-between gap-6 p-6 transition-colors duration-300 hover:bg-secondary md:p-8"
+                            >
                                 <div>
-                                    <h2 className="text-sm font-semibold uppercase tracking-[0.05em] group-hover:text-brand transition-colors duration-300">
+                                    <h2 className="font-heading text-[11px] font-medium uppercase tracking-[0.26em] text-foreground">
                                         {policy.title}
                                     </h2>
-                                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                                        {policy.description}
-                                    </p>
+                                    <p className="mt-3 text-sm leading-6 text-muted-foreground">{policy.description}</p>
                                 </div>
-                            </div>
-                        </Link>
+                                <span className="inline-flex items-center gap-1.5 font-heading text-[10px] uppercase tracking-[0.22em] text-brand-strong">
+                                    Read more
+                                    <ArrowUpRight className="h-3 w-3 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                                </span>
+                            </Link>
+                        </li>
                     ))}
-                </div>
+                </ul>
 
-                {/* Quick Summary */}
-                <div className="mt-12 p-6 bg-secondary/10 border border-border/60">
-                    <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-5">Quick summary</h2>
-                    <ul className="space-y-3 text-xs">
-                        <li className="flex items-start gap-2">
-                            <span className="text-brand mt-0.5">·</span>
-                            <span><strong className="text-foreground">Exchanges:</strong> <span className="text-muted-foreground">Within 48 hours for size/color only. Product must be unused with tags.</span></span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-brand mt-0.5">·</span>
-                            <span><strong className="text-foreground">Returns:</strong> <span className="text-muted-foreground">Only for defective items. Unboxing video required as proof.</span></span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-brand mt-0.5">·</span>
-                            <span><strong className="text-foreground">Refunds:</strong> <span className="text-muted-foreground">Issued to your XILAR wallet at the approved amount.</span></span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-brand mt-0.5">·</span>
-                            <span><strong className="text-foreground">Shipping:</strong> <span className="text-muted-foreground">Free above ₹999, otherwise ₹99. COD available (+₹50 fee).</span></span>
-                        </li>
-                    </ul>
-                </div>
+                <section className="mt-16 bg-secondary p-6 md:mt-20 md:p-10" aria-labelledby="summary-heading">
+                    <h2
+                        id="summary-heading"
+                        className="font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand-strong"
+                    >
+                        At a glance
+                    </h2>
+                    <dl className="mt-6 divide-y divide-border">
+                        {summary.map((row) => (
+                            <div key={row.label} className="grid gap-1 py-4 sm:grid-cols-[9rem_1fr] sm:gap-6">
+                                <dt className="font-heading text-[11px] uppercase tracking-[0.22em] text-foreground">{row.label}</dt>
+                                <dd className="text-sm leading-6 text-muted-foreground">{row.text}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                </section>
+
+                <p className="mt-12 text-xs text-muted-foreground">
+                    Questions? Contact us at{" "}
+                    <a href={`mailto:${CONTACT.email}`} className="underline underline-offset-4 hover:text-foreground">
+                        {CONTACT.email}
+                    </a>
+                </p>
             </div>
         </div>
     )

@@ -11,16 +11,16 @@ export async function GET(
 
     if (!combo) {
       return NextResponse.json(
-        { error: "Combo not found" },
+        { error: "Set not found" },
         { status: 404 }
       );
     }
 
     return NextResponse.json(combo);
   } catch (error) {
-    console.error("Failed to fetch combo:", error);
+    console.error("Failed to fetch set:", error);
     return NextResponse.json(
-      { error: "Failed to fetch combo" },
+      { error: "Failed to fetch set" },
       { status: 500 }
     );
   }

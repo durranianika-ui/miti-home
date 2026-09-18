@@ -17,6 +17,10 @@ export type BargainComboRow = {
   discountAmount: string | number;
 };
 
+/**
+ * Cart-level ceiling for a courtesy, in AED. The effective maximum is always
+ * the lower of this and the per-product / per-set caps configured in admin.
+ */
 export function calculateCartRuleCap(cartTotal: number, isFirstTimeUser: boolean): number {
   if (isFirstTimeUser && cartTotal >= 2000) {
     return Math.min(cartTotal * 0.10, 200);
@@ -58,19 +62,16 @@ export function getLastUserMessage(messages: Array<{ role?: string; content?: st
   return "";
 }
 
+/** Extracts an AED amount the guest asked for ("AED 50", "50 dirhams", "50 off"). */
 export function parseRequestedDiscount(message: string): number | null {
-  const match = message.match(/(?:₹|rs\.?|rupees?)?\s*(\d{1,5})(?:\s*(?:off|discount))?/i);
+  const match = message.match(/(?:aed|dhs?\.?|dirhams?)?\s*(\d{1,5})(?:\s*(?:aed|dhs?|dirhams?|off|discount))?/i);
   if (!match) return null;
   const value = Number(match[1]);
   return Number.isFinite(value) ? value : null;
 }
 
-export function detectChillTone(message: string): boolean {
-  return /(bro|bhai|yaar|lol|lmao|hehe|haha|chill|mazaak|meme)/i.test(message);
-}
-
 export function detectAcceptanceIntent(message: string): boolean {
-  return /(deal|done|final|ok|okay|theek|thik|chalo|lock|apply|send code|give code|coupon)/i.test(message);
+  return /\b(deal|done|agreed|accept|ok|okay|yes|sounds good|perfect|lovely|that works|apply|send (?:the )?code|give (?:me )?(?:the )?code|coupon)\b/i.test(message);
 }
 
 export function isUnreasonableDemand(requestedDiscount: number | null, maxDiscount: number): boolean {

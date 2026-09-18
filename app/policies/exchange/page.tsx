@@ -1,149 +1,127 @@
 import type { Metadata } from "next"
+import type { ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, RefreshCw, Clock, Tag, AlertCircle } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { JsonLd, breadcrumbJsonLd } from "@/components/seo/structured-data"
+import { BRAND, CONTACT } from "@/lib/brand"
+import { EXCHANGE_WINDOW_DAYS } from "@/lib/constants"
 import { normalizeSiteUrl } from "@/lib/seo"
 
+const LAST_UPDATED = "18 September 2026"
+
 export const metadata: Metadata = {
-    title: "Exchange Policy — Size & Color Exchanges Within 48 Hours",
-    description:
-        "XILAR exchange policy: exchanges accepted within 48 hours of delivery for size or color issues only. Product must be unused with tags intact.",
+    title: "Exchange Policy",
+    description: `Exchange a ${BRAND.name} piece for a different finish or size of the same product within ${EXCHANGE_WINDOW_DAYS} days of delivery, subject to stock.`,
     alternates: {
         canonical: "/policies/exchange",
     },
     openGraph: {
-        title: "Exchange Policy | XILAR",
-        description:
-            "Exchanges accepted within 48 hours of delivery for size or color issues only. Product must be unused with tags intact.",
+        title: `Exchange Policy | ${BRAND.name}`,
+        description: `Exchanges within ${EXCHANGE_WINDOW_DAYS} days of delivery for a different finish or size of the same product.`,
         url: "/policies/exchange",
     },
 }
 
+function Section({ title, children }: { title: string; children: ReactNode }) {
+    return (
+        <section className="space-y-4">
+            <h2 className="font-heading text-[11px] font-medium uppercase tracking-[0.26em] text-foreground">{title}</h2>
+            <div className="space-y-3 text-sm leading-7 text-muted-foreground">{children}</div>
+        </section>
+    )
+}
+
 export default function ExchangePolicyPage() {
     const baseUrl = normalizeSiteUrl()
+    const mailto = `mailto:${CONTACT.email}?subject=${encodeURIComponent("Exchange request")}`
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-background">
             <JsonLd
                 data={breadcrumbJsonLd(baseUrl, [
                     { name: "Home", url: "/" },
-                    { name: "Store Policies", url: "/policies" },
+                    { name: "Customer Care", url: "/policies" },
                     { name: "Exchange Policy", url: "/policies/exchange" },
                 ])}
             />
-            <div className="px-6 md:px-12 py-14 md:py-20 border-b border-border/60">
-                <Link href="/policies" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 mb-4 uppercase tracking-[0.15em] transition-colors duration-300">
-                    <ArrowLeft className="h-3 w-3" /> Back to policies
-                </Link>
-                <div className="flex items-center gap-3 mb-2">
-                    <RefreshCw className="h-5 w-5 text-brand" />
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Policy</p>
+
+            <header className="border-b border-border px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto max-w-3xl">
+                    <Link
+                        href="/policies"
+                        className="inline-flex items-center gap-1.5 font-heading text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-300 hover:text-foreground"
+                    >
+                        <ArrowLeft className="h-3 w-3" /> All policies
+                    </Link>
+                    <p className="mt-10 font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand-strong">
+                        Policy
+                    </p>
+                    <h1 className="font-display mt-4 text-4xl leading-tight md:text-6xl">Exchanges</h1>
+                    <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground">
+                        Sometimes a piece looks different in your space. Within {EXCHANGE_WINDOW_DAYS} days of delivery,
+                        you can exchange it for another finish or size of the same product.
+                    </p>
+                    <p className="mt-6 text-xs text-muted-foreground">Last updated {LAST_UPDATED}</p>
                 </div>
-                <h1 className="font-display text-4xl md:text-6xl">Exchange policy</h1>
-                <p className="text-sm text-muted-foreground mt-2">Strictly enforced</p>
-            </div>
+            </header>
 
-            <div className="p-6 md:px-12 max-w-3xl space-y-8">
-                {/* Eligibility */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-brand" /> Eligibility
-                    </h2>
-                    <div className="p-4 bg-secondary/10 border border-border/60">
-                        <p className="font-medium text-sm">
-                            Exchanges are allowed <strong>only</strong> for size or color issues.
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            We do not accept exchange requests for &quot;change of mind,&quot; &quot;didn&apos;t like the style,&quot; or similar reasons.
-                        </p>
-                    </div>
-                </section>
+            <div className="mx-auto max-w-3xl space-y-12 px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <Section title="What can be exchanged">
+                    <p>
+                        Exchanges are for a different finish, colour or size of the same product, subject to availability.
+                        The item you send back must be unused and in its original packaging, and the same exclusions as
+                        our{" "}
+                        <Link href="/policies/returns" className="text-foreground underline underline-offset-4">
+                            returns policy
+                        </Link>{" "}
+                        apply — final-sale, personalised or made-to-order pieces and opened hygiene items cannot be
+                        exchanged.
+                    </p>
+                </Section>
 
-                {/* Timeframe */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-brand" /> Timeframe
-                    </h2>
-                    <div className="p-4 bg-secondary/10 border border-border/60">
-                        <p className="font-medium text-sm">
-                            Request must be raised within <strong>48 hours</strong> of delivery.
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            Requests after 48 hours will not be entertained under any circumstances.
-                        </p>
-                    </div>
-                </section>
+                <Section title="If the option you want is unavailable">
+                    <p>
+                        If the finish or size you would like is out of stock, or you would prefer a different product
+                        altogether, we will treat your request as a return and refund you — or issue store credit — as
+                        described in our{" "}
+                        <Link href="/policies/refunds" className="text-foreground underline underline-offset-4">
+                            refunds policy
+                        </Link>
+                        .
+                    </p>
+                </Section>
 
-                {/* Condition */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em]">Product condition</h2>
-                    <div className="p-4 bg-secondary/10 border border-border/60">
-                        <ul className="space-y-2">
-                            <li className="flex items-start gap-2 text-sm">
-                                <span className="text-brand mt-0.5">·</span>
-                                <span>Product must be <strong>unused</strong> and <strong>unwashed</strong></span>
-                            </li>
-                            <li className="flex items-start gap-2 text-sm">
-                                <span className="text-brand mt-0.5">·</span>
-                                <span>Original tags must be <strong>intact</strong></span>
-                            </li>
-                            <li className="flex items-start gap-2 text-sm">
-                                <span className="text-brand mt-0.5">·</span>
-                                <span>Product must be in original packaging</span>
-                            </li>
-                        </ul>
-                    </div>
-                </section>
+                <Section title="Price differences">
+                    <p>
+                        Where the new option is priced differently, we will confirm the difference with you before we
+                        dispatch it — you pay any balance, and we refund anything owed to you.
+                    </p>
+                </Section>
 
-                {/* Limit */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-orange-500" /> Exchange limit
-                    </h2>
-                    <div className="p-4 bg-orange-500/5 border border-orange-500/20">
-                        <p className="font-medium text-sm text-orange-600 dark:text-orange-400">
-                            Only <strong>one</strong> exchange attempt per order.
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            If the size/color you want is unavailable, we&apos;ll issue XILAR wallet credit instead.
-                        </p>
-                    </div>
-                </section>
+                <Section title="How to request an exchange">
+                    <p>
+                        Email{" "}
+                        <a href={mailto} className="text-foreground underline underline-offset-4">
+                            {CONTACT.email}
+                        </a>{" "}
+                        with your order number and the option you would like. We will confirm availability, arrange
+                        collection of the original item and send the replacement once it is on its way back to us.
+                    </p>
+                </Section>
 
-                {/* How to Request */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em]">How to request an exchange</h2>
-                    <div className="space-y-2">
-                        <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">1</span>
-                            <div>
-                                <p className="font-medium text-sm">Contact support</p>
-                                <p className="text-xs text-muted-foreground">Email us at support@xilar.in within 48 hours of delivery</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">2</span>
-                            <div>
-                                <p className="font-medium text-sm">Share order details</p>
-                                <p className="text-xs text-muted-foreground">Include your order ID and reason for exchange (size/color)</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">3</span>
-                            <div>
-                                <p className="font-medium text-sm">Ship the product</p>
-                                <p className="text-xs text-muted-foreground">Pack it safely with tags intact. We&apos;ll provide pickup or shipping instructions.</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">4</span>
-                            <div>
-                                <p className="font-medium text-sm">Receive new product</p>
-                                <p className="text-xs text-muted-foreground">We&apos;ll ship the correct size/color once we receive the original.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <Section title="Damaged or incorrect items">
+                    <p>
+                        If an item arrived damaged or was not what you ordered, please tell us within 48 hours of delivery
+                        with photographs. We will replace it at no cost to you.
+                    </p>
+                </Section>
+
+                <p className="border-t border-border pt-8 text-xs text-muted-foreground">
+                    Questions? Contact us at{" "}
+                    <a href={`mailto:${CONTACT.email}`} className="underline underline-offset-4 hover:text-foreground">
+                        {CONTACT.email}
+                    </a>
+                </p>
             </div>
         </div>
     )

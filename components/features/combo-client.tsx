@@ -1,75 +1,282 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart-context"
 import { normalizeProductImage } from "@/lib/image"
+import { formatPrice } from "@/lib/money"
+import { DELIVERY_ESTIMATE, FREE_SHIPPING_THRESHOLD_DISPLAY } from "@/lib/constants"
+import { cn } from "@/lib/utils"
+import {
+  ComboOptionPicker,
+  buildComboCartLine,
+  comboTitle,
+  getComboPricing,
+  productHref,
+  useComboOptions,
+  type Combo,
+  type ComboOptions,
+} from "@/components/features/combo-section"
 
-interface ProductVariant {
-  id: string
-  productId: string
-  size: string
-  color: string | null
-  stock: number
-}
+const EASE = [0.32, 0.72, 0, 1] as const
 
-interface ComboProduct {
-  id: string
-  name: string
-  sellingPrice: string
-  mrp: string
-  images: string[]
-  sizes: string[]
-  colors: { name: string; hex: string }[]
-  variants: ProductVariant[]
-  category: string
-}
+function ComboGallery({ options }: { options: ComboOptions }) {
+  const { product, selectedColor } = options
+  const reduceMotion = useReducedMotion()
+  const source = selectedColor?.images?.length ? selectedColor.images : product.images
+  const images = (source.length > 0 ? source : [undefined]).map((image) => normalizeProductImage(image))
+  const [index, setIndex] = useState(0)
+  const [prevSource, setPrevSource] = useState(source)
 
-interface Combo {
-  id: string
-  discountAmount: string
-  productA: ComboProduct
-  productB: ComboProduct
-}
-
-const NUMBER_SIZE_CATEGORIES = ["jogger", "jeans", "cargo", "shorts"]
-
-function sizeOptions(product: ComboProduct) {
-  if (NUMBER_SIZE_CATEGORIES.includes(product.category)) {
-    return product.sizes.filter((size) => /^\d+$/.test(size))
+  // Reset to the first image when the chosen colour swaps the image set.
+  if (prevSource !== source) {
+    setPrevSource(source)
+    setIndex(0)
   }
-  return product.sizes
+
+  const current = Math.min(index, images.length - 1)
+  const previous = () => setIndex((value) => Math.max(value - 1, 0))
+  const next = () => setIndex((value) => Math.min(value + 1, images.length - 1))
+
+  return (
+    <div
+      className="group relative overflow-hidden bg-muted"
+      role="group"
+      aria-roledescription="carousel"
+      aria-label={`${product.name} images`}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft") previous()
+        if (event.key === "ArrowRight") next()
+      }}
+    >
+      <div className="relative aspect-square w-full">
+        <AnimatePresence initial={false} mode="popLayout">
+          <motion.div
+            key={`${current}-${images[current]}`}
+            className="absolute inset-0"
+            initial={{ opacity: reduceMotion ? 1 : 0.4 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: reduceMotion ? 1 : 0.4 }}
+            transition={{ duration: reduceMotion ? 0 : 0.3, ease: EASE }}
+          >
+            <Image
+              src={images[current]}
+              alt={`${product.name}, image ${current + 1} of ${images.length}`}
+              fill
+              priority={current === 0}
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover object-center"
+              draggable={false}
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        {images.length > 1 && (
+          <>
+            <motion.div
+              className="absolute inset-0 z-10 touch-pan-y"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.15}
+              onDragEnd={(_event, info) => {
+                if (info.offset.x < -40 || info.velocity.x < -300) next()
+                else if (info.offset.x > 40 || info.velocity.x > 300) previous()
+              }}
+            />
+            <button
+              type="button"
+              className="absolute left-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-background/80 text-foreground opacity-0 transition-opacity duration-300 hover:bg-background focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground group-hover:opacity-100 disabled:hidden"
+              onClick={previous}
+              disabled={current === 0}
+              aria-label={`Previous image of ${product.name}`}
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="absolute right-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-background/80 text-foreground opacity-0 transition-opacity duration-300 hover:bg-background focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground group-hover:opacity-100 disabled:hidden"
+              onClick={next}
+              disabled={current === images.length - 1}
+              aria-label={`Next image of ${product.name}`}
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+              {images.map((image, i) => (
+                <button
+                  key={`${image}-${i}`}
+                  type="button"
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-500",
+                    current === i ? "w-6 bg-brand" : "w-1.5 bg-foreground/30 hover:bg-foreground/60",
+                  )}
+                  onClick={() => setIndex(i)}
+                  aria-label={`Show image ${i + 1} of ${product.name}`}
+                  aria-current={current === i}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
 }
 
-function formatPrice(value: string | number) {
-  const amount = typeof value === "number" ? value : Number(value)
-  return `₹${amount.toLocaleString("en-IN")}`
+function ComboProductPanel({ options, idPrefix }: { options: ComboOptions; idPrefix: string }) {
+  const { product } = options
+  const compareAt = Number(product.mrp)
+  const price = Number(product.sellingPrice)
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <h2 className="font-display text-2xl font-light leading-tight md:text-3xl">
+          <Link href={productHref(product)} className="hover:text-brand-strong focus-visible:underline focus-visible:outline-none">
+            {product.name}
+          </Link>
+        </h2>
+        <p className="flex items-baseline gap-3 tabular-nums">
+          <span className="text-base text-foreground">{formatPrice(price)}</span>
+          {compareAt > price && <span className="text-sm text-muted-foreground line-through">{formatPrice(compareAt)}</span>}
+        </p>
+        {(product.material || product.dimensions) && (
+          <dl className="space-y-1 text-xs text-muted-foreground">
+            {product.material && (
+              <div className="flex gap-2">
+                <dt className="text-foreground">Material</dt>
+                <dd>{product.material}</dd>
+              </div>
+            )}
+            {product.dimensions && (
+              <div className="flex gap-2">
+                <dt className="text-foreground">Dimensions</dt>
+                <dd>{product.dimensions}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+      </div>
+      <ComboOptionPicker options={options} idPrefix={idPrefix} size="md" />
+    </div>
+  )
 }
 
-function getVariantStock(variantMap: Map<string, number>, size: string, color: string | null) {
-  return variantMap.get(`${size}|${color}`) ?? 0;
-}
+function ComboDetail({ combo }: { combo: Combo }) {
+  const { addCombo } = useCart()
+  const optionsA = useComboOptions(combo.productA)
+  const optionsB = useComboOptions(combo.productB)
+  const [added, setAdded] = useState(false)
+  const { total, saving, setPrice } = getComboPricing(combo)
+  const canAdd = optionsA.ready && optionsB.ready
 
-function isColorAvailable(variantMap: Map<string, number>, colorName: string, selectedSize: string | null) {
-  if (!selectedSize) return false;
-  return getVariantStock(variantMap, selectedSize, colorName) > 0;
+  const handleAddCombo = () => {
+    if (!canAdd) return
+    addCombo({
+      comboId: combo.id,
+      comboName: comboTitle(combo),
+      maxDiscountAmount: saving,
+      items: [buildComboCartLine(optionsA), buildComboCartLine(optionsB)],
+    })
+    setAdded(true)
+    setTimeout(() => setAdded(false), 2000)
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      <header className="px-6 pb-10 pt-12 text-center md:px-12 md:pt-16">
+        <p className="font-heading text-[10px] font-medium uppercase tracking-[0.3em] text-brand-strong">Complete the set</p>
+        <h1 className="mx-auto mt-4 max-w-3xl font-display text-3xl font-light leading-tight md:text-5xl">
+          {combo.productA.name}
+          <span className="mx-3 text-muted-foreground">&amp;</span>
+          {combo.productB.name}
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
+          Two pieces that belong together{saving > 0 ? `, with ${formatPrice(saving)} off when you take them home as a set` : ""}.
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 gap-px bg-border lg:grid-cols-2">
+        <ComboGallery options={optionsA} />
+        <ComboGallery options={optionsB} />
+      </div>
+
+      <div className="border-t border-border px-6 py-14 md:px-12 md:py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
+            <ComboProductPanel options={optionsA} idPrefix={`${combo.id}-a`} />
+            <ComboProductPanel options={optionsB} idPrefix={`${combo.id}-b`} />
+          </div>
+
+          <div className="mt-16 space-y-6 border-t border-border pt-12">
+            <div className="space-y-3">
+              <p className="font-heading text-[10px] font-medium uppercase tracking-[0.3em] text-muted-foreground">The set</p>
+              <dl className="space-y-2 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-muted-foreground">{combo.productA.name}</dt>
+                  <dd className="tabular-nums">{formatPrice(combo.productA.sellingPrice)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-muted-foreground">{combo.productB.name}</dt>
+                  <dd className="tabular-nums">{formatPrice(combo.productB.sellingPrice)}</dd>
+                </div>
+                {saving > 0 && (
+                  <div className="flex items-center justify-between gap-4 text-brand-strong">
+                    <dt>Set saving</dt>
+                    <dd className="tabular-nums">-{formatPrice(saving)}</dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-4 border-t border-border pt-3 text-base">
+                  <dt>Together</dt>
+                  <dd className="tabular-nums">
+                    {saving > 0 && <span className="mr-2 text-sm text-muted-foreground line-through">{formatPrice(total)}</span>}
+                    {formatPrice(setPrice)}
+                  </dd>
+                </div>
+              </dl>
+              <p className="text-xs text-muted-foreground">
+                Prices include VAT. The set saving is applied at checkout. Delivered {DELIVERY_ESTIMATE}, complimentary over {FREE_SHIPPING_THRESHOLD_DISPLAY}.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={!canAdd}
+              onClick={handleAddCombo}
+              className="flex h-12 w-full items-center justify-center gap-2 bg-foreground font-heading text-[11px] uppercase tracking-[0.22em] text-background transition-colors hover:bg-brand hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-foreground disabled:hover:text-background"
+            >
+              {added ? (
+                <>
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                  Added to bag
+                </>
+              ) : canAdd ? (
+                "Add the set to bag"
+              ) : (
+                "Select options for both pieces"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border px-6 py-8 text-center md:px-12">
+        <Link
+          href="/shop"
+          className="font-heading text-[11px] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Continue shopping
+        </Link>
+      </div>
+    </div>
+  )
 }
 
 export function ComboClient({ id, initialCombo }: { id: string; initialCombo?: Combo }) {
-  const [selectedImageA, setSelectedImageA] = useState(0)
-  const [selectedImageB, setSelectedImageB] = useState(0)
-  const [selectedSizeA, setSelectedSizeA] = useState<string | null>(null)
-  const [selectedColorA, setSelectedColorA] = useState<string | null>(null)
-  const [selectedSizeB, setSelectedSizeB] = useState<string | null>(null)
-  const [selectedColorB, setSelectedColorB] = useState<string | null>(null)
-  const [added, setAdded] = useState(false)
-  const { addCombo } = useCart()
-
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [id])
@@ -82,7 +289,7 @@ export function ComboClient({ id, initialCombo }: { id: string; initialCombo?: C
     queryKey: ["combo", id],
     queryFn: async () => {
       const res = await fetch(`/api/combo/${id}`)
-      if (!res.ok) throw new Error("Combo not found")
+      if (!res.ok) throw new Error("This set is no longer available.")
       return (await res.json()) as Combo
     },
     initialData: initialCombo,
@@ -90,106 +297,12 @@ export function ComboClient({ id, initialCombo }: { id: string; initialCombo?: C
     staleTime: 1000 * 60 * 5,
   })
 
-  const requiredColorA = combo?.productA.colors.length ? true : false
-  const requiredColorB = combo?.productB.colors.length ? true : false
-
-  const variantsA = combo ? combo.productA.variants : undefined;
-  // Performance optimization: Pre-compute variant map to achieve O(1) lookups during render
-  // This replaces O(N) array traversals (product.variants.find) inside the render loop
-  const variantMapA = useMemo(() => {
-    const map = new Map<string, number>();
-    if (!variantsA) return map;
-    variantsA.forEach((v) => {
-      map.set(`${v.size}|${v.color}`, v.stock);
-    });
-    return map;
-  }, [variantsA]);
-
-  const variantsB = combo ? combo.productB.variants : undefined;
-  // Performance optimization: Pre-compute variant map for Product B variants for O(1) lookups
-  const variantMapB = useMemo(() => {
-    const map = new Map<string, number>();
-    if (!variantsB) return map;
-    variantsB.forEach((v) => {
-      map.set(`${v.size}|${v.color}`, v.stock);
-    });
-    return map;
-  }, [variantsB]);
-
-  const selectedStockA = selectedSizeA
-    ? getVariantStock(variantMapA, selectedSizeA, requiredColorA ? selectedColorA : null)
-    : null;
-  const selectedStockB = selectedSizeB
-    ? getVariantStock(variantMapB, selectedSizeB, requiredColorB ? selectedColorB : null)
-    : null;
-
-  const canAdd = Boolean(
-    combo &&
-      selectedSizeA &&
-      selectedSizeB &&
-      (!requiredColorA || selectedColorA) &&
-      (!requiredColorB || selectedColorB) &&
-      selectedStockA &&
-      selectedStockA > 0 &&
-      selectedStockB &&
-      selectedStockB > 0
-  )
-
-  const handleAddCombo = () => {
-    if (!combo || !selectedSizeA || !selectedSizeB) return
-
-    const maxDiscountAmount = Number(combo.discountAmount)
-
-    addCombo({
-      comboId: combo.id,
-      comboName: `${combo.productA.name} + ${combo.productB.name}`,
-      maxDiscountAmount,
-      items: [
-        {
-          id: combo.productA.id,
-          name: combo.productA.name,
-          price: Number(combo.productA.sellingPrice),
-          displayPrice: formatPrice(combo.productA.sellingPrice),
-          image: normalizeProductImage(combo.productA.images?.[0]),
-          size: selectedSizeA,
-          color: selectedColorA || undefined,
-        },
-        {
-          id: combo.productB.id,
-          name: combo.productB.name,
-          price: Number(combo.productB.sellingPrice),
-          displayPrice: formatPrice(combo.productB.sellingPrice),
-          image: normalizeProductImage(combo.productB.images?.[0]),
-          size: selectedSizeB,
-          color: selectedColorB || undefined,
-        },
-      ],
-    })
-
-    setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-          <div className="aspect-[4/5] animate-pulse bg-muted" />
-          <div className="aspect-[4/5] animate-pulse bg-muted/70" />
-        </div>
-        <div className="border-t border-border/60 px-6 md:px-12 py-14 md:py-20">
-          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-12 md:grid-cols-2">
-            <div className="space-y-4">
-              <div className="h-3 w-28 animate-pulse bg-muted" />
-              <div className="h-7 w-3/4 animate-pulse bg-muted" />
-              <div className="h-5 w-32 animate-pulse bg-muted" />
-            </div>
-            <div className="space-y-4">
-              <div className="h-3 w-28 animate-pulse bg-muted" />
-              <div className="h-7 w-3/4 animate-pulse bg-muted" />
-              <div className="h-5 w-32 animate-pulse bg-muted" />
-            </div>
-          </div>
+      <div className="min-h-screen bg-background pb-24" aria-busy="true">
+        <div className="grid grid-cols-1 gap-px lg:grid-cols-2">
+          <div className="aspect-square animate-pulse bg-muted" />
+          <div className="aspect-square animate-pulse bg-muted/70" />
         </div>
       </div>
     )
@@ -197,415 +310,21 @@ export function ComboClient({ id, initialCombo }: { id: string; initialCombo?: C
 
   if (error || !combo) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold">Combo Not Found</h1>
-          <p className="text-muted-foreground">{error instanceof Error ? error.message : "This combo doesn't exist."}</p>
-          <Button asChild variant="outline" className="rounded-none">
-            <Link href="/shop/men">Back to Shop</Link>
-          </Button>
+      <div className="flex min-h-[60vh] items-center justify-center px-6">
+        <div className="space-y-4 text-center">
+          <p className="font-heading text-[10px] font-medium uppercase tracking-[0.3em] text-brand-strong">Complete the set</p>
+          <h1 className="font-display text-3xl font-light">This set is no longer available</h1>
+          <p className="text-sm text-muted-foreground">Each piece may still be available on its own.</p>
+          <Link
+            href="/shop"
+            className="inline-flex h-11 items-center justify-center bg-foreground px-8 font-heading text-[11px] uppercase tracking-[0.22em] text-background transition-colors hover:bg-brand hover:text-neutral-950"
+          >
+            Shop all
+          </Link>
         </div>
       </div>
     )
   }
 
-  const priceA = parseFloat(combo.productA.sellingPrice)
-  const priceB = parseFloat(combo.productB.sellingPrice)
-  const totalPrice = priceA + priceB
-  const maxDiscount = Number(combo.discountAmount)
-
-  const imagesA = combo.productA.images.map((img) => normalizeProductImage(img))
-  const imagesB = combo.productB.images.map((img) => normalizeProductImage(img))
-
-  return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      {/* <div className="border-b border-border/60 px-6 md:px-12 py-14 md:py-20">
-        <div className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Bundle Deal</p>
-          <h1 className="font-display text-4xl leading-[0.96] md:text-6xl lg:text-7xl">
-            {combo.productA.name}
-            <br />
-            <span className="text-muted-foreground">+</span>
-            <br />
-            {combo.productB.name}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-4 max-w-2xl">
-            Choose sizes and colors for both items. Get up to {formatPrice(maxDiscount)} in bargaining power on checkout.
-          </p>
-        </div>
-      </div> */}
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-        {/* Product A Gallery */}
-        <div className="relative bg-white/5 overflow-hidden group border-r border-border/60">
-          <div className="aspect-[4/5] w-full relative">
-            <AnimatePresence initial={false} mode="popLayout">
-              <motion.div
-                key={selectedImageA}
-                className="absolute inset-0 w-full h-full object-cover object-center"
-                initial={{ opacity: 0.4 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0.4 }}
-                transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-                style={{ willChange: "opacity" }}
-              >
-                <Image
-                  src={imagesA[selectedImageA]}
-                  alt={`${combo.productA.name} — image ${selectedImageA + 1}`}
-                  fill
-                  priority={selectedImageA === 0}
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover object-center"
-                  draggable={false}
-                />
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Swipe overlay */}
-            {imagesA.length > 1 && (
-              <motion.div
-                className="absolute inset-0 z-10 touch-pan-y"
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.15}
-                onDragEnd={(_e, info) => {
-                  const swipe = info.offset.x
-                  const velocity = info.velocity.x
-                  if (swipe < -40 || velocity < -300) {
-                    setSelectedImageA((prev) => Math.min(prev + 1, imagesA.length - 1))
-                  } else if (swipe > 40 || velocity > 300) {
-                    setSelectedImageA((prev) => Math.max(prev - 1, 0))
-                  }
-                }}
-              />
-            )}
-
-            {/* Chevron navigation */}
-            {imagesA.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 h-10 w-10 flex items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 disabled:opacity-0"
-                  onClick={() => setSelectedImageA((prev) => Math.max(prev - 1, 0))}
-                  disabled={selectedImageA === 0}
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 h-10 w-10 flex items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 disabled:opacity-0"
-                  onClick={() => setSelectedImageA((prev) => Math.min(prev + 1, imagesA.length - 1))}
-                  disabled={selectedImageA === imagesA.length - 1}
-                  aria-label="Next image"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
-            )}
-
-            {/* Dot indicators */}
-            {imagesA.length > 1 && (
-              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-                {imagesA.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                      selectedImageA === i ? "w-6 h-1.5 bg-brand" : "w-1.5 h-1.5 bg-neutral-400 hover:bg-neutral-300"
-                    }`}
-                    onClick={() => setSelectedImageA(i)}
-                    aria-label={`Go to image ${i + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Product B Gallery */}
-        <div className="relative bg-white/5 overflow-hidden group">
-          <div className="aspect-[4/5] w-full relative">
-            <AnimatePresence initial={false} mode="popLayout">
-              <motion.div
-                key={selectedImageB}
-                className="absolute inset-0 w-full h-full object-cover object-center"
-                initial={{ opacity: 0.4 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0.4 }}
-                transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-                style={{ willChange: "opacity" }}
-              >
-                <Image
-                  src={imagesB[selectedImageB]}
-                  alt={`${combo.productB.name} — image ${selectedImageB + 1}`}
-                  fill
-                  priority={selectedImageB === 0}
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover object-center"
-                  draggable={false}
-                />
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Swipe overlay */}
-            {imagesB.length > 1 && (
-              <motion.div
-                className="absolute inset-0 z-10 touch-pan-y"
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.15}
-                onDragEnd={(_e, info) => {
-                  const swipe = info.offset.x
-                  const velocity = info.velocity.x
-                  if (swipe < -40 || velocity < -300) {
-                    setSelectedImageB((prev) => Math.min(prev + 1, imagesB.length - 1))
-                  } else if (swipe > 40 || velocity > 300) {
-                    setSelectedImageB((prev) => Math.max(prev - 1, 0))
-                  }
-                }}
-              />
-            )}
-
-            {/* Chevron navigation */}
-            {imagesB.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 h-10 w-10 flex items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 disabled:opacity-0"
-                  onClick={() => setSelectedImageB((prev) => Math.max(prev - 1, 0))}
-                  disabled={selectedImageB === 0}
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 h-10 w-10 flex items-center justify-center rounded-full bg-black/20 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 disabled:opacity-0"
-                  onClick={() => setSelectedImageB((prev) => Math.min(prev + 1, imagesB.length - 1))}
-                  disabled={selectedImageB === imagesB.length - 1}
-                  aria-label="Next image"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
-            )}
-
-            {/* Dot indicators */}
-            {imagesB.length > 1 && (
-              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-                {imagesB.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                      selectedImageB === i ? "w-6 h-1.5 bg-brand" : "w-1.5 h-1.5 bg-neutral-400 hover:bg-neutral-300"
-                    }`}
-                    onClick={() => setSelectedImageB(i)}
-                    aria-label={`Go to image ${i + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Selection & CTA Section */}
-      <div className="border-t border-border/60 px-6 md:px-12 py-14 md:py-20">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Product A Selection */}
-            <div className="space-y-8">
-              <div className="space-y-3">
-                <p className="text-sm uppercase tracking-[0.15em] font-medium text-muted-foreground">Product A</p>
-                <h2 className="font-display text-3xl leading-tight md:text-4xl">{combo.productA.name}</h2>
-                <div className="flex items-center gap-3">
-                  <p className="text-lg font-semibold tabular-nums">{formatPrice(combo.productA.sellingPrice)}</p>
-                  {Number(combo.productA.mrp) > Number(combo.productA.sellingPrice) && (
-                    <p className="text-sm text-muted-foreground line-through tabular-nums">
-                      {formatPrice(combo.productA.mrp)}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Size Selection A */}
-              <div className="space-y-3">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Size</p>
-                <div className="flex flex-wrap gap-2">
-                  {sizeOptions(combo.productA).map((size) => (
-                    <Button
-                      key={size}
-                      type="button"
-                      size="sm"
-                      variant={selectedSizeA === size ? "default" : "outline"}
-                      className="rounded-none text-[10px]"
-                      onClick={() => setSelectedSizeA(size)}
-                    >
-                      {size}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Color Selection A */}
-              {combo.productA.colors.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Color</p>
-                  <div className="flex flex-wrap gap-2">
-                    {combo.productA.colors.map((color) => {
-                      const available = isColorAvailable(variantMapA, color.name, selectedSizeA)
-                      return (
-                        <button
-                          key={color.name}
-                          type="button"
-                          onClick={() => {
-                            if (available) setSelectedColorA(color.name)
-                          }}
-                          disabled={!available}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${
-                            selectedColorA === color.name ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""
-                          } ${available ? "cursor-pointer border-border" : "opacity-30 cursor-not-allowed border-border/40"}`}
-                          style={{ backgroundColor: color.hex }}
-                          title={color.name}
-                          aria-label={
-                            available
-                              ? `${selectedColorA === color.name ? "Selected" : "Select"} ${color.name} color for ${combo.productA.name}`
-                              : `${color.name} color unavailable for ${combo.productA.name}`
-                          }
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Product B Selection */}
-            <div className="space-y-8">
-              <div className="space-y-3">
-                <p className="text-sm uppercase tracking-[0.15em] font-medium text-muted-foreground">Product B</p>
-                <h2 className="font-display text-3xl leading-tight md:text-4xl">{combo.productB.name}</h2>
-                <div className="flex items-center gap-3">
-                  <p className="text-lg font-semibold tabular-nums">{formatPrice(combo.productB.sellingPrice)}</p>
-                  {Number(combo.productB.mrp) > Number(combo.productB.sellingPrice) && (
-                    <p className="text-sm text-muted-foreground line-through tabular-nums">
-                      {formatPrice(combo.productB.mrp)}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Size Selection B */}
-              <div className="space-y-3">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Size</p>
-                <div className="flex flex-wrap gap-2">
-                  {sizeOptions(combo.productB).map((size) => (
-                    <Button
-                      key={size}
-                      type="button"
-                      size="sm"
-                      variant={selectedSizeB === size ? "default" : "outline"}
-                      className="rounded-none text-[10px]"
-                      onClick={() => setSelectedSizeB(size)}
-                    >
-                      {size}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Color Selection B */}
-              {combo.productB.colors.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium">Color</p>
-                  <div className="flex flex-wrap gap-2">
-                    {combo.productB.colors.map((color) => {
-                      const available = isColorAvailable(variantMapB, color.name, selectedSizeB)
-                      return (
-                        <button
-                          key={color.name}
-                          type="button"
-                          onClick={() => {
-                            if (available) setSelectedColorB(color.name)
-                          }}
-                          disabled={!available}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${
-                            selectedColorB === color.name ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""
-                          } ${available ? "cursor-pointer border-border" : "opacity-30 cursor-not-allowed border-border/40"}`}
-                          style={{ backgroundColor: color.hex }}
-                          title={color.name}
-                          aria-label={
-                            available
-                              ? `${selectedColorB === color.name ? "Selected" : "Select"} ${color.name} color for ${combo.productB.name}`
-                              : `${color.name} color unavailable for ${combo.productB.name}`
-                          }
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Combo Summary & CTA */}
-          <div className="mt-16 space-y-6 border-t border-border/60 pt-14">
-            <div className="space-y-3">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Combo Summary</p>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{combo.productA.name}</span>
-                  <span className="font-semibold">{formatPrice(combo.productA.sellingPrice)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{combo.productB.name}</span>
-                  <span className="font-semibold">{formatPrice(combo.productB.sellingPrice)}</span>
-                </div>
-                <div className="border-t border-border/60 pt-2 flex items-center justify-between font-bold text-base">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(totalPrice)}</span>
-                </div>
-              </div>
-            </div>
-
-            {maxDiscount > 0 && (
-              <div className="p-4 bg-brand/5 border border-brand/20 rounded">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-brand font-semibold">
-                  Bargain cap: {formatPrice(maxDiscount)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Negotiate further on checkout</p>
-              </div>
-            )}
-
-            <Button
-              className="w-full rounded-none uppercase tracking-[0.15em] text-[10px] h-11 md:h-12"
-              disabled={!canAdd}
-              onClick={handleAddCombo}
-              size="lg"
-            >
-              {added ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Added to Cart
-                </>
-              ) : (
-                "Add Combo to Cart"
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Back Link */}
-      <div className="border-t border-border/60 px-6 md:px-12 py-8 text-center">
-        <Link href="/shop/men" className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors">
-          ← Back to shop
-        </Link>
-      </div>
-    </div>
-  )
+  return <ComboDetail key={combo.id} combo={combo} />
 }

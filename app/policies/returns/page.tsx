@@ -1,174 +1,162 @@
 import type { Metadata } from "next"
+import type { ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, FileText, Video, XCircle, AlertTriangle } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { JsonLd, breadcrumbJsonLd } from "@/components/seo/structured-data"
+import { BRAND, CONTACT } from "@/lib/brand"
+import { RETURN_WINDOW_DAYS } from "@/lib/constants"
 import { normalizeSiteUrl } from "@/lib/seo"
 
+const LAST_UPDATED = "18 September 2026"
+
 export const metadata: Metadata = {
-    title: "Return Policy — Defective Items Only",
-    description:
-        "XILAR return policy: returns accepted only for defective or damaged items. Unboxing video required as proof of damage.",
+    title: "Returns Policy",
+    description: `Return unused ${BRAND.name} pieces in their original packaging within ${RETURN_WINDOW_DAYS} days of delivery. Damaged on arrival? Tell us within 48 hours.`,
     alternates: {
         canonical: "/policies/returns",
     },
     openGraph: {
-        title: "Return Policy | XILAR",
-        description:
-            "Returns accepted only for defective or damaged items. Unboxing video required as proof of damage.",
+        title: `Returns Policy | ${BRAND.name}`,
+        description: `Returns within ${RETURN_WINDOW_DAYS} days of delivery, anywhere in the UAE.`,
         url: "/policies/returns",
     },
 }
 
-export default function ReturnPolicyPage() {
+function Section({ title, children }: { title: string; children: ReactNode }) {
+    return (
+        <section className="space-y-4">
+            <h2 className="font-heading text-[11px] font-medium uppercase tracking-[0.26em] text-foreground">{title}</h2>
+            <div className="space-y-3 text-sm leading-7 text-muted-foreground">{children}</div>
+        </section>
+    )
+}
+
+function Bullets({ items }: { items: ReactNode[] }) {
+    return (
+        <ul className="space-y-2">
+            {items.map((item, index) => (
+                <li key={index} className="flex gap-3">
+                    <span aria-hidden="true" className="mt-[0.7em] h-1 w-1 flex-shrink-0 rotate-45 bg-brand" />
+                    <span>{item}</span>
+                </li>
+            ))}
+        </ul>
+    )
+}
+
+export default function ReturnsPolicyPage() {
     const baseUrl = normalizeSiteUrl()
+    const mailto = `mailto:${CONTACT.email}?subject=${encodeURIComponent("Return request")}`
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-background">
             <JsonLd
                 data={breadcrumbJsonLd(baseUrl, [
                     { name: "Home", url: "/" },
-                    { name: "Store Policies", url: "/policies" },
-                    { name: "Return Policy", url: "/policies/returns" },
+                    { name: "Customer Care", url: "/policies" },
+                    { name: "Returns Policy", url: "/policies/returns" },
                 ])}
             />
-            <div className="px-6 md:px-12 py-14 md:py-20 border-b border-border/60">
-                <Link href="/policies" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 mb-4 uppercase tracking-[0.15em] transition-colors duration-300">
-                    <ArrowLeft className="h-3 w-3" /> Back to policies
-                </Link>
-                <div className="flex items-center gap-3 mb-2">
-                    <FileText className="h-5 w-5 text-brand" />
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Policy</p>
+
+            <header className="border-b border-border px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <div className="mx-auto max-w-3xl">
+                    <Link
+                        href="/policies"
+                        className="inline-flex items-center gap-1.5 font-heading text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-300 hover:text-foreground"
+                    >
+                        <ArrowLeft className="h-3 w-3" /> All policies
+                    </Link>
+                    <p className="mt-10 font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand-strong">
+                        Policy
+                    </p>
+                    <h1 className="font-display mt-4 text-4xl leading-tight md:text-6xl">Returns</h1>
+                    <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground">
+                        We choose every piece with care, and we want you to love it at home. If it isn&apos;t right, you
+                        have {RETURN_WINDOW_DAYS} days from delivery to return it.
+                    </p>
+                    <p className="mt-6 text-xs text-muted-foreground">Last updated {LAST_UPDATED}</p>
                 </div>
-                <h1 className="font-display text-4xl md:text-6xl">Return policy</h1>
-                <p className="text-sm text-muted-foreground mt-2">Defects only</p>
-            </div>
+            </header>
 
-            <div className="p-6 md:px-12 max-w-3xl space-y-8">
-                {/* Eligibility */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em]">Eligibility</h2>
-                    <div className="p-4 bg-secondary/10 border border-border/60">
-                        <p className="font-medium text-sm">
-                            Returns are accepted <strong>only</strong> if the product is defective or damaged.
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            This includes manufacturing defects, wrong product shipped, or damage during transit.
-                        </p>
-                    </div>
-                </section>
+            <div className="mx-auto max-w-3xl space-y-12 px-4 py-16 sm:px-6 md:px-12 md:py-24">
+                <Section title="Your return window">
+                    <p>
+                        You can return most items within {RETURN_WINDOW_DAYS} days of the date they were delivered. To be
+                        accepted, an item must be:
+                    </p>
+                    <Bullets
+                        items={[
+                            "Unused, undamaged and in the condition you received it",
+                            "In its original packaging, with all inserts, accessories and protective wrapping",
+                            "Accompanied by your order number",
+                        ]}
+                    />
+                </Section>
 
-                {/* Mandatory Requirement */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Video className="h-4 w-4 text-brand" /> Mandatory requirement
-                    </h2>
-                    <div className="p-4 bg-brand/5 border border-brand/20">
-                        <p className="font-medium text-sm text-brand">
-                            You must provide a continuous, uncut unboxing video.
-                        </p>
-                        <ul className="text-xs mt-3 space-y-2">
-                            <li className="flex items-start gap-2">
-                                <span className="text-brand mt-0.5">·</span>
-                                <span>Video must clearly show the <strong>shipping label</strong> on the package</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="text-brand mt-0.5">·</span>
-                                <span>Video must be <strong>continuous</strong> (no cuts or edits)</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="text-brand mt-0.5">·</span>
-                                <span>Video must clearly show the <strong>defect or damage</strong></span>
-                            </li>
-                        </ul>
-                        <p className="text-xs text-muted-foreground mt-3">
-                            Without this video, your return request <strong>will be rejected</strong>.
-                        </p>
-                    </div>
-                </section>
+                <Section title="Items we cannot take back">
+                    <Bullets
+                        items={[
+                            "Items marked as final sale",
+                            "Personalised, made-to-order or custom-sized pieces",
+                            "Hygiene items that have been opened or used — for example bathroom and vanity accessories",
+                        ]}
+                    />
+                    <p>This does not affect your rights if an item arrives damaged, faulty or incorrect.</p>
+                </Section>
 
-                {/* Exclusions */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <XCircle className="h-4 w-4 text-red-500" /> Exclusions
-                    </h2>
-                    <div className="p-4 bg-red-500/5 border border-red-500/20">
-                        <p className="font-medium text-xs text-red-600 dark:text-red-400 mb-3">
-                            Returns are not accepted for:
-                        </p>
-                        <ul className="space-y-2 text-xs">
-                            <li className="flex items-start gap-2">
-                                <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-                                <span>&quot;Change of mind&quot; or &quot;I don&apos;t want it anymore&quot;</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-                                <span>&quot;Didn&apos;t like the style&quot; or &quot;Doesn&apos;t match my expectations&quot;</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-                                <span>Slight color variations due to screen/lighting differences</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-                                <span>Products that have been worn, washed, or altered</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-                                <span>Products with removed tags</span>
-                            </li>
-                        </ul>
-                    </div>
-                </section>
+                <Section title="Damaged, faulty or incorrect items">
+                    <p>
+                        If something arrives damaged, faulty or is not what you ordered, please tell us within 48 hours of
+                        delivery. Email us with your order number and clear photographs of the item and its packaging. We
+                        will arrange a replacement, collection or full refund — including any delivery charge — at no cost
+                        to you.
+                    </p>
+                </Section>
 
-                {/* Important Note */}
-                <section className="space-y-3">
-                    <div className="p-4 bg-secondary/10 border border-border/60 flex gap-4">
-                        <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0" />
-                        <div>
-                            <p className="font-medium text-sm">Why we&apos;re strict</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                As a premium streetwear brand, we ensure every product goes through quality checks before shipping. 
-                                The unboxing video requirement protects both you and us from fraudulent claims. 
-                                We value genuine customers and want to maintain affordable prices by minimizing abuse.
-                            </p>
-                        </div>
-                    </div>
-                </section>
+                <Section title="How to start a return">
+                    <ol className="space-y-3">
+                        {[
+                            <>
+                                Email{" "}
+                                <a href={mailto} className="text-foreground underline underline-offset-4">
+                                    {CONTACT.email}
+                                </a>{" "}
+                                with your order number, the item(s) you would like to return and the reason.
+                            </>,
+                            "We will confirm your return and arrange collection from your address. For change-of-mind returns, we will confirm any collection charge before booking it.",
+                            "Pack the item securely in its original packaging, ready for collection.",
+                            "Once it reaches us and passes inspection, we process your refund as described in our refunds policy.",
+                        ].map((step, index) => (
+                            <li key={index} className="grid grid-cols-[2rem_1fr] gap-2">
+                                <span className="font-heading text-[11px] tabular-nums tracking-[0.1em] text-brand-strong">
+                                    {String(index + 1).padStart(2, "0")}
+                                </span>
+                                <span>{step}</span>
+                            </li>
+                        ))}
+                    </ol>
+                </Section>
 
-                {/* Process */}
-                <section className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.1em]">Return process</h2>
-                    <div className="space-y-2">
-                        <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">1</span>
-                            <div>
-                                <p className="font-medium text-sm">Record unboxing</p>
-                                <p className="text-xs text-muted-foreground">Start recording before you open the package. Show the shipping label and unbox completely.</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">2</span>
-                            <div>
-                                <p className="font-medium text-sm">Contact support</p>
-                                <p className="text-xs text-muted-foreground">Email support@xilar.in with your order ID, video, and description of the defect.</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">3</span>
-                            <div>
-                                <p className="font-medium text-sm">Verification</p>
-                                <p className="text-xs text-muted-foreground">Our team will review your video and respond within 24–48 hours.</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">4</span>
-                            <div>
-                                <p className="font-medium text-sm">Refund processed</p>
-                                <p className="text-xs text-muted-foreground">If approved, you&apos;ll receive the approved amount in your XILAR wallet. See our Refund Policy.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <Section title="Refunds and exchanges">
+                    <p>
+                        Read how your money is returned in our{" "}
+                        <Link href="/policies/refunds" className="text-foreground underline underline-offset-4">
+                            refunds policy
+                        </Link>
+                        , or, if you would prefer a different finish or size, see{" "}
+                        <Link href="/policies/exchange" className="text-foreground underline underline-offset-4">
+                            exchanges
+                        </Link>
+                        .
+                    </p>
+                </Section>
+
+                <p className="border-t border-border pt-8 text-xs text-muted-foreground">
+                    Questions? Contact us at{" "}
+                    <a href={`mailto:${CONTACT.email}`} className="underline underline-offset-4 hover:text-foreground">
+                        {CONTACT.email}
+                    </a>
+                </p>
             </div>
         </div>
     )

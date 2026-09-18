@@ -7,8 +7,10 @@ import { motion, useReducedMotion } from "framer-motion";
 import { 
   Package, 
   ShoppingCart, 
-  IndianRupee, 
-  Ticket, 
+  Banknote,
+  Ticket,
+  AlertTriangle,
+  PackageX,
   Plus, 
   ArrowRight,
   FileText
@@ -16,6 +18,8 @@ import {
 import { getDashboardStats } from "@/lib/actions/admin";
 import { ADMIN_QUERY_OPTIONS } from "@/lib/admin-query-options";
 import { cn } from "@/lib/utils";
+import { formatPrice } from "@/lib/money";
+import { formatDate, orderNumber } from "./_lib/format";
 
 type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>;
 
@@ -30,35 +34,65 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
     ...ADMIN_QUERY_OPTIONS,
   });
 
-  const statsItems = [
+  const periodLabel = timeframe === "all" ? "all-time" : `last ${timeframe === "7d" ? "7" : "30"} days`;
+  const statsItems: {
+    label: string;
+    value: string;
+    description: string;
+    icon: typeof Package;
+    code: string;
+    href?: string;
+    alert?: boolean;
+  }[] = [
     {
-      label: "Revenue Delivered",
-      value: `₹${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      description: timeframe === "all" ? "Delivered orders all-time" : `Delivered in last ${timeframe === "7d" ? "7" : "30"} days`,
-      icon: IndianRupee,
-      code: "REV_DELIV"
+      label: "Revenue",
+      value: formatPrice(stats.totalRevenue),
+      description: `Paid or delivered orders, ${periodLabel} (VAT incl.)`,
+      icon: Banknote,
+      code: "REV",
     },
     {
-      label: "Volume Shipped",
-      value: stats.totalOrders.toLocaleString(),
-      description: timeframe === "all" ? "Total volume all-time" : `Orders in last ${timeframe === "7d" ? "7" : "30"} days`,
+      label: "Orders",
+      value: stats.totalOrders.toLocaleString("en-AE"),
+      description: `Orders placed, ${periodLabel}`,
       icon: ShoppingCart,
-      code: "ORD_VOL"
+      code: "ORD",
+      href: "/admin/orders",
     },
     {
-      label: "Active Catalog",
-      value: stats.totalProducts.toLocaleString(),
-      description: "Published products in store",
+      label: "Active catalogue",
+      value: stats.totalProducts.toLocaleString("en-AE"),
+      description: "Products visible in store",
       icon: Package,
-      code: "CAT_ACT"
+      code: "CAT",
+      href: "/admin/products",
     },
     {
-      label: "Active Coupons",
-      value: stats.activeCoupons.toLocaleString(),
-      description: "Available discount programs",
+      label: "Active coupons",
+      value: stats.activeCoupons.toLocaleString("en-AE"),
+      description: "Discount codes customers can use",
       icon: Ticket,
-      code: "CPN_ACT"
-    }
+      code: "CPN",
+      href: "/admin/coupons",
+    },
+    {
+      label: "Low stock",
+      value: stats.lowStockProducts.toLocaleString("en-AE"),
+      description: "Visible products with 3 or fewer units",
+      icon: PackageX,
+      code: "STK",
+      href: "/admin/products",
+      alert: stats.lowStockProducts > 0,
+    },
+    {
+      label: "Payments needing refund",
+      value: stats.paidUnfulfilledCheckouts.toLocaleString("en-AE"),
+      description: "Card charged but no order was created",
+      icon: AlertTriangle,
+      code: "RFD",
+      href: "/admin/orders",
+      alert: stats.paidUnfulfilledCheckouts > 0,
+    },
   ];
 
   const containerVariants = {
@@ -91,7 +125,7 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
           <div>
             <div className="mb-2">
               <span className="text-[10px] uppercase font-mono tracking-[0.3em] text-muted-foreground">
-                XILAR LEDGER // CORE ADMIN DESK
+                MITI HOME // ADMIN DESK
               </span>
             </div>
             <h1 className="text-5xl font-black uppercase tracking-tighter leading-none font-sans md:text-6xl">
@@ -104,6 +138,8 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
             {(["7d", "30d", "all"] as const).map((t) => (
               <button
                 key={t}
+                type="button"
+                aria-pressed={timeframe === t}
                 onClick={() => setTimeframe(t)}
                 className={cn(
                   "text-[9px] uppercase tracking-[0.2em] px-4 py-2 rounded-full transition-all duration-300 font-bold cursor-pointer select-none",
@@ -124,40 +160,44 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-y border-border/30 divide-y sm:divide-y-0 sm:divide-x divide-border/30 bg-card/10"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px border border-border/30 bg-border/30"
       >
-        {statsItems.map((item, index) => {
+        {statsItems.map((item) => {
           const Icon = item.icon;
-          return (
-            <motion.div 
-              key={item.label}
-              variants={itemVariants}
-              className={cn(
-                "p-8 flex flex-col justify-between min-h-[180px] transition-colors duration-300 hover:bg-secondary/5",
-                index === 0 && "sm:pl-4 lg:pl-6",
-                index === 3 && "lg:pr-6"
-              )}
-            >
+          const body = (
+            <>
               <div className="flex items-center justify-between">
-                <span className="text-[9px] uppercase font-mono tracking-[0.25em] text-muted-foreground">
+                <span className="text-[10px] uppercase font-mono tracking-[0.25em] text-muted-foreground">
                   {item.code} {"//"} {item.label}
                 </span>
-                <Icon className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <Icon className={cn("h-4 w-4", item.alert ? "text-destructive" : "text-muted-foreground/60")} aria-hidden="true" />
               </div>
-              
               <div className="mt-6 space-y-1">
-                <div 
+                <div
                   className={cn(
                     "text-4xl md:text-5xl font-light font-serif tracking-tight tabular-nums transition-opacity duration-300",
-                    isFetching ? "opacity-40" : "opacity-100"
+                    isFetching ? "opacity-40" : "opacity-100",
+                    item.alert && "text-destructive"
                   )}
                 >
                   {item.value}
                 </div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.05em] leading-normal pt-1">
-                  {item.description}
-                </p>
+                <p className="text-[11px] text-muted-foreground leading-normal pt-1">{item.description}</p>
               </div>
+            </>
+          );
+          return (
+            <motion.div key={item.label} variants={itemVariants} className="bg-background">
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className="flex h-full min-h-[170px] flex-col justify-between p-6 transition-colors duration-300 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  {body}
+                </Link>
+              ) : (
+                <div className="flex h-full min-h-[170px] flex-col justify-between p-6">{body}</div>
+              )}
             </motion.div>
           );
         })}
@@ -184,11 +224,11 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
                 <Plus className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
               <div>
-                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand transition-colors">
+                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand-strong transition-colors">
                   Add New Product
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  Create a new product listing with sizes, colors, and Cloudinary media assets.
+                  List a new piece with options, finishes, stock and imagery.
                 </p>
               </div>
             </Link>
@@ -202,7 +242,7 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
                 <Plus className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
               <div>
-                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand transition-colors">
+                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand-strong transition-colors">
                   Create Coupon
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -220,7 +260,7 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
                 <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
               </div>
               <div>
-                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand transition-colors">
+                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand-strong transition-colors">
                   Manage Orders
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -265,18 +305,14 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
                     <tr key={order.id} className="group hover:bg-secondary/5 transition-colors">
                       <td className="py-4 font-mono text-xs text-muted-foreground">
                         <Link href={`/admin/orders/${order.id}`} className="hover:text-foreground hover:underline transition-colors">
-                          #{order.id.slice(0, 8).toUpperCase()}
+                          {orderNumber(order.id)}
                         </Link>
                       </td>
                       <td className="py-4 text-sm font-medium text-foreground">
                         {order.customerName}
                       </td>
                       <td className="py-4 text-xs text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
+                        {formatDate(order.createdAt)}
                       </td>
                       <td className="py-4">
                         <span className={cn(
@@ -290,7 +326,7 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
                         </span>
                       </td>
                       <td className="py-4 text-right font-serif text-sm tabular-nums text-foreground">
-                        ₹{order.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatPrice(order.total)}
                       </td>
                     </tr>
                   ))}

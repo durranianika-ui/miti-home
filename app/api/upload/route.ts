@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
 
     // Upload to Cloudinary
     const result = await uploadImage(buffer, {
-      folder: folder || "xilar/products",
+      // Only allow folders inside the store's own Cloudinary namespace.
+      folder: folder && /^miti-home(\/[a-z0-9-]+)*$/.test(folder) ? folder : "miti-home/products",
     });
 
     return NextResponse.json(result);

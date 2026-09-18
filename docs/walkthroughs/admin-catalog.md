@@ -1,37 +1,28 @@
-# Admin Catalog Walkthrough
+# Admin & Catalogue Walkthrough
 
-## Entry Points
+## Entry points
 
-- Admin shell: `app/admin/layout.tsx`
-- Products: `app/admin/products/`
-- Combos: `app/admin/combos/`
-- Coupons: `app/admin/coupons/`
-- Orders: `app/admin/orders/`
-- Admin actions: `lib/actions/admin.ts`, `lib/actions/combos.ts`
-- Product input normalization: `lib/admin-product-input.ts`
+- Admin shell: `app/admin/layout.tsx` (+ `app/admin/_components`, `_lib`)
+- Guard: every admin page calls `requireAdminPage()` (`lib/admin-guard.ts`); every admin action calls `requireAdmin()` (`lib/auth-server.ts`)
+- Actions: `lib/actions/admin.ts`, `lib/actions/combos.ts`, `lib/actions/marketing.ts`
+- Input normalisation: `lib/admin-product-input.ts`
 
-## Guarding
+Layouts and pages render in parallel in the App Router, so the layout redirect alone does not stop a page's data queries — keep the page-level guard on new admin pages.
 
-Admin pages require a signed-in Better Auth session and `isAdmin()` from `lib/auth-server.ts`. Admin write actions should call `requireAdmin()` at the action boundary.
+## Products
 
-## Catalog Writes
+Products belong to one category (by slug) and any number of collections. Options: a primary option list with its label (Size / Dimensions / Length / Character…) and optional colours/finishes with hex swatches and per-finish images. Variant stock is the source of truth; product stock is recalculated from variants. Deleting a product with order history archives it instead (keeps order records intact).
 
-Product writes normalize incoming form/server-action payloads before touching Drizzle. Keep product and variant validation in the action boundary so the database never receives duplicate variant dimensions or malformed numbers.
+Every product write rebuilds the search document (including category and collection names), refreshes recommendations and revalidates the product, its category and collection pages, listings, sitemap and merchant feed.
 
-Products with variants use variant stock as source of truth; product-level stock is recalculated from variant totals. Accessory/no-variant products may use the product stock field directly.
+## Categories & collections
 
-## Combos
+Categories drive the storefront navigation (only categories with visible products appear). Renaming a category slug moves its products. Collections have their own merchandising order (drag-free up/down ordering in the admin) and power `/collections/<slug>` pages and the homepage feature.
 
-Combos pair two products and define the max bargain discount for that pair. Checkout quote calculation validates combo cart groups server-side before applying the discount.
+## Sets ("Complete the set")
 
-## Coupons And Store Credit
+A set pairs two products with a saving that the checkout quote applies automatically when both are bought together through the set.
 
-Coupons are the shared discount primitive for normal coupons, bargain coupons, and store credits. Store credits use fixed-value user-specific coupons and should keep the existing bonus/refund behavior in admin actions.
+## Coupons & store credit
 
-## Removed Settings
-
-The placeholder settings page and nav link were removed. Reintroduce settings only with a real persistence model, validation rules, and tests.
-
-## Merchandising Stats
-
-Seeded product rating/viewer stats are intentional merchandising data. Keep them unless the product strategy changes; do not remove them as cleanup noise.
+Coupons: fixed or percentage, optional cap, minimum order, validity window, usage limit, first-order-only, or tied to a customer. Store credit is issued from an order as a single-use `CREDIT-XXXXXXXX` code.

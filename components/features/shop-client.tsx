@@ -468,7 +468,7 @@ function ShopProductGrid({
         hasNextPage,
         isFetchingNextPage,
     } = useShopCatalog(query, isDefaultQuery ? initialCatalog : undefined)
-    const products = data?.products ?? []
+    const products = useMemo(() => data?.products ?? [], [data?.products])
     const total = Math.max(data?.total ?? 0, products.length)
 
     const visibleProducts = products.slice(0, visibleCount)

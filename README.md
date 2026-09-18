@@ -1,150 +1,82 @@
-# XILAR E-Commerce
+# Miti Home
 
-XILAR is a Next.js storefront for apparel with a dark editorial frontend, SEO-focused public routing, admin catalog tools, Razorpay checkout, COD orders, account-backed wishlist support, coupon/store-credit support, and a checkout bargain AI that can issue short-lived coupons.
+**Luxury Living — beautiful spaces, a better you.**
+
+The Miti Home storefront: a Dubai-based home lifestyle store selling curated décor, sculptural lighting, smart storage, hosting essentials and clever everyday finds across the UAE. Prices are in AED (VAT-inclusive), delivery covers all seven emirates, and customers can pay by card on a hosted payment page or cash on delivery.
+
+This codebase was built on the XILAR storefront architecture (Next.js App Router, Drizzle, Better Auth) and keeps its editorial motion system — the three-panel hero, GSAP clip-path menu, fullscreen search, stagger reveals, scroll-directional marquee, angled parallax gallery band and infinite canvas gallery — re-skinned and re-merchandised for home products.
 
 ## Stack
 
-- Next.js 16 App Router, React 19, TypeScript 5
-- Neon PostgreSQL through Drizzle ORM
-- Better Auth with admin role support
-- Razorpay orders and payment verification
-- OpenRouter through the Vercel AI SDK
-- Cloudinary image delivery
-- Vercel Analytics and GA4 measurement
-- Tailwind CSS 4, Lucide icons, Framer Motion, GSAP where the existing motion system uses it
+- Next.js 16 App Router, React 19, TypeScript 5, Tailwind CSS 4
+- PostgreSQL via Drizzle ORM — Neon serverless in production, any Postgres locally
+- Better Auth (email/password, optional Google), admin role
+- Payments: provider-agnostic hosted card checkout (Stripe implemented) + cash on delivery
+- Resend for transactional and campaign email
+- Framer Motion + GSAP; Lucide icons
+- Optional: Cloudinary uploads, Gemini + Pinecone semantic search, OpenRouter concierge (off by default)
 
-## Setup
-
-Install dependencies and run the local app:
+## Quick start (local)
 
 ```bash
 npm install
+cp .env.example .env.local          # then fill DATABASE_URL and BETTER_AUTH_SECRET
+npm run db:migrate                  # applies ./drizzle migrations
+npm run catalog:images              # builds /public/products from ~/Downloads/Mitihome (needs Python + Pillow)
+npm run db:seed                     # imports data/catalog/miti-home-catalog.json
+npm run admin:create -- --email you@example.com --name "Your Name" --password "a-long-passphrase"
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Any PostgreSQL 15+ works locally (Docker, Postgres.app, or the `embedded-postgres` npm package). `lib/db/index.ts` uses node-postgres for `localhost` URLs and the Neon WebSocket driver for everything else. The `pg_trgm` extension must be available (it ships with standard Postgres builds).
 
-Required environment variables:
-
-```bash
-DATABASE_URL=
-BETTER_AUTH_SECRET=
-BETTER_AUTH_URL=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-NEXT_PUBLIC_RAZORPAY_KEY_ID=
-RAZORPAY_WEBHOOK_SECRET=
-OPENROUTER_API_KEY=
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-NEXT_PUBLIC_APP_URL=
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=
-```
-
-## Scripts
+## Quality gate
 
 ```bash
-npm test
-npm run lint
-npm run build
-npm run db:generate
-npm run db:push
-npm run db:studio
+npm test          # 95 node:test unit + source-invariant tests
+npm run lint      # ESLint (next/core-web-vitals + typescript)
+npm run build     # production build — needs a reachable DATABASE_URL (pages are statically generated from the catalogue)
 ```
 
-Use `npm test`, `npm run lint`, and `npm run build` as the main quality gate before shipping.
+## Where things live
 
-If full `npm run lint` stalls on Windows, run focused lint on the touched files and still run `npm test` plus `npm run build`.
+| Concern | Location |
+| --- | --- |
+| Brand identity, contact, legal, socials | `lib/brand.ts` (env-driven, unset values are hidden) |
+| UAE commerce rules (VAT, delivery, COD, emirates, returns window) | `lib/constants.ts` (env-overridable) |
+| AED formatting, VAT share | `lib/money.ts` |
+| UAE address & phone validation | `lib/uae.ts` |
+| Homepage merchandising (hero, Shop the Space, editorial story, banner) | `lib/merchandising.ts` |
+| Catalogue data & images | `data/catalog/miti-home-catalog.json`, `scripts/catalog/prepare_images.py`, `scripts/seed-catalog.ts` |
+| Schema & migrations | `lib/db/schema.ts`, `drizzle/` |
+| Catalogue queries, filters, facets | `lib/product-catalog.ts`, `lib/catalog-query.ts` |
+| Categories & collections | `lib/taxonomy.ts`, `lib/navigation.ts` |
+| Checkout quote (server-priced) | `lib/checkout/quote.ts`, `lib/checkout/pricing.ts`, `lib/checkout/cod.ts` |
+| Order write path (server-only) | `lib/orders/create-order.ts` |
+| Card payments | `lib/payments/*`, `lib/checkout/card-checkout.ts`, `app/api/checkout/card`, `app/api/webhooks/payments/[provider]`, `app/checkout/complete` |
+| Emails | `lib/email.ts`, `lib/email-layout.ts`, `lib/marketing/email-template.ts` |
+| SEO | `lib/seo.ts`, `lib/structured-data.ts`, `lib/seo-merchant-feed.ts`, `app/sitemap.ts`, `app/robots.ts`, `app/llms.txt` |
+| Analytics | `components/analytics/analytics.tsx`, `lib/analytics.ts` (GA4/GTM/Meta Pixel/Vercel, all env-driven) |
+| Admin | `app/admin/**`, `lib/actions/admin.ts`, `lib/admin-guard.ts` |
 
-## Architecture
+## Key rules
 
-- `app/` contains App Router pages and route handlers.
-- `components/features/` contains customer-facing domain components such as cart, checkout, product, shop, and bargain UI.
-- `components/ui/` contains local primitives. They are shadcn-style, not generated shadcn/ui.
-- `lib/db/` owns Drizzle schema and database connection.
-- `lib/actions/` owns database mutations and privileged server operations.
-- `lib/checkout/quote.ts` owns server-side checkout quote creation.
-- `lib/checkout/pricing.ts` owns pure quote math and Razorpay amount parity checks.
-- `lib/coupon-validation.ts` owns public coupon validation and discount math.
-- `lib/seo.ts`, `lib/structured-data.ts`, and `lib/seo-merchant-feed.ts` own canonical URL helpers, JSON-LD payloads, and merchant-feed serialization.
-- `lib/public-cache.ts` owns the public paths that admin product/combo mutations revalidate.
-- `lib/wishlist.ts` and `lib/actions/wishlist.ts` own account-backed wishlist reads and writes.
-- `lib/actions/orders.ts` owns atomic order creation and COD cancellation.
-- `lib/bargain/logic.ts` owns pure bargain cap, offer, and finalization rules.
-- `lib/bargain/context.ts` owns DB-backed bargain eligibility context.
-- `lib/actions/bargain.ts` owns persisted bargain coupon/session writes.
+- **Never trust the browser with money.** Orders are only created from `createCheckoutQuote()` in route handlers (`/api/orders` for COD, the card-checkout finaliser for card). `lib/orders/create-order.ts` is `server-only` and deliberately not a `"use server"` module.
+- **Stock and coupons are consumed atomically** with the order insert; COD cancellation and admin cancellation restore stock.
+- **Card orders are created only after the provider confirms payment** (webhook or verified return). A paid session that can no longer be fulfilled is flagged `paid_unfulfilled` and surfaced on the admin dashboard for refund.
+- **The store never shows a payment method it cannot charge.** The card option appears only when a provider is configured.
+- **No fabricated social proof.** Reviews render only from `data/testimonials.json`; there are no fake ratings, viewer counts or "selling fast" claims.
+- Public product URLs use slugs; mutations use IDs. Old UUID product URLs 308-redirect via `proxy.ts`.
 
-## Public Storefront, SEO, And Caching
+## Documentation
 
-Public product URLs use slugs, not database UUIDs. Use `buildProductPath(slug)` and `buildProductUrl(slug, baseUrl)` from `lib/seo.ts` whenever code builds product links, canonical URLs, sitemap entries, structured data, or feed URLs. Product actions still use product IDs for mutations.
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Vercel + Neon deployment, domain cutover, post-deploy checks
+- [docs/PAYMENTS.md](docs/PAYMENTS.md) — payment architecture and what is needed for live cards
+- [docs/REQUIRED-FROM-OWNER.md](docs/REQUIRED-FROM-OWNER.md) — credentials, assets and decisions still needed
+- [docs/CATALOG.md](docs/CATALOG.md) — catalogue data, imagery pipeline, drafts
+- [docs/MIGRATION.md](docs/MIGRATION.md) — XILAR → Miti Home audit, plan and change log
+- [docs/walkthroughs/](docs/walkthroughs) — checkout & orders, admin & catalogue, coupons & concierge
 
-Catalog and editorial pages are intended to stay static or SSG where possible. The root layout does not read request cookies; theme first paint is repaired by a small inline script so public pages remain cacheable. Product and combo detail pages use `generateStaticParams()`, and admin product/combo mutations revalidate the relevant public storefront, sitemap, feed, and detail paths through `lib/public-cache.ts`.
+## License
 
-SEO surfaces include:
-
-- `app/sitemap.ts` for canonical public routes and slug product URLs.
-- `app/robots.ts` plus `proxy.ts` for crawl policy and noindex headers on query-driven catalog variants.
-- `app/feeds/google-merchant.xml/route.ts` for active-product Google Merchant feed output.
-- `app/llms.txt/route.ts` for AI-readable site context.
-- `app/.well-known/security.txt/route.ts` and `app/security.txt/route.ts` for security contact metadata.
-- `components/seo/structured-data.tsx` and `lib/structured-data.ts` for JSON-LD injection.
-
-GA4 is installed once in the root layout with measurement ID `G-6GDBLBWZW9`; do not add another Google tag per page.
-
-## Checkout And Orders
-
-The client cart is intentionally localStorage-backed. The server never trusts client totals.
-
-Checkout route handlers call `createCheckoutQuote()` to resolve products, validate quantities, compute combo discounts, validate coupons, calculate shipping/COD fees, and produce verified order items. COD order creation, Razorpay order creation, and Razorpay payment verification all use that same quote path.
-
-Order creation in `createOrder()` is transactional: coupon consumption, order rows, order item snapshots, stock mutation, user order metrics, and cache revalidation are handled as one write path. COD cancellation is restored for owner-owned `pending` or `confirmed` COD orders and restores product/variant stock while rolling back user order metrics.
-
-## Wishlist
-
-Wishlist data is account-backed. The `/wishlist` page requires a server session and reads from the database. Product and navbar wishlist state go through server actions; there is intentionally no `localStorage` wishlist provider fallback.
-
-## Storefront Performance
-
-The public shell is tuned to keep the first viewport stable and cacheable:
-
-- Home streams the hero before data-dependent merchandising sections.
-- Route fallbacks reserve viewport height so the footer does not flash into the initial paint.
-- The shared footer is dynamically loaded behind `FooterGate`, with a reserved shell.
-- The custom cursor effect waits for idle time, fine pointers, and non-reduced-motion users.
-- Hero panel transitions avoid Framer layout animation and use short motion timing.
-- Reel videos are lazy-loaded and include a captions track.
-
-## Bargain AI
-
-The checkout bargain API streams model output from `/api/bargain`, but persistence is separated:
-
-- `lib/bargain/logic.ts` calculates configured caps, offer progression, demand reasonableness, and finalization.
-- `lib/bargain/context.ts` loads product/combo caps and first-time-user eligibility.
-- `lib/actions/bargain.ts` creates `BRG-` coupons and `bargain_sessions` records transactionally.
-- Final coupon headers are only sent if the coupon was actually persisted.
-
-Bargain coupons are fixed-value, user-specific, single-use, and expire after five minutes.
-
-## Admin
-
-Admin pages require the Better Auth admin role. Catalog writes live in server actions and normalize product/variant input before touching the database. Products, combos, coupons, and orders are the real admin surfaces; the placeholder settings page was intentionally removed.
-
-Seeded rating/viewer merchandising stats are intentional presentation data. Do not remove them as "fake data" unless the merchandising model changes.
-
-## Quality Tools
-
-Desloppify is configured for cleanup scanning. Local/generated/source-material paths are excluded, including `.git`, `node_modules`, `.next`, `out`, `build`, `coverage`, `references`, `drizzle/meta`, `.env`, and `.env.local`.
-
-If `desloppify` is not on PATH on Windows, use the Python Scripts path shown by `python -m site --user-base`, for example:
-
-```powershell
-& "$env:LOCALAPPDATA\Python\pythoncore-3.14-64\Scripts\desloppify.exe" status
-```
-
-## Walkthroughs
-
-- `docs/walkthroughs/checkout-and-orders.md`
-- `docs/walkthroughs/bargain-ai-and-coupons.md`
-- `docs/walkthroughs/admin-catalog.md`
+The underlying XILAR codebase is licensed under the Apache License 2.0 (see `LICENSE`); that notice is retained as the license requires.

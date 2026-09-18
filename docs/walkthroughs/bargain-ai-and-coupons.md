@@ -1,51 +1,19 @@
-# Bargain AI And Coupons Walkthrough
+# Concierge (optional AI) & Coupons Walkthrough
 
-## Entry Points
+## Status
 
-- Checkout UI: `components/features/checkout-bargain.tsx`
-- Streaming route: `app/api/bargain/route.ts`
-- Pure bargain rules: `lib/bargain/logic.ts`
-- Eligibility context: `lib/bargain/context.ts`
-- Coupon persistence: `lib/actions/bargain.ts`
-- Coupon validation: `lib/coupon-validation.ts`
-- Coupon consumption: `lib/actions/orders.ts`
+The negotiating assistant inherited from XILAR is kept but **off by default** (`NEXT_PUBLIC_FEATURE_BARGAIN_AI=false`): Miti Home's positioning is "curated, not crowded" and it does not compete on price. When disabled, the checkout component renders nothing and `/api/bargain` returns 404 before doing any work. When enabled without `OPENROUTER_API_KEY`, the route returns 503 and the component stays hidden — the storefront never depends on it.
 
-## Negotiation Flow
+## How it works when enabled
 
-The checkout component posts chat messages, cart items, cart total, and negotiation round to `/api/bargain`.
+- `components/features/checkout-bargain.tsx` streams a concierge conversation from `/api/bargain`.
+- `lib/bargain/logic.ts` holds the pure rules (caps from product `maxBargainDiscount` and set savings, offer progression, finalisation) — unit-tested in `lib/bargain-discount.test.ts`.
+- `lib/actions/bargain.ts` (server-only) persists a single-use, customer-bound, five-minute `BRG-` coupon together with a `bargain_sessions` row; the coupon header is only sent once persisted.
 
-The route authenticates the user, asks `lib/bargain/context.ts` for first-time-user state and configured product/combo caps, and delegates all offer math to `lib/bargain/logic.ts`.
+## Product assistant
 
-Pure logic decides:
+`components/features/bargain-ai.tsx` (`ProductAssistant`) is a local, no-API helper on product pages that answers from the product data and store settings only (materials, dimensions, care, delivery time and fees, COD, returns, VAT-inclusive AED pricing, gifting).
 
-- Cart-rule cap.
-- Configured product/combo cap.
-- Requested discount parsing.
-- Unreasonable demand detection.
-- Current offer amount.
-- Whether this round should finalize.
+## Coupons
 
-## Coupon Persistence
-
-When a final coupon should be issued and the user is authenticated, the route calls `createBargainCoupon()` before streaming the final response. That action writes the `coupons` and `bargain_sessions` rows transactionally.
-
-The route only sends coupon headers and tells the model to present a code after persistence succeeds. This prevents a streamed coupon from existing only in text.
-
-## Coupon Shape
-
-Bargain coupons are:
-
-- Prefix: `BRG-`
-- Type: fixed discount
-- Scope: specific user
-- Usage: single-use
-- Expiry: five minutes
-- Session tracking: `bargain_sessions.used`
-
-Order creation consumes the coupon and marks the matching bargain session used.
-
-## Rules For Changes
-
-Keep model prompt copy separate from business rules. If the offer progression changes, update `lib/bargain/logic.ts` and tests first, then adjust prompt context if needed.
-
-Do not write coupon/session rows directly in `/api/bargain`.
+Public validation lives in `lib/coupon-validation.ts` (the API returns only `{ valid, code, discount }` or an error). Consumption happens inside the order transaction in `lib/orders/create-order.ts`, re-checking every rule with row-level guards so concurrent orders cannot exceed usage limits.

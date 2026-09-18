@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
-import { coupons } from "@/lib/db/schema";
+import { coupons, user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { formatPrice } from "@/lib/money";
 
 export function calculateCouponDiscount(
   coupon: typeof coupons.$inferSelect,
@@ -34,7 +35,7 @@ export async function validateCoupon(code: string, orderTotal: number, userId?: 
   const now = new Date();
 
   if (coupon.isBargainGenerated && coupon.expiresAt && coupon.expiresAt < now) {
-    return { valid: false, error: "This bargain code has expired. Try negotiating again!" };
+    return { valid: false, error: "This private offer has expired. Ask the concierge again." };
   }
 
   if (coupon.validUntil && coupon.validUntil < now) {
@@ -50,11 +51,24 @@ export async function validateCoupon(code: string, orderTotal: number, userId?: 
   }
 
   if (coupon.minOrderValue && orderTotal < Number(coupon.minOrderValue)) {
-    return { valid: false, error: `Minimum order value is ₹${coupon.minOrderValue}` };
+    return { valid: false, error: `Minimum order value is ${formatPrice(coupon.minOrderValue)}` };
   }
 
   if (coupon.userId && coupon.userId !== userId) {
     return { valid: false, error: "This coupon is not valid for your account" };
+  }
+
+  if (coupon.forNewUsersOnly) {
+    if (!userId) {
+      return { valid: false, error: "Sign in to use this welcome code" };
+    }
+    const [account] = await db
+      .select({ ordersCount: user.ordersCount })
+      .from(user)
+      .where(eq(user.id, userId));
+    if ((account?.ordersCount ?? 0) > 0) {
+      return { valid: false, error: "This code is for first orders only" };
+    }
   }
 
   return {

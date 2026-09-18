@@ -106,6 +106,27 @@
       "when": 1784653545415,
       "tag": "0014_bizarre_anthem",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789732966985,
+      "tag": "0015_miti_home_taxonomy_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789732988628,
+      "tag": "0016_miti_home_data_carryover",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789733014986,
+      "tag": "0017_miti_home_drop_legacy",
+      "breakpoints": true
     }
   ]
 }

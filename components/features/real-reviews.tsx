@@ -1,76 +1,61 @@
-import { CheckCircle2, Star } from "lucide-react"
+import { Quote } from "lucide-react"
+import { BRAND } from "@/lib/brand"
+import testimonials from "@/data/testimonials.json"
 
-const REVIEWS = [
-    {
-        title: "Best polo I’ve owned",
-        body: "The fabric is insanely soft and the fit is perfect. Wore it to a date and got compliments all night. Already ordering two more.",
-        name: "Arjun M.",
-        product: "Classic Knit Polo",
-    },
-    {
-        title: "Worth every rupee",
-        body: "Was skeptical ordering online but the quality blew me away. The stitching and weight of the fabric feel like something 3x the price.",
-        name: "Priya S.",
-        product: "Oversized Tee",
-    },
-    {
-        title: "My go-to brand now",
-        body: "Third order in two months. The oversized fits are clean, not too baggy, not too tight. Finally a brand that gets Indian body types.",
-        name: "Rohan K.",
-        product: "Grid Polo",
-    },
-    {
-        title: "Colour didn’t fade at all",
-        body: "Washed it 10+ times now and the colour is exactly like day one. Fabric still feels premium. This is rare at this price point.",
-        name: "Sneha D.",
-        product: "Black & White Grid Polo",
-    },
-    {
-        title: "Great fit, fast delivery",
-        body: "Ordered at night, got it in 3 days with COD. The fit is clean, not boxy like other Indian brands. Only wish there were more colours.",
-        name: "Karan J.",
-        product: "Premium Knit Polo",
-    },
-    {
-        title: "Compliments every single time",
-        body: "My friends keep asking where I got this. The texture stands out and you can feel it’s not fast fashion. Respect for the quality at this range.",
-        name: "Aditya P.",
-        product: "Oversized Fit Tee",
-    },
-]
+type Testimonial = {
+    quote: string
+    name: string
+    location?: string
+    product?: string
+}
 
+/**
+ * Customer voices. Only genuine, consented testimonials belong in
+ * data/testimonials.json — nothing is invented here. Until real reviews are
+ * collected the section presents the brand's own promises instead.
+ */
 export function RealReviews() {
+    const reviews = (testimonials as Testimonial[]).filter((review) => review.quote?.trim() && review.name?.trim())
+
     return (
-        <section className="border-t border-border/60 bg-secondary/20 px-6 py-16 md:px-12 md:py-24">
+        <section className="border-t border-border/60 bg-secondary/40 px-5 py-16 md:px-12 md:py-24">
             <div className="mx-auto max-w-7xl">
-                <div className="mb-8 md:mb-12 text-center">
-                    <p className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-3">
-                        Real reviews
+                <div className="mb-10 text-center md:mb-14">
+                    <p className="mb-4 font-heading text-[10px] font-medium uppercase tracking-[0.34em] text-brand-strong">
+                        {reviews.length > 0 ? "In their words" : "Why Miti Home"}
                     </p>
-                    <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight">What Our Customers Say</h2>
+                    <h2 className="font-display text-3xl leading-tight sm:text-4xl md:text-5xl">
+                        {reviews.length > 0 ? "Loved at home" : "Curated with intention"}
+                    </h2>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                    {REVIEWS.map((review, index) => (
-                        <article key={`${review.name}-${review.product}`} className={`border border-border/70 bg-background/55 p-5 md:p-6 ${index >= 4 ? "max-md:hidden" : ""}`}>
-                            <div className="mb-4 flex items-center gap-1 text-[#caa45d]" aria-label="5 out of 5 stars">
-                                {[...Array(5)].map((_, index) => (
-                                    <Star key={index} className="h-4 w-4 fill-current" />
-                                ))}
-                            </div>
-                            <h3 className="text-sm font-bold tracking-wide">{review.title}</h3>
-                            <p className="mt-4 min-h-[4rem] text-sm leading-7 text-muted-foreground">{review.body}</p>
-                            <div className="mt-5 border-t border-border/70 pt-4">
-                                <p className="text-sm font-bold">{review.name}</p>
-                                <p className="mt-2 text-sm text-muted-foreground">{review.product}</p>
-                                <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
-                                    <CheckCircle2 className="h-4 w-4" />
-                                    Verified Buyer
-                                </p>
-                            </div>
-                        </article>
-                    ))}
-                </div>
+                {reviews.length > 0 ? (
+                    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        {reviews.slice(0, 6).map((review, index) => (
+                            <figure key={`${review.name}-${index}`} className={`flex flex-col border border-border/70 bg-background/70 p-6 md:p-8 ${index >= 4 ? "max-md:hidden" : ""}`}>
+                                <Quote className="h-5 w-5 text-brand" aria-hidden="true" />
+                                <blockquote className="mt-5 flex-1 text-[15px] leading-7 text-foreground/85">{review.quote}</blockquote>
+                                <figcaption className="mt-6 border-t border-border/70 pt-4">
+                                    <p className="font-heading text-xs font-medium uppercase tracking-[0.18em]">{review.name}</p>
+                                    {(review.location || review.product) && (
+                                        <p className="mt-1.5 text-xs text-muted-foreground">
+                                            {[review.location, review.product].filter(Boolean).join(" · ")}
+                                        </p>
+                                    )}
+                                </figcaption>
+                            </figure>
+                        ))}
+                    </div>
+                ) : (
+                    <ul className="mx-auto grid max-w-5xl gap-px overflow-hidden border border-border/70 bg-border/70 sm:grid-cols-2 lg:grid-cols-5">
+                        {BRAND.principles.map((principle, index) => (
+                            <li key={principle} className="flex flex-col gap-4 bg-background p-6 md:p-7">
+                                <span className="font-heading text-[11px] tabular-nums tracking-[0.2em] text-brand-strong">0{index + 1}</span>
+                                <p className="font-display text-lg leading-snug">{principle.replace(/\.$/, "")}</p>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
         </section>
     )

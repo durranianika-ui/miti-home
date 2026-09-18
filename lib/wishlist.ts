@@ -10,6 +10,7 @@ export type WishlistProductItem = {
   name: string;
   slug: string;
   sellingPrice: number;
+  mrp: number;
   images: string[];
   stock: number;
 };
@@ -89,6 +90,7 @@ export async function getWishlistProducts(userId: string): Promise<WishlistProdu
       name: products.name,
       slug: products.slug,
       sellingPrice: products.sellingPrice,
+      mrp: products.mrp,
       images: products.images,
       stock: products.stock,
     })
@@ -104,6 +106,7 @@ export async function getWishlistProducts(userId: string): Promise<WishlistProdu
     name: row.name,
     slug: row.slug,
     sellingPrice: Number(row.sellingPrice),
+    mrp: Number(row.mrp),
     images: row.images ?? [],
     stock: row.stock,
   }));
@@ -117,4 +120,14 @@ export async function getWishlistCount(userId: string) {
     .where(and(eq(wishlist.userId, userId), eq(products.isActive, true)));
 
   return row?.count ?? 0;
+}
+
+export async function getWishlistProductIds(userId: string) {
+  const rows = await db
+    .select({ productId: wishlist.productId })
+    .from(wishlist)
+    .innerJoin(products, eq(wishlist.productId, products.id))
+    .where(and(eq(wishlist.userId, userId), eq(products.isActive, true)));
+
+  return rows.map((row) => row.productId);
 }

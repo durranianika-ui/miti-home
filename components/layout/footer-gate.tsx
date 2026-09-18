@@ -2,12 +2,13 @@
 
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
+import type { NavigationLink } from "@/lib/navigation";
 
 function FooterShell() {
   return (
     <footer
       aria-hidden="true"
-      className="relative min-h-screen overflow-hidden border-t border-border/60 bg-background text-foreground"
+      className="relative min-h-[90svh] overflow-hidden border-t border-border/60 bg-background text-foreground"
     />
   );
 }
@@ -17,10 +18,10 @@ const Footer = dynamic(
   { loading: () => <FooterShell /> },
 );
 
-export function FooterGate() {
+export function FooterGate({ shopLinks }: { shopLinks: NavigationLink[] }) {
   const pathname = usePathname();
 
-  if (pathname === "/gallery") return null;
+  if (pathname === "/gallery" || pathname.startsWith("/admin")) return null;
 
-  return <Footer />;
+  return <Footer shopLinks={shopLinks} />;
 }

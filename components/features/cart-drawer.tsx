@@ -107,7 +107,7 @@ export function CartDrawer() {
                                         <div className="flex-1 space-y-1">
                                             <h3 className="font-medium text-sm leading-tight">{item.name}</h3>
                                             {item.comboName && (
-                                                <p className="text-[10px] uppercase tracking-[0.15em] text-red-accent">
+                                                <p className="text-[10px] uppercase tracking-[0.15em] text-brand">
                                                     Combo: {item.comboName}
                                                 </p>
                                             )}

@@ -1,69 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOrderFromQuote } from "@/lib/actions/orders";
 import { getServerSession } from "@/lib/auth-server";
-import { COD_ALLOWED_PINCODES } from "@/lib/constants";
 import { CheckoutQuoteError, createCheckoutQuote } from "@/lib/checkout/quote";
+import { getCodUnavailableReason } from "@/lib/checkout/cod";
+import { createOrderRecord } from "@/lib/orders/create-order";
+import { sanitizeUaeAddress } from "@/lib/uae";
 
-export async function POST(_req: NextRequest) {
+/** Places a cash-on-delivery order from a server-priced quote. */
+export async function POST(request: NextRequest) {
   try {
-    const body = await _req.json();
-
-    if (body.paymentMethod !== "cod") {
-      return NextResponse.json(
-        { success: false, error: "Invalid payment method for this endpoint" },
-        { status: 400 }
-      );
-    }
-
-    // Only allow COD for specific pincodes
-    if (!COD_ALLOWED_PINCODES.includes(body.shippingAddress?.pincode)) {
-      return NextResponse.json(
-        { success: false, error: "Cash on Delivery is not available for this pincode" },
-        { status: 400 }
-      );
-    }
-
-    if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "No items provided" },
-        { status: 400 }
-      );
-    }
-
     const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: "Please sign in to place your order." }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => null);
+    if (!body || body.paymentMethod !== "cod") {
+      return NextResponse.json({ success: false, error: "Invalid payment method for this endpoint" }, { status: 400 });
+    }
+    if (!Array.isArray(body.items) || body.items.length === 0) {
+      return NextResponse.json({ success: false, error: "Your bag is empty" }, { status: 400 });
+    }
+
+    let shippingAddress;
+    try {
+      shippingAddress = sanitizeUaeAddress(body.shippingAddress);
+    } catch (error) {
+      return NextResponse.json({ success: false, error: (error as Error).message }, { status: 400 });
+    }
+
     const quote = await createCheckoutQuote({
       items: body.items,
       couponCode: body.couponCode,
       paymentMethod: "cod",
-      userId: session?.user?.id,
+      userId: session.user.id,
     });
 
-    const result = await createOrderFromQuote({
-      quote,
-      shippingAddress: body.shippingAddress,
-      paymentMethod: "cod",
-    });
-
-    if (!result.success) {
-      const status = result.error?.toLowerCase().includes("authentication required")
-        ? 401
-        : 400;
-      return NextResponse.json(result, { status });
+    const codReason = getCodUnavailableReason({ emirate: shippingAddress.emirate, total: quote.total });
+    if (codReason) {
+      return NextResponse.json({ success: false, error: codReason }, { status: 400 });
     }
 
-    return NextResponse.json(result);
+    const result = await createOrderRecord({
+      userId: session.user.id,
+      quote,
+      shippingAddress,
+      paymentMethod: "cod",
+      paymentStatus: "pending",
+    });
+
+    return NextResponse.json(result, { status: result.success ? 200 : 409 });
   } catch (error) {
     if (error instanceof CheckoutQuoteError) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: error.status }
-      );
+      return NextResponse.json({ success: false, error: error.message }, { status: error.status });
     }
-
-    console.error("Order creation error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to create order" },
-      { status: 500 }
-    );
+    console.error("COD order creation error:", error);
+    return NextResponse.json({ success: false, error: "We couldn't place your order. Please try again." }, { status: 500 });
   }
 }

@@ -89,7 +89,7 @@ function AccountContent() {
     if (isPending) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-6 w-6 animate-spin text-red-accent" />
+                <Loader2 className="h-6 w-6 animate-spin text-brand" />
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Loading account</p>
             </div>
         )
@@ -244,8 +244,8 @@ function AccountContent() {
             <div className="p-6 md:px-12 max-w-2xl">
                 <div className="space-y-3">
                     {isAdmin && (
-                        <Link href="/admin" className="flex items-center gap-4 p-5 border border-red-accent/20 bg-red-accent/5 hover:border-red-accent/40 transition-all duration-300">
-                            <Shield className="h-5 w-5 text-red-accent" />
+                        <Link href="/admin" className="flex items-center gap-4 p-5 border border-brand/20 bg-brand/5 hover:border-brand/40 transition-all duration-300">
+                            <Shield className="h-5 w-5 text-brand" />
                             <div>
                                 <h3 className="font-medium text-sm">Admin dashboard</h3>
                                 <p className="text-xs text-muted-foreground mt-0.5">Manage products, orders, and coupons</p>
@@ -313,7 +313,7 @@ export default function AccountPage() {
     return (
         <Suspense fallback={
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-6 w-6 animate-spin text-red-accent" />
+                <Loader2 className="h-6 w-6 animate-spin text-brand" />
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Loading</p>
             </div>
         }>

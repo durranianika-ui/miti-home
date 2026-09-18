@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import dynamic from "next/dynamic";
-import { Instrument_Serif, Outfit } from "next/font/google";
-import Script from "next/script";
+import { Lato, Montserrat } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { Navbar } from "@/app/navbar";
@@ -9,200 +8,164 @@ import { FooterGate } from "@/components/layout/footer-gate";
 import { CartProvider } from "@/lib/cart-context";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { QueryProvider } from "@/components/ui/query-provider";
+import { Analytics } from "@/components/analytics/analytics";
+import { CursorDotLoader } from "@/components/effects/cursor-dot-loader";
+import { BRAND } from "@/lib/brand";
+import { getNavigationData } from "@/lib/navigation";
+import { DEFAULT_OG_IMAGE, DEFAULT_SITE_URL, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
 
 const CartDrawer = dynamic(() =>
   import("@/components/features/cart-drawer").then((mod) => mod.CartDrawer),
   { loading: () => null }
 );
 
-import { CursorDotLoader } from "@/components/effects/cursor-dot-loader";
-
-const GOOGLE_TAG_ID = "G-6GDBLBWZW9";
-
 function RouteShellFallback() {
   return <div className="min-h-[calc(100svh-7rem)] bg-background" aria-hidden="true" />;
 }
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  weight: ["300", "400", "500", "600"],
   display: "swap",
 });
 
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
+const lato = Lato({
+  variable: "--font-lato",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["300", "400", "700"],
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: BRAND.colors.ivory },
+    { media: "(prefers-color-scheme: dark)", color: "#100f0e" },
+  ],
+};
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-  ),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_SITE_URL),
   title: {
-    default: "XILAR | The Future Wear — Premium Streetwear India",
-    template: "%s | XILAR",
+    default: SITE_TITLE,
+    template: `%s | ${BRAND.name}`,
   },
-  description:
-    "Next-gen streetwear for the bold. Premium basics, oversized fits, and urban essentials. Shop Gen-Z fashion with free shipping above ₹999.",
-  applicationName: "XILAR",
+  description: SITE_DESCRIPTION,
+  applicationName: BRAND.name,
   keywords: [
-    "the future wear",
-    "XILAR",
-    "xilar.in",
-    "streetwear",
-    "unisex fashion",
-    "Gen-Z clothing",
-    "premium basics",
-    "urban wear",
-    "India streetwear",
-    "oversized tshirts",
-    "cargo pants India",
-    "streetwear brand India",
-    "affordable streetwear",
-    "joggers",
-    "hoodies India",
-    "online clothing store India",
+    "Miti Home",
+    "home décor Dubai",
+    "luxury home accessories UAE",
+    "decorative sculptures",
+    "designer vases",
+    "pendant lighting Dubai",
+    "home organisation",
+    "housewarming gifts UAE",
+    "tissue box",
+    "home lifestyle store",
   ],
-  authors: [
-    { name: "XILAR", url: "https://xilar.in" },
-    { name: "Aditya (fate1ess)", url: "https://fateless.dev" },
-  ],
-  creator: "Aditya Singh (fatelessdev)",
-  publisher: "XILAR",
+  authors: [{ name: BRAND.name }],
+  creator: BRAND.name,
+  publisher: BRAND.name,
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
-    locale: "en_IN",
-    siteName: "XILAR",
-    title: "XILAR | The Future Wear — Premium Streetwear India",
-    description:
-      "Next-gen streetwear for the bold. Premium basics, oversized fits, and urban essentials. Shop Gen-Z fashion with free shipping above ₹999.",
+    locale: BRAND.ogLocale,
+    siteName: BRAND.name,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: "/",
     images: [
       {
-        url: "/logo.png",
+        url: DEFAULT_OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: "XILAR — The Future Wear | Premium Streetwear India",
+        alt: `${BRAND.name} — ${BRAND.tagline}`,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "XILAR | The Future Wear",
-    description:
-      "Next-gen streetwear for the bold. Premium basics, oversized fits, and urban essentials.",
-    images: ["/logo.jpeg"],
-  },
-  icons: {
-    icon: [
-      { url: "/logo.jpeg" },
-      { url: "/logo.jpeg", sizes: "32x32", type: "image/jpeg" },
-    ],
-    apple: [{ url: "/logo.jpeg", sizes: "180x180", type: "image/jpeg" }],
+    title: `${BRAND.name} | ${BRAND.tagline}`,
+    description: BRAND.shortDescription,
+    images: [DEFAULT_OG_IMAGE],
   },
   robots: {
     index: true,
     follow: true,
-    nocache: false,
     googleBot: {
       index: true,
       follow: true,
-      noimageindex: false,
       "max-video-preview": -1,
       "max-image-preview": "large",
       "max-snippet": -1,
     },
   },
-  category: "E-Commerce",
-  generator: "Next.js",
+  category: "shopping",
   referrer: "origin-when-cross-origin",
-  other: {
-    "msapplication-TileColor": "#000000",
-  },
+  formatDetection: { telephone: false },
 };
 
-export default function RootLayout({
+const THEME_INIT_SCRIPT = `
+(function() {
+  try {
+    var root = document.documentElement;
+    var stored = localStorage.getItem('miti-theme');
+    var cookieMatch = document.cookie.match(/(?:^|; )miti-theme=(light|dark)(?:;|$)/);
+    var cookieTheme = cookieMatch ? cookieMatch[1] : null;
+    var theme = stored === 'light' || stored === 'dark'
+      ? stored
+      : cookieTheme === 'light' || cookieTheme === 'dark'
+        ? cookieTheme
+        : 'light';
+    root.classList.toggle('dark', theme === 'dark');
+    root.classList.toggle('light', theme !== 'dark');
+    root.style.colorScheme = theme;
+  } catch (e) {}
+})();
+`;
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const navigation = await getNavigationData();
+
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" dir="ltr" className="light" suppressHydrationWarning>
       <head>
-        <script
-          id="xilar-theme-init"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var root = document.documentElement;
-                  var stored = localStorage.getItem('xilar-theme');
-                  var cookieMatch = document.cookie.match(/(?:^|; )xilar-theme=(light|dark)(?:;|$)/);
-                  var cookieTheme = cookieMatch ? cookieMatch[1] : null;
-                  var theme = stored === 'light' || stored === 'dark'
-                    ? stored
-                    : cookieTheme === 'light' || cookieTheme === 'dark'
-                      ? cookieTheme
-                      : 'dark';
-                  if (theme === 'dark') {
-                    root.classList.add('dark');
-                    root.classList.remove('light');
-                  } else {
-                    root.classList.add('light');
-                    root.classList.remove('dark');
-                  }
-                  root.style.colorScheme = theme;
-                  localStorage.setItem('xilar-theme', theme);
-                  document.cookie = 'xilar-theme=' + theme + '; path=/; max-age=31536000; samesite=lax';
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
+        <script id="miti-theme-init" dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body
-        className={`${outfit.variable} ${instrumentSerif.variable} font-sans antialiased bg-background text-foreground tracking-tight min-h-screen flex flex-col`}
+        className={`${lato.variable} ${montserrat.variable} font-sans antialiased bg-background text-foreground min-h-screen flex flex-col`}
       >
-        <Script
-          id="xilar-google-tag-loader"
-          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_TAG_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script
-          id="xilar-google-tag-init"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${GOOGLE_TAG_ID}');
-            `,
-          }}
-        />
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:bg-foreground focus:px-4 focus:py-2 focus:text-xs focus:uppercase focus:tracking-[0.2em] focus:text-background"
+        >
+          Skip to content
+        </a>
         <ThemeProvider>
           <QueryProvider>
             <CartProvider>
-              <Navbar />
+              <Navbar navigation={navigation} />
               <div id="main-content-container" className="flex-1 flex flex-col">
-                <main className="flex-1 overflow-x-hidden relative">
+                <main id="main-content" className="flex-1 overflow-x-hidden relative">
                   <Suspense fallback={<RouteShellFallback />}>{children}</Suspense>
                 </main>
                 <Suspense fallback={null}>
-                  <FooterGate />
+                  <FooterGate shopLinks={navigation.shop} />
                 </Suspense>
               </div>
               <CartDrawer />
               <CursorDotLoader />
-              {/* Grain overlay for premium texture */}
+              {/* Fine paper grain for a tactile, printed feel */}
               <div
-                className="pointer-events-none fixed inset-0 z-[60] opacity-[0.025] dark:opacity-[0.03]"
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-0 z-[60] opacity-[0.02] dark:opacity-[0.03]"
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
                 }}
@@ -210,6 +173,7 @@ export default function RootLayout({
             </CartProvider>
           </QueryProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

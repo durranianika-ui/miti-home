@@ -36,7 +36,7 @@ export default function ExchangePolicyPage() {
                     <ArrowLeft className="h-3 w-3" /> Back to policies
                 </Link>
                 <div className="flex items-center gap-3 mb-2">
-                    <RefreshCw className="h-5 w-5 text-red-accent" />
+                    <RefreshCw className="h-5 w-5 text-brand" />
                     <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Policy</p>
                 </div>
                 <h1 className="font-display text-4xl md:text-6xl">Exchange policy</h1>
@@ -47,7 +47,7 @@ export default function ExchangePolicyPage() {
                 {/* Eligibility */}
                 <section className="space-y-3">
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-red-accent" /> Eligibility
+                        <Tag className="h-4 w-4 text-brand" /> Eligibility
                     </h2>
                     <div className="p-4 bg-secondary/10 border border-border/60">
                         <p className="font-medium text-sm">
@@ -62,7 +62,7 @@ export default function ExchangePolicyPage() {
                 {/* Timeframe */}
                 <section className="space-y-3">
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-red-accent" /> Timeframe
+                        <Clock className="h-4 w-4 text-brand" /> Timeframe
                     </h2>
                     <div className="p-4 bg-secondary/10 border border-border/60">
                         <p className="font-medium text-sm">
@@ -80,15 +80,15 @@ export default function ExchangePolicyPage() {
                     <div className="p-4 bg-secondary/10 border border-border/60">
                         <ul className="space-y-2">
                             <li className="flex items-start gap-2 text-sm">
-                                <span className="text-red-accent mt-0.5">·</span>
+                                <span className="text-brand mt-0.5">·</span>
                                 <span>Product must be <strong>unused</strong> and <strong>unwashed</strong></span>
                             </li>
                             <li className="flex items-start gap-2 text-sm">
-                                <span className="text-red-accent mt-0.5">·</span>
+                                <span className="text-brand mt-0.5">·</span>
                                 <span>Original tags must be <strong>intact</strong></span>
                             </li>
                             <li className="flex items-start gap-2 text-sm">
-                                <span className="text-red-accent mt-0.5">·</span>
+                                <span className="text-brand mt-0.5">·</span>
                                 <span>Product must be in original packaging</span>
                             </li>
                         </ul>
@@ -115,28 +115,28 @@ export default function ExchangePolicyPage() {
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em]">How to request an exchange</h2>
                     <div className="space-y-2">
                         <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-red-accent text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">1</span>
+                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">1</span>
                             <div>
                                 <p className="font-medium text-sm">Contact support</p>
                                 <p className="text-xs text-muted-foreground">Email us at support@xilar.in within 48 hours of delivery</p>
                             </div>
                         </div>
                         <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-red-accent text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">2</span>
+                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">2</span>
                             <div>
                                 <p className="font-medium text-sm">Share order details</p>
                                 <p className="text-xs text-muted-foreground">Include your order ID and reason for exchange (size/color)</p>
                             </div>
                         </div>
                         <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-red-accent text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">3</span>
+                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">3</span>
                             <div>
                                 <p className="font-medium text-sm">Ship the product</p>
                                 <p className="text-xs text-muted-foreground">Pack it safely with tags intact. We&apos;ll provide pickup or shipping instructions.</p>
                             </div>
                         </div>
                         <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-red-accent text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">4</span>
+                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">4</span>
                             <div>
                                 <p className="font-medium text-sm">Receive new product</p>
                                 <p className="text-xs text-muted-foreground">We&apos;ll ship the correct size/color once we receive the original.</p>

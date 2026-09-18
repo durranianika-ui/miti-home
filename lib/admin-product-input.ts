@@ -1,21 +1,13 @@
-const PRODUCT_CATEGORIES = [
-  "tshirt",
-  "cargo",
-  "jogger",
-  "shirt",
-  "jeans",
-  "hoodie",
-  "jacket",
-  "shorts",
-  "accessory",
-] as const
+/**
+ * Normalises admin product payloads before they touch the database.
+ * Keep this file free of `@/` imports: it is loaded by the node test runner.
+ */
 
-const PRODUCT_GENDERS = ["men", "women", "unisex"] as const
+/** Option value used when a product has no primary option (a single size). */
+export const DEFAULT_OPTION = "Standard"
 
-export const ACCESSORY_SIZE = "One Size"
-
-export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number]
-export type ProductGender = (typeof PRODUCT_GENDERS)[number]
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const HEX_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
 
 export type ProductVariantInput = {
   size: string
@@ -32,37 +24,38 @@ export type ProductColorInput = {
 export type ProductInput = {
   name: string
   slug: string
+  sku?: string | null
   description?: string | null
   mrp: string
   sellingPrice: string
   maxBargainDiscount?: string
-  category: ProductCategory
-  gender: ProductGender
+  category: string
   tags?: string[]
   stock: number
   images?: string[]
-  fabric?: string | null
-  gsm?: number | null
+  material?: string | null
+  dimensions?: string | null
   careInstructions?: string[]
   features?: string[]
+  sizeLabel?: string
+  colorLabel?: string
   sizes?: string[]
   colors?: ProductColorInput[]
   variants?: ProductVariantInput[]
+  collectionIds?: string[]
   isNew?: boolean
   isFeatured?: boolean
-  isPremium?: boolean
   isActive?: boolean
   displayOrder?: number
 }
 
-export type RawProductInput = Omit<Partial<ProductInput>, "colors" | "variants"> & {
+export type RawProductInput = Omit<Partial<ProductInput>, "colors" | "variants" | "collectionIds"> & {
   category?: unknown
-  gender?: unknown
   stock?: unknown
-  gsm?: unknown
   displayOrder?: unknown
   colors?: unknown
   variants?: unknown
+  collectionIds?: unknown
 }
 
 function isUnset(value: unknown) {
@@ -112,11 +105,6 @@ function normalizeNonNegativeInt(value: unknown, label: string, fallback = 0) {
   return number
 }
 
-function normalizeOptionalInt(value: unknown, label: string) {
-  if (isUnset(value) || value === "") return null
-  return normalizeNonNegativeInt(value, label)
-}
-
 function normalizeAmount(value: unknown, label: string, fallback?: string) {
   if (isUnset(value) || value === "") {
     if (fallback !== undefined) return fallback
@@ -129,38 +117,45 @@ function normalizeAmount(value: unknown, label: string, fallback?: string) {
     throw new Error(`${label} must be a valid amount`)
   }
 
-  return text
+  return number.toFixed(2)
 }
 
-function normalizeCategory(value: unknown) {
-  if (!PRODUCT_CATEGORIES.includes(value as ProductCategory)) {
-    throw new Error("Category is invalid")
+export function normalizeSlug(value: unknown, label = "Slug") {
+  const slug = requiredText(value, label).toLowerCase()
+  if (!SLUG_PATTERN.test(slug)) {
+    throw new Error(`${label} may only contain lowercase letters, numbers and single hyphens`)
   }
-  return value as ProductCategory
+  return slug
 }
 
-function normalizeGender(value: unknown) {
-  if (!PRODUCT_GENDERS.includes(value as ProductGender)) {
-    throw new Error("Gender is invalid")
-  }
-  return value as ProductGender
+export function slugify(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80)
 }
 
 function normalizeColors(value: unknown) {
   if (isUnset(value)) return []
-  if (!Array.isArray(value)) throw new Error("Colors must be a list")
+  if (!Array.isArray(value)) throw new Error("Colours must be a list")
 
   const colors = value.map((item) => {
-    if (!item || typeof item !== "object") throw new Error("Color is invalid")
+    if (!item || typeof item !== "object") throw new Error("Colour is invalid")
     const color = item as Record<string, unknown>
+    const hex = requiredText(color.hex, "Colour swatch")
+    if (!HEX_PATTERN.test(hex)) throw new Error(`Colour swatch must be a hex value like #C8A96A (got ${hex})`)
     return {
-      name: requiredText(color.name, "Color name"),
-      hex: requiredText(color.hex, "Color hex"),
-      images: normalizeStringArray(color.images, "Color images"),
+      name: requiredText(color.name, "Colour name"),
+      hex,
+      images: normalizeStringArray(color.images, "Colour images"),
     }
   })
 
-  return ensureUnique(colors, "color", (color) => color.name)
+  return ensureUnique(colors, "colour", (color) => color.name)
 }
 
 function normalizeVariants(value: unknown) {
@@ -171,7 +166,7 @@ function normalizeVariants(value: unknown) {
     if (!item || typeof item !== "object") throw new Error("Variant is invalid")
     const variant = item as Record<string, unknown>
     return {
-      size: requiredText(variant.size, "Variant size"),
+      size: requiredText(variant.size, "Variant option"),
       color: textOrNull(variant.color),
       stock: normalizeNonNegativeInt(variant.stock, "Variant stock"),
     }
@@ -188,73 +183,75 @@ function normalizeCommonProductInput(input: RawProductInput, partial: boolean) {
   const normalized: Partial<ProductInput> = {}
 
   if (!partial || "name" in input) normalized.name = requiredText(input.name, "Product name")
-  if (!partial || "slug" in input) normalized.slug = requiredText(input.slug, "Product slug")
+  if (!partial || "slug" in input) normalized.slug = normalizeSlug(input.slug, "Product slug")
+  if ("sku" in input) normalized.sku = textOrNull(input.sku)
   if ("description" in input) normalized.description = textOrNull(input.description)
-  if (!partial || "mrp" in input) normalized.mrp = normalizeAmount(input.mrp, "MRP")
+  if (!partial || "mrp" in input) normalized.mrp = normalizeAmount(input.mrp, "Compare-at price")
   if (!partial || "sellingPrice" in input) {
-    normalized.sellingPrice = normalizeAmount(input.sellingPrice, "Selling price")
+    normalized.sellingPrice = normalizeAmount(input.sellingPrice, "Price")
   }
   if ("maxBargainDiscount" in input) {
-    normalized.maxBargainDiscount = normalizeAmount(input.maxBargainDiscount, "Max bargain discount", "0")
+    normalized.maxBargainDiscount = normalizeAmount(input.maxBargainDiscount, "Max concierge discount", "0.00")
   } else if (!partial) {
-    normalized.maxBargainDiscount = "0"
+    normalized.maxBargainDiscount = "0.00"
   }
-  if (!partial || "category" in input) normalized.category = normalizeCategory(input.category)
-  if (!partial || "gender" in input) normalized.gender = normalizeGender(input.gender)
+  if (!partial || "category" in input) normalized.category = normalizeSlug(input.category, "Category")
   if ("tags" in input) normalized.tags = normalizeStringArray(input.tags, "Tags")
   if (!partial || "stock" in input) normalized.stock = normalizeNonNegativeInt(input.stock, "Stock")
   if ("images" in input) normalized.images = normalizeStringArray(input.images, "Images")
-  if ("fabric" in input) normalized.fabric = textOrNull(input.fabric)
-  if ("gsm" in input) normalized.gsm = normalizeOptionalInt(input.gsm, "GSM")
+  if ("material" in input) normalized.material = textOrNull(input.material)
+  if ("dimensions" in input) normalized.dimensions = textOrNull(input.dimensions)
   if ("careInstructions" in input) {
     normalized.careInstructions = normalizeStringArray(input.careInstructions, "Care instructions")
   }
   if ("features" in input) normalized.features = normalizeStringArray(input.features, "Features")
+  if ("sizeLabel" in input) normalized.sizeLabel = textOrNull(input.sizeLabel) ?? "Size"
+  if ("colorLabel" in input) normalized.colorLabel = textOrNull(input.colorLabel) ?? "Colour"
   if ("sizes" in input) {
-    normalized.sizes = ensureUnique(normalizeStringArray(input.sizes, "Sizes"), "size", (size) => size)
+    normalized.sizes = ensureUnique(normalizeStringArray(input.sizes, "Options"), "option", (size) => size)
   }
   if ("colors" in input) normalized.colors = normalizeColors(input.colors)
   if ("variants" in input) normalized.variants = normalizeVariants(input.variants)
+  if ("collectionIds" in input) {
+    normalized.collectionIds = ensureUnique(
+      normalizeStringArray(input.collectionIds, "Collections"),
+      "collection",
+      (id) => id,
+    )
+  }
   if ("isNew" in input) normalized.isNew = normalizeBoolean(input.isNew, false)
   if ("isFeatured" in input) normalized.isFeatured = normalizeBoolean(input.isFeatured, false)
-  if ("isPremium" in input) normalized.isPremium = normalizeBoolean(input.isPremium, false)
   if ("isActive" in input) normalized.isActive = normalizeBoolean(input.isActive, true)
   if ("displayOrder" in input) {
     normalized.displayOrder = normalizeNonNegativeInt(input.displayOrder, "Display order")
   }
 
+  if (normalized.mrp && normalized.sellingPrice && Number(normalized.sellingPrice) > Number(normalized.mrp)) {
+    throw new Error("Price cannot be higher than the compare-at price")
+  }
+  if (normalized.sellingPrice !== undefined && Number(normalized.sellingPrice) <= 0) {
+    throw new Error("Price must be greater than zero")
+  }
+
   return normalized
 }
 
-function applyAccessoryDefaults<T extends Partial<ProductInput>>(input: T): T {
-  const stock = input.variants?.[0]?.stock ?? input.stock ?? 0
+/** Every variant must reference a declared option and colour. */
+function assertVariantsMatchOptions(input: Partial<ProductInput>) {
+  if (!input.variants || input.variants.length === 0) return
+  const sizes = new Set((input.sizes ?? []).map((size) => size.toLowerCase()))
+  const colors = new Set((input.colors ?? []).map((color) => color.name.toLowerCase()))
 
-  return {
-    ...input,
-    gender: "unisex",
-    fabric: null,
-    gsm: null,
-    sizes: [ACCESSORY_SIZE],
-    colors: [],
-    careInstructions: [],
-    features: [],
-    variants: [{ size: ACCESSORY_SIZE, color: null, stock }],
-  }
-}
-
-function applyAccessoryPatchDefaults<T extends Partial<ProductInput>>(input: T): T {
-  const stock = input.variants?.[0]?.stock ?? input.stock
-
-  return {
-    ...input,
-    gender: "unisex",
-    fabric: null,
-    gsm: null,
-    sizes: [ACCESSORY_SIZE],
-    colors: [],
-    careInstructions: [],
-    features: [],
-    ...(stock === undefined ? {} : { variants: [{ size: ACCESSORY_SIZE, color: null, stock }] }),
+  for (const variant of input.variants) {
+    if (sizes.size > 0 && !sizes.has(variant.size.toLowerCase())) {
+      throw new Error(`Variant option "${variant.size}" is not one of the product's options`)
+    }
+    if (variant.color && colors.size > 0 && !colors.has(variant.color.toLowerCase())) {
+      throw new Error(`Variant colour "${variant.color}" is not one of the product's colours`)
+    }
+    if (colors.size > 0 && !variant.color) {
+      throw new Error(`Variant "${variant.size}" needs a colour because the product has colours`)
+    }
   }
 }
 
@@ -262,39 +259,64 @@ export function normalizeProductInput(input: RawProductInput): ProductInput {
   const normalized = normalizeCommonProductInput(input, false) as ProductInput
   const withDefaults: ProductInput = {
     ...normalized,
+    sku: normalized.sku ?? null,
     tags: normalized.tags ?? [],
     images: normalized.images ?? [],
-    fabric: normalized.fabric ?? null,
-    gsm: normalized.gsm ?? null,
+    material: normalized.material ?? null,
+    dimensions: normalized.dimensions ?? null,
     careInstructions: normalized.careInstructions ?? [],
     features: normalized.features ?? [],
-    sizes: normalized.sizes?.length ? normalized.sizes : ["S", "M", "L", "XL"],
+    sizeLabel: normalized.sizeLabel ?? "Size",
+    colorLabel: normalized.colorLabel ?? "Colour",
+    sizes: normalized.sizes?.length ? normalized.sizes : [DEFAULT_OPTION],
     colors: normalized.colors ?? [],
     variants: normalized.variants ?? [],
+    collectionIds: normalized.collectionIds ?? [],
     isNew: normalized.isNew ?? false,
     isFeatured: normalized.isFeatured ?? false,
-    isPremium: normalized.isPremium ?? false,
     isActive: normalized.isActive ?? true,
     displayOrder: normalized.displayOrder ?? 0,
   }
 
-  if (withDefaults.category === "accessory") {
-    return applyAccessoryDefaults(withDefaults)
-  }
-
-  if (!withDefaults.sizes || withDefaults.sizes.length === 0) {
-    throw new Error("At least one size is required")
-  }
-
+  assertVariantsMatchOptions(withDefaults)
   return withDefaults
 }
 
 export function normalizeProductPatch(input: RawProductInput): Partial<ProductInput> {
   const normalized = normalizeCommonProductInput(input, true)
-
-  if (normalized.category === "accessory") {
-    return applyAccessoryPatchDefaults(normalized)
+  if (normalized.sizes && normalized.sizes.length === 0) {
+    normalized.sizes = [DEFAULT_OPTION]
   }
-
+  if (normalized.variants && normalized.sizes) {
+    assertVariantsMatchOptions(normalized)
+  }
   return normalized
+}
+
+/**
+ * Builds the variant matrix (option × colour) used when an admin gives a total
+ * stock but no per-variant breakdown. Stock is split evenly; any remainder goes
+ * to the first variants so the total is preserved.
+ */
+export function buildDefaultVariants(
+  sizes: string[],
+  colors: { name: string }[],
+  totalStock: number,
+): ProductVariantInput[] {
+  const options = sizes.length > 0 ? sizes : [DEFAULT_OPTION]
+  const combos: { size: string; color: string | null }[] = []
+  for (const size of options) {
+    if (colors.length > 0) {
+      for (const color of colors) combos.push({ size, color: color.name })
+    } else {
+      combos.push({ size, color: null })
+    }
+  }
+  const base = Math.floor(totalStock / combos.length)
+  let remainder = totalStock - base * combos.length
+  return combos.map((combo) => {
+    const extra = remainder > 0 ? 1 : 0
+    remainder -= extra
+    return { ...combo, stock: base + extra }
+  })
 }

@@ -1,0 +1,677 @@
+{
+  "$comment": "Miti Home launch catalogue. Source photography: the owner's Mitihome folder (supplier product images). Names, descriptions and categories were written from what each photo and its supplier label shows. PRICES AND STOCK ARE PLACEHOLDERS (pricePlaceholder: true) — confirm before launch. Materials/dimensions are only stated where the supplier label or photo shows them. Re-run `npm run catalog:images` then `npm run db:seed` after editing.",
+  "sourceFolder": "Downloads/Mitihome",
+  "categories": [
+    {
+      "slug": "home-decor",
+      "name": "Home Décor",
+      "description": "Decorative accents, sculptures, vases and ornaments that give a room its character.",
+      "seoTitle": "Home Décor, Sculptures & Vases in Dubai",
+      "seoDescription": "Shop sculptural décor, ceramic vases, mirror-finish ornaments and statement accents from Miti Home. Delivered across the UAE.",
+      "displayOrder": 10
+    },
+    {
+      "slug": "lighting",
+      "name": "Lighting",
+      "description": "Statement pendants, ambient table lamps and smart lighting for warm, layered rooms.",
+      "seoTitle": "Designer Lighting — Pendants & Table Lamps",
+      "seoDescription": "Smoked-glass pendants, ambient table lamps and motion-sensor lighting, curated by Miti Home and delivered across the UAE.",
+      "displayOrder": 20
+    },
+    {
+      "slug": "smart-storage",
+      "name": "Smart Storage & Organisation",
+      "description": "Smart solutions for kitchen, bathroom, vanity and living spaces.",
+      "seoTitle": "Smart Storage & Home Organisation",
+      "seoDescription": "Considered storage for kitchens, bathrooms and vanities — dispensers, shelves, hooks and organisers from Miti Home.",
+      "displayOrder": 30
+    },
+    {
+      "slug": "home-entertainment",
+      "name": "Home Entertainment",
+      "description": "Hosting essentials, conversation pieces and fun home upgrades.",
+      "seoTitle": "Hosting Essentials & Home Entertainment",
+      "seoDescription": "Hosting essentials and conversation pieces for the way you entertain at home. Shop Miti Home.",
+      "displayOrder": 40
+    },
+    {
+      "slug": "clever-finds",
+      "name": "Why Didn't I Have This Before?",
+      "description": "Clever, innovative and useful products that solve everyday problems.",
+      "seoTitle": "Clever Home Gadgets & Everyday Finds",
+      "seoDescription": "Clever, useful finds that make everyday life easier — curated by Miti Home and delivered across the UAE.",
+      "displayOrder": 50
+    },
+    {
+      "slug": "furniture",
+      "name": "Furniture",
+      "description": "Statement furniture pieces, made to anchor a room.",
+      "seoTitle": "Statement Furniture",
+      "seoDescription": "Statement furniture from Miti Home, delivered in the UAE.",
+      "displayOrder": 60
+    }
+  ],
+  "collections": [
+    {
+      "slug": "the-silver-edit",
+      "name": "The Silver Edit",
+      "eyebrow": "Collection",
+      "description": "Mirror-finish pieces that catch the light — sculptural, playful and quietly luxurious.",
+      "isFeatured": true,
+      "displayOrder": 10,
+      "products": ["moai-tissue-box-silver", "bubble-tissue-box-silver", "deer-family-sculpture-set", "little-dragon-tissue-holder", "sculpted-hand-grip-vase", "pebble-tissue-box", "mirror-bear-figurine", "kinetic-perpetual-motion-sculpture"]
+    },
+    {
+      "slug": "sculptural-forms",
+      "name": "Sculptural Forms",
+      "eyebrow": "Editorial",
+      "description": "Figurative ceramics and art objects with soft silhouettes and a gallery feel.",
+      "isFeatured": true,
+      "displayOrder": 20,
+      "products": ["resting-figures-sculpture-pair", "deer-family-sculpture-set", "horse-and-rider-sculpture", "gilded-bull-sculpture", "zebra-cat-duo", "cat-bud-vase", "knotted-stripe-vase", "fortune-sheep-ceramic-sculpture"]
+    },
+    {
+      "slug": "the-hosting-table",
+      "name": "The Hosting Table",
+      "eyebrow": "Entertain",
+      "description": "Considered pieces for the way you gather — from the first pour to the last conversation.",
+      "isFeatured": false,
+      "displayOrder": 30,
+      "products": ["acacia-salt-and-pepper-mill-set", "glass-tea-infuser-mug", "vanity-tissue-tray-organiser", "glass-grape-cluster-keepsake", "bubble-tissue-box-silver"]
+    },
+    {
+      "slug": "soft-glow",
+      "name": "Soft Glow",
+      "eyebrow": "Lighting",
+      "description": "Smoked glass and warm light for evenings that feel slower.",
+      "isFeatured": false,
+      "displayOrder": 40,
+      "products": ["smoked-glass-ambient-table-lamp", "teardrop-smoked-glass-pendant", "twin-panel-smoked-pendant", "motion-sensor-led-cabinet-light"]
+    },
+    {
+      "slug": "gifts-they-will-remember",
+      "name": "Gifts They'll Remember",
+      "eyebrow": "Gifting",
+      "description": "Thoughtful, unexpected gifts for housewarmings, birthdays and everything in between.",
+      "isFeatured": true,
+      "displayOrder": 50,
+      "products": ["fortune-sheep-ceramic-sculpture", "glass-grape-cluster-keepsake", "astronaut-digital-clock", "mirror-bear-figurine", "kinetic-perpetual-motion-sculpture", "keycap-clicker-keyring"]
+    }
+  ],
+  "products": [
+    {
+      "slug": "fortune-sheep-ceramic-sculpture",
+      "name": "Fortune Sheep Ceramic Sculpture",
+      "category": "home-decor",
+      "price": 245, "compareAt": 245, "pricePlaceholder": true,
+      "description": "A soft, speckled ceramic sheep carrying a gold-glazed ingot — a symbol of good fortune that reads as a quiet sculpture on a console, shelf or desk. Arrives gift-boxed.",
+      "material": "Glazed ceramic with gold-finish detail",
+      "dimensions": "18.5 × 11.5 × 20 cm (large)",
+      "features": ["Speckled matte ceramic body", "Gold-glazed ingot detail", "Gift-boxed"],
+      "care": ["Dust with a soft dry cloth", "Avoid abrasive cleaners on the gold finish"],
+      "tags": ["sculpture", "ceramic", "gift", "good fortune", "sheep", "gold"],
+      "isNew": true, "isFeatured": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.12 PM (5).jpeg" },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.09 PM (1).jpeg", "crop": [0.02, 0.04, 0.86, 0.83] }
+      ]
+    },
+    {
+      "slug": "sculpted-hand-grip-vase",
+      "name": "Sculpted Hand-Grip Vase",
+      "category": "home-decor",
+      "price": 189, "compareAt": 189, "pricePlaceholder": true,
+      "description": "A tall cylinder vase pressed with organic, hand-gripped folds that play with light. Choose a mirror silver-plated finish or a soft glossy white.",
+      "material": "Glazed ceramic",
+      "dimensions": "12 × 12 × 29 cm",
+      "features": ["Hand-gripped textured surface", "Tall cylinder silhouette", "Works with fresh or dried stems"],
+      "care": ["Wipe with a soft damp cloth", "Not dishwasher safe"],
+      "tags": ["vase", "ceramic", "silver", "white", "textured"],
+      "colorLabel": "Finish",
+      "colors": [
+        { "name": "Silver Plated", "hex": "#C0C0C0", "imageIndexes": [0] },
+        { "name": "Glossy White", "hex": "#F4F2EE", "imageIndexes": [1] }
+      ],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.09 PM (2).jpeg", "crop": [0.0, 0.0, 1.0, 0.815] },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.14 PM (5).jpeg", "crop": [0.0, 0.0, 1.0, 0.88] }
+      ]
+    },
+    {
+      "slug": "acacia-salt-and-pepper-mill-set",
+      "name": "Acacia Salt & Pepper Mill Set",
+      "category": "home-entertainment",
+      "price": 149, "compareAt": 149, "pricePlaceholder": true,
+      "description": "A pair of hourglass-shaped acacia wood mills with glass windows so you always see what's inside, presented on a matching wooden stand with cleaning brushes.",
+      "material": "Acacia wood, glass",
+      "features": ["Set of two mills on a wooden stand", "Viewing windows", "Cleaning brushes included"],
+      "care": ["Wipe wood with a dry cloth", "Do not immerse in water"],
+      "tags": ["kitchen", "hosting", "salt", "pepper", "wood", "grinder"],
+      "isFeatured": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.09 PM.jpeg" }
+      ]
+    },
+    {
+      "slug": "mini-heat-sealer",
+      "name": "Mini Heat Sealer",
+      "category": "clever-finds",
+      "price": 59, "compareAt": 79, "pricePlaceholder": true,
+      "description": "Reseal snack, coffee and spice bags in seconds. This pocket-size sealer has six heat settings, a digital display and a magnetic back so it lives on the fridge.",
+      "features": ["Six heat settings", "Digital display", "Magnetic back", "Compact and portable"],
+      "tags": ["kitchen", "gadget", "storage", "sealer", "clever"],
+      "colorLabel": "Colour",
+      "colors": [
+        { "name": "Black", "hex": "#1A1A1A", "imageIndexes": [0] },
+        { "name": "White", "hex": "#F5F5F5", "imageIndexes": [0] }
+      ],
+      "isNew": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.10 PM (1).jpeg", "crop": [0.3, 0.18, 1.0, 0.95] }
+      ]
+    },
+    {
+      "slug": "cat-bud-vase",
+      "name": "Cat Bud Vase",
+      "category": "home-decor",
+      "price": 119, "compareAt": 119, "pricePlaceholder": true,
+      "description": "A playful arched cat in matte cream ceramic whose tail doubles as a slim bud vase. Charming alone, lovely with a single stem.",
+      "material": "Matte ceramic",
+      "dimensions": "18 × 6.5 × 21 cm · opening Ø 4.1 cm",
+      "features": ["Matte cream glaze", "Single-stem opening"],
+      "care": ["Wipe with a soft damp cloth"],
+      "tags": ["vase", "cat", "ceramic", "bud vase", "cream"],
+      "isNew": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.10 PM (2).jpeg", "crop": [0.18, 0.3, 0.98, 1.0] }
+      ]
+    },
+    {
+      "slug": "smoked-glass-ambient-table-lamp",
+      "name": "Smoked Glass Ambient Table Lamp",
+      "category": "lighting",
+      "price": 425, "compareAt": 425, "pricePlaceholder": true,
+      "description": "A low, rounded lamp in layered smoked glass that diffuses a warm glow — made for sideboards, bedside tables and slow evenings.",
+      "material": "Smoked glass",
+      "features": ["Layered smoked glass shade", "Warm diffused light"],
+      "care": ["Switch off and cool before cleaning", "Wipe glass with a soft dry cloth"],
+      "tags": ["lamp", "table lamp", "smoked glass", "ambient", "lighting"],
+      "isFeatured": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.10 PM (3).jpeg" }
+      ]
+    },
+    {
+      "slug": "little-dragon-tissue-holder",
+      "name": "Little Dragon Tissue Holder",
+      "category": "home-decor",
+      "price": 249, "compareAt": 249, "pricePlaceholder": true,
+      "description": "A spiky little dragon that dispenses tissues from its back — a conversation piece for the desk, vanity or entryway. In pearlescent or mirror silver.",
+      "features": ["Tissue dispenses from the back", "High-shine finish"],
+      "care": ["Wipe with a soft dry cloth"],
+      "tags": ["tissue box", "dragon", "silver", "pearlescent", "playful"],
+      "colorLabel": "Finish",
+      "colors": [
+        { "name": "Mirror Silver", "hex": "#BFC3C7", "imageIndexes": [0] },
+        { "name": "Pearlescent", "hex": "#EDE7F0", "imageIndexes": [1] }
+      ],
+      "isNew": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.13 PM (2).jpeg" },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.10 PM (4).jpeg" }
+      ]
+    },
+    {
+      "slug": "glass-dome-propagation-vase",
+      "name": "Glass Dome Propagation Vase",
+      "category": "home-decor",
+      "price": 99, "compareAt": 129, "pricePlaceholder": true,
+      "description": "A ribbed tinted-glass vessel under a clear bell dome — for propagating cuttings or displaying a single stem in its own little glasshouse.",
+      "material": "Glass",
+      "dimensions": "Ø 8.5 × 17 cm · 200 ml",
+      "features": ["Clear glass dome", "Ribbed tinted inner vessel", "200 ml capacity"],
+      "care": ["Hand wash only"],
+      "tags": ["vase", "glass", "propagation", "plants", "cloche"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.10 PM.jpeg", "crop": [0.0, 0.1, 0.92, 1.0] },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.13 PM (1).jpeg", "crop": [0.09, 0.14, 0.41, 0.8], "padSquare": "#FFFFFF" }
+      ]
+    },
+    {
+      "slug": "geometric-embroidered-cushion-cover",
+      "name": "Geometric Embroidered Cushion Cover",
+      "category": "home-decor",
+      "price": 89, "compareAt": 89, "pricePlaceholder": true,
+      "description": "A terracotta cushion cover with a bold interlocking geometric motif in ivory — an easy way to warm up a neutral sofa or reading chair.",
+      "features": ["Interlocking geometric motif", "Terracotta and ivory", "Cover only — insert not included"],
+      "care": ["Gentle cold wash", "Do not tumble dry"],
+      "tags": ["cushion", "textile", "terracotta", "geometric", "living room"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.11 PM (1).jpeg" }
+      ]
+    },
+    {
+      "slug": "teardrop-smoked-glass-pendant",
+      "name": "Teardrop Smoked Glass Pendant",
+      "category": "lighting",
+      "price": 395, "compareAt": 395, "pricePlaceholder": true,
+      "description": "A slim teardrop of smoked glass on a fine cord — hang singly over a bedside or in a row above an island.",
+      "material": "Smoked glass",
+      "features": ["Teardrop smoked glass shade", "Fine suspension cord"],
+      "care": ["Professional installation recommended", "Switch off before cleaning"],
+      "tags": ["pendant", "lighting", "smoked glass", "bedroom", "ceiling light"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.11 PM (2).jpeg" }
+      ]
+    },
+    {
+      "slug": "keycap-clicker-keyring",
+      "name": "Keycap Clicker Keyring",
+      "category": "clever-finds",
+      "price": 39, "compareAt": 39, "pricePlaceholder": true,
+      "description": "A clicky mechanical keycap on a keyring, topped with a cheeky character. The satisfying click is oddly calming — and they light up.",
+      "features": ["Mechanical switch click", "Light-up base", "Keyring clasp"],
+      "tags": ["keyring", "fidget", "gift", "fun", "clever"],
+      "sizeLabel": "Character",
+      "sizes": ["Rooster", "Duck", "Dinosaur"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.11 PM (3).jpeg", "crop": [0.0, 0.12, 0.86, 1.0] },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.14 PM (4).jpeg", "crop": [0.0, 0.1, 0.88, 1.0] },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.14 PM (3).jpeg", "crop": [0.0, 0.1, 0.9, 1.0] }
+      ]
+    },
+    {
+      "slug": "deer-family-sculpture-set",
+      "name": "Deer Family Sculpture Set",
+      "category": "home-decor",
+      "price": 349, "compareAt": 349, "pricePlaceholder": true,
+      "description": "Three elongated deer — two tall, one small — with graceful, abstract forms. Displayed together they make a quietly sentimental family portrait.",
+      "material": "High-fired ceramic",
+      "dimensions": "Set of three: approx. 25 cm, 24–25 cm and 15–16 cm tall",
+      "features": ["Set of three", "Abstract elongated silhouettes"],
+      "care": ["Dust with a soft dry cloth"],
+      "tags": ["sculpture", "deer", "family", "ceramic", "silver", "set"],
+      "colorLabel": "Finish",
+      "colors": [
+        { "name": "Matte Earth", "hex": "#8C7F72", "imageIndexes": [0] },
+        { "name": "Mirror Silver", "hex": "#C0C0C0", "imageIndexes": [1] }
+      ],
+      "isFeatured": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.11 PM (4).jpeg", "inpaint": [0.655, 0.235, 0.935, 0.575] },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.16 PM (4).jpeg", "crop": [0.0, 0.0, 1.0, 0.84] }
+      ]
+    },
+    {
+      "slug": "bubble-tissue-box-silver",
+      "name": "Bubble Tissue Box",
+      "category": "home-decor",
+      "price": 219, "compareAt": 219, "pricePlaceholder": true,
+      "description": "Stacked silver-plated bubbles form a sculptural tissue box — the most glamorous way to keep tissues on hand.",
+      "material": "Silver-plated ceramic",
+      "dimensions": "21 × 16 × 11.5 cm · tissue opening 10 × 3 cm",
+      "features": ["Silver-plated finish", "Bottom-loading opening 12.5 × 9 cm"],
+      "care": ["Wipe with a soft dry cloth"],
+      "tags": ["tissue box", "silver", "bubble", "sculptural"],
+      "isFeatured": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.11 PM (5).jpeg", "crop": [0.1, 0.41, 0.95, 0.97] }
+      ]
+    },
+    {
+      "slug": "pebble-tissue-box",
+      "name": "Pebble Tissue Box",
+      "category": "home-decor",
+      "price": 159, "compareAt": 159, "pricePlaceholder": true,
+      "description": "A smooth pebble-shaped tissue box with a soft slot opening — understated in black or white, a statement in mirror silver.",
+      "features": ["Rounded pebble silhouette", "Slot opening"],
+      "care": ["Wipe with a soft damp cloth"],
+      "tags": ["tissue box", "pebble", "minimal", "silver", "black", "white"],
+      "colorLabel": "Finish",
+      "colors": [
+        { "name": "Black", "hex": "#1C1C1C", "imageIndexes": [0] },
+        { "name": "White", "hex": "#F4F2EE", "imageIndexes": [0] },
+        { "name": "Mirror Silver", "hex": "#C0C0C0", "imageIndexes": [1] }
+      ],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.11 PM.jpeg" },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.16 PM (5).jpeg" }
+      ]
+    },
+    {
+      "slug": "gilded-bull-sculpture",
+      "name": "Gilded Bull Sculpture",
+      "category": "home-decor",
+      "price": 279, "compareAt": 279, "pricePlaceholder": true,
+      "description": "A charging bull split between matte black and polished gold — bold enough for an office, refined enough for a bookshelf.",
+      "features": ["Two-tone black and gold finish"],
+      "care": ["Dust with a soft dry cloth"],
+      "tags": ["sculpture", "bull", "gold", "black", "office"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.12 PM (1).jpeg" }
+      ]
+    },
+    {
+      "slug": "resting-figures-sculpture-pair",
+      "name": "Resting Figures Sculpture Pair",
+      "category": "home-decor",
+      "price": 299, "compareAt": 299, "pricePlaceholder": true,
+      "description": "Two abstract figures that lean into one another, one seated, one reclining — lovely as bookends or as a pair on a coffee table.",
+      "features": ["Set of two abstract figures", "Doubles as bookends"],
+      "care": ["Dust with a soft dry cloth"],
+      "tags": ["sculpture", "figures", "bookends", "abstract", "terracotta", "monochrome"],
+      "colorLabel": "Finish",
+      "colors": [
+        { "name": "Terracotta", "hex": "#B5714E", "imageIndexes": [0] },
+        { "name": "Monochrome", "hex": "#3A3A3A", "imageIndexes": [1] }
+      ],
+      "isFeatured": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.12 PM (2).jpeg" },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.16 PM (1).jpeg" }
+      ]
+    },
+    {
+      "slug": "horse-and-rider-sculpture",
+      "name": "Horse & Rider Sculpture",
+      "category": "home-decor",
+      "price": 359, "compareAt": 359, "pricePlaceholder": true,
+      "description": "A slender black horse carries a small rider beneath a brass-toned umbrella, set on a marble-effect base — a poetic piece for a console or study.",
+      "features": ["Marble-effect base", "Brass-tone umbrella detail"],
+      "care": ["Dust with a soft dry cloth"],
+      "tags": ["sculpture", "horse", "black", "marble", "brass"],
+      "isNew": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.12 PM (3).jpeg" }
+      ]
+    },
+    {
+      "slug": "glass-tea-infuser-mug",
+      "name": "Glass Tea Infuser Mug",
+      "category": "home-entertainment",
+      "price": 99, "compareAt": 99, "pricePlaceholder": true,
+      "description": "A smoked-glass mug with a built-in infuser, wooden lid and wooden handle — loose-leaf tea without the fuss, served on its own coaster.",
+      "material": "Glass, wood",
+      "features": ["Built-in tea infuser", "Wooden lid doubles as a coaster", "Wooden handle"],
+      "care": ["Hand wash glass", "Keep wooden parts dry"],
+      "tags": ["tea", "mug", "glass", "hosting", "infuser"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.12 PM (4).jpeg" }
+      ]
+    },
+    {
+      "slug": "twin-panel-smoked-pendant",
+      "name": "Twin-Panel Smoked Pendant",
+      "category": "lighting",
+      "price": 449, "compareAt": 449, "pricePlaceholder": true,
+      "description": "A vertical light bar framed by two curved smoked-glass panels on a brass-tone rod — architectural, minimal and warm.",
+      "material": "Smoked glass, brass-tone metal",
+      "features": ["Curved smoked-glass panels", "Brass-tone suspension rod"],
+      "care": ["Professional installation recommended", "Switch off before cleaning"],
+      "tags": ["pendant", "lighting", "smoked glass", "brass", "dining"],
+      "isNew": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.13 PM (3).jpeg" }
+      ]
+    },
+    {
+      "slug": "mirror-bear-figurine",
+      "name": "Mirror Bear Figurine",
+      "category": "home-decor",
+      "price": 179, "compareAt": 179, "pricePlaceholder": true,
+      "description": "A high-shine standing bear with a heart on its chest — a playful pop of polish for shelves and nightstands.",
+      "features": ["High-gloss mirror finish"],
+      "care": ["Wipe with a soft dry cloth"],
+      "tags": ["figurine", "bear", "silver", "gold", "iridescent", "gift"],
+      "colorLabel": "Finish",
+      "colors": [
+        { "name": "Silver", "hex": "#C0C0C0", "imageIndexes": [0] },
+        { "name": "Gold", "hex": "#C8A96A", "imageIndexes": [0] },
+        { "name": "Iridescent", "hex": "#5A6B8C", "imageIndexes": [1] }
+      ],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.13 PM (4).jpeg" },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.17 PM (3).jpeg" }
+      ]
+    },
+    {
+      "slug": "adhesive-metal-wall-hooks",
+      "name": "Adhesive Metal Wall Hooks",
+      "category": "smart-storage",
+      "price": 49, "compareAt": 49, "pricePlaceholder": true,
+      "description": "Round brushed-metal hooks that stick on without drilling — for towels, robes, keys and bags in bathrooms, kitchens and entryways.",
+      "material": "Metal",
+      "features": ["No-drill adhesive mount", "Brushed metal finish"],
+      "tags": ["hooks", "bathroom", "organisation", "no drill", "storage"],
+      "colorLabel": "Finish",
+      "colors": [
+        { "name": "Matte Black", "hex": "#1A1A1A", "imageIndexes": [0] },
+        { "name": "Brushed Gold", "hex": "#C8A96A", "imageIndexes": [0] },
+        { "name": "Brushed Steel", "hex": "#A8A9AD", "imageIndexes": [0] }
+      ],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.13 PM (5).jpeg" }
+      ]
+    },
+    {
+      "slug": "zebra-cat-duo",
+      "name": "Zebra Cat Duo",
+      "category": "home-decor",
+      "price": 229, "compareAt": 229, "pricePlaceholder": true,
+      "description": "A pair of stylised cats in black-and-white stripes — one stretching, one sitting tall. Graphic, witty and made to be arranged.",
+      "features": ["Set of two", "Hand-painted stripe detail"],
+      "care": ["Dust with a soft dry cloth"],
+      "tags": ["sculpture", "cat", "stripes", "monochrome", "playful"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.13 PM.jpeg" }
+      ]
+    },
+    {
+      "slug": "cling-film-dispenser-with-slide-cutter",
+      "name": "Cling Film Dispenser with Slide Cutter",
+      "category": "smart-storage",
+      "price": 79, "compareAt": 99, "pricePlaceholder": true,
+      "description": "A clean white dispenser with a sliding cutter for perfectly straight cling-film and foil cuts. Use it on the counter or mount it inside a cabinet.",
+      "features": ["Sliding safety cutter", "Countertop or wall mount", "Fits standard rolls"],
+      "tags": ["kitchen", "cling film", "dispenser", "organisation", "clever"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.14 PM (1).jpeg" },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.17 PM (1).jpeg" }
+      ]
+    },
+    {
+      "slug": "walnut-suction-bathroom-shelf",
+      "name": "Walnut Suction Bathroom Shelf",
+      "category": "smart-storage",
+      "price": 129, "compareAt": 129, "pricePlaceholder": true,
+      "description": "A slim draining shelf with a walnut-tone rail that fixes above the basin with suction mounts — no drilling, no clutter.",
+      "features": ["Suction mounting — no drilling", "Draining tray", "Walnut-tone rail"],
+      "tags": ["bathroom", "shelf", "no drill", "organisation", "walnut"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.14 PM (2).jpeg" }
+      ]
+    },
+    {
+      "slug": "glass-grape-cluster-keepsake",
+      "name": "Glass Grape Cluster Keepsake",
+      "category": "home-decor",
+      "price": 119, "compareAt": 119, "pricePlaceholder": true,
+      "description": "A cluster of pale-blue glass grapes tied with a 'Best Wishes' ribbon and presented in a keepsake box — a charming housewarming or thank-you gift.",
+      "material": "Glass",
+      "features": ["Presented in a gift box", "Ribbon detail"],
+      "tags": ["gift", "glass", "grapes", "ornament", "housewarming"],
+      "isNew": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.14 PM.jpeg" }
+      ]
+    },
+    {
+      "slug": "knotted-stripe-vase",
+      "name": "Knotted Stripe Vase",
+      "category": "home-decor",
+      "price": 159, "compareAt": 159, "pricePlaceholder": true,
+      "description": "A tall cylinder in bold black-and-white stripes, tied with a sculpted knot at the waist. Graphic on its own, striking with a single branch.",
+      "material": "Ceramic",
+      "dimensions": "8.5 × 8.5 × 29 cm · opening Ø 5 cm",
+      "features": ["Sculpted knot detail", "Monochrome stripes"],
+      "care": ["Wipe with a soft damp cloth"],
+      "tags": ["vase", "stripes", "monochrome", "ceramic", "knot"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.15 PM (1).jpeg", "crop": [0.37, 0.05, 0.94, 1.0] }
+      ]
+    },
+    {
+      "slug": "kinetic-perpetual-motion-sculpture",
+      "name": "Kinetic Perpetual-Motion Sculpture",
+      "category": "home-entertainment",
+      "price": 199, "compareAt": 249, "pricePlaceholder": true,
+      "description": "Crossed brushed-metal rods that swing and balance endlessly on a black base — a mesmerising desk piece that invites a second look.",
+      "material": "Brushed metal",
+      "features": ["Balanced kinetic motion", "Weighted black base"],
+      "care": ["Dust with a soft dry cloth"],
+      "tags": ["kinetic", "desk", "office", "sculpture", "metal", "gift"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.15 PM (2).jpeg" }
+      ]
+    },
+    {
+      "slug": "vanity-tissue-tray-organiser",
+      "name": "Vanity Tissue Tray Organiser",
+      "category": "smart-storage",
+      "price": 169, "compareAt": 169, "pricePlaceholder": true,
+      "description": "A cream leather-look tray with an integrated tissue compartment — gathers perfumes, diffusers and remotes into one tidy vignette.",
+      "features": ["Integrated tissue compartment", "Leather-look finish", "Open tray for essentials"],
+      "care": ["Wipe with a soft damp cloth"],
+      "tags": ["tray", "vanity", "organiser", "tissue box", "cream"],
+      "isFeatured": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.15 PM (4).jpeg" }
+      ]
+    },
+    {
+      "slug": "motion-sensor-led-cabinet-light",
+      "name": "Motion-Sensor LED Cabinet Light",
+      "category": "lighting",
+      "price": 59, "compareAt": 59, "pricePlaceholder": true,
+      "description": "Slim rechargeable LED bars that switch on as you open a wardrobe or walk past — perfect for closets, kitchen cabinets and hallways.",
+      "features": ["Motion sensor", "Rechargeable", "Magnetic mounting strip"],
+      "tags": ["led", "motion sensor", "closet", "cabinet light", "clever"],
+      "sizeLabel": "Length",
+      "sizes": ["20 cm", "30 cm", "40 cm"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.15 PM.jpeg", "crop": [0.0, 0.12, 0.9, 1.0] }
+      ]
+    },
+    {
+      "slug": "ceramic-utensil-drying-holder",
+      "name": "Ceramic Utensil Drying Holder",
+      "category": "smart-storage",
+      "price": 69, "compareAt": 69, "pricePlaceholder": true,
+      "description": "A tall white cutlery holder with a clear draining base, so spoons, forks and chopsticks dry upright and hygienically.",
+      "features": ["Removable draining base", "Tall cylinder for long utensils"],
+      "tags": ["kitchen", "cutlery", "drying", "organisation", "white"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.16 PM (2).jpeg", "crop": [0.0, 0.265, 1.0, 0.684] }
+      ]
+    },
+    {
+      "slug": "moai-tissue-box-silver",
+      "name": "Moai Tissue Box",
+      "category": "home-decor",
+      "price": 239, "compareAt": 239, "pricePlaceholder": true,
+      "description": "The famous Easter Island head reimagined in mirror silver — tissues emerge from its nose. Witty, sculptural and impossible to ignore.",
+      "material": "Silver-plated ceramic",
+      "dimensions": "22 × 16 × 16 cm · opening 5 cm",
+      "features": ["Silver-plated finish", "Tissue dispenses from the nose"],
+      "care": ["Wipe with a soft dry cloth"],
+      "tags": ["tissue box", "moai", "silver", "statement", "playful"],
+      "isNew": true, "isFeatured": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.16 PM (6).jpeg", "crop": [0.0, 0.22, 1.0, 1.0] }
+      ]
+    },
+    {
+      "slug": "astronaut-digital-clock",
+      "name": "Astronaut Digital Clock",
+      "category": "clever-finds",
+      "price": 149, "compareAt": 149, "pricePlaceholder": true,
+      "description": "A glossy white astronaut with a chrome visor holding a large LED display — a desk clock with personality.",
+      "features": ["Large LED time display", "Chrome visor detail"],
+      "tags": ["clock", "astronaut", "desk", "gift", "led"],
+      "isNew": true,
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.17 PM (2).jpeg" }
+      ]
+    },
+    {
+      "slug": "arc-executive-desk",
+      "name": "Arc Executive Desk",
+      "category": "furniture",
+      "price": 8900, "compareAt": 8900, "pricePlaceholder": true,
+      "description": "A sweeping cantilevered executive desk in high-gloss dark veneer with a cream leather-look pedestal — a commanding centrepiece for a home office. Made to order; delivery and installation arranged separately.",
+      "features": ["Sweeping arc silhouette", "High-gloss veneer finish", "Delivery and installation arranged by our team"],
+      "tags": ["desk", "furniture", "office", "statement"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.17 PM.jpeg" }
+      ]
+    },
+    {
+      "slug": "sitting-mouse-figure",
+      "name": "Sitting Figure Sculpture (48 cm)",
+      "category": "home-decor",
+      "price": 690, "compareAt": 690, "pricePlaceholder": true,
+      "draft": true,
+      "draftReason": "Depicts a trademarked character — confirm licensing/authenticity before publishing.",
+      "description": "A large matte-black seated figure sculpture with gold-finish detail.",
+      "dimensions": "48 × 30 × 27 cm",
+      "tags": ["sculpture", "figure", "black"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.12 PM.jpeg" }
+      ]
+    },
+    {
+      "slug": "brick-race-car-model",
+      "name": "Brick Race Car Model Kit",
+      "category": "home-entertainment",
+      "price": 499, "compareAt": 499, "pricePlaceholder": true,
+      "draft": true,
+      "draftReason": "Model shows third-party vehicle branding — confirm licensing before publishing.",
+      "description": "A detailed brick-built race car display model.",
+      "tags": ["model kit", "building blocks", "display"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.17 PM (4).jpeg" }
+      ]
+    },
+    {
+      "slug": "brick-superbike-model",
+      "name": "Brick Superbike Model Kit",
+      "category": "home-entertainment",
+      "price": 449, "compareAt": 449, "pricePlaceholder": true,
+      "draft": true,
+      "draftReason": "Model shows third-party vehicle branding — confirm licensing before publishing.",
+      "description": "A detailed brick-built superbike display model.",
+      "tags": ["model kit", "building blocks", "display"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.18 PM (1).jpeg" }
+      ]
+    },
+    {
+      "slug": "model-display-wall-frame",
+      "name": "Model Display Wall Frame (50 × 80 cm)",
+      "category": "home-entertainment",
+      "price": 399, "compareAt": 399, "pricePlaceholder": true,
+      "draft": true,
+      "draftReason": "Supplier artwork includes third-party marks — confirm artwork/licensing before publishing.",
+      "description": "A wall-mounted display frame with mirror back and aluminium alloy frame, sized for large brick-built vehicle models. Hidden hanging hook.",
+      "material": "Aluminium alloy frame, mirror back",
+      "dimensions": "50 × 80 cm",
+      "tags": ["display frame", "wall", "model"],
+      "sizeLabel": "Artwork",
+      "sizes": ["Race Car", "Superbike"],
+      "images": [
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.17 PM (5).jpeg" },
+        { "source": "WhatsApp Image 2026-09-17 at 7.02.18 PM.jpeg" }
+      ]
+    }
+  ]
+}

@@ -513,7 +513,7 @@ export function ProductClient({ id, initialProduct }: { id: string; initialProdu
                                     type="button"
                                     className={`rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                                         selectedImage === i
-                                            ? "w-6 h-1.5 bg-red-accent"
+                                            ? "w-6 h-1.5 bg-brand"
                                             : "w-1.5 h-1.5 bg-neutral-400 hover:bg-neutral-300"
                                     }`}
                                     onClick={() => setSelectedImage(i)}
@@ -734,7 +734,7 @@ export function ProductClient({ id, initialProduct }: { id: string; initialProdu
                                 <ul className="space-y-1.5">
                                     {productFeatures.map((feature, i) => (
                                         <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                                            <span className="text-red-accent mt-0.5">·</span> {feature}
+                                            <span className="text-brand mt-0.5">·</span> {feature}
                                         </li>
                                     ))}
                                 </ul>

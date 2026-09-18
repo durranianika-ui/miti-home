@@ -71,7 +71,7 @@ function hashString(value: string) {
 }
 
 function createSeededRandom(seed: string) {
-  let state = hashString(seed || "xilar-search-suggestions");
+  let state = hashString(seed || "miti-search-suggestions");
   return () => {
     state += 0x6d2b79f5;
     let next = state;

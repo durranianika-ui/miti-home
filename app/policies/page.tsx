@@ -98,7 +98,7 @@ export default function PoliciesPage() {
                                     <policy.icon className="h-4 w-4 text-muted-foreground" />
                                 </div>
                                 <div>
-                                    <h2 className="text-sm font-semibold uppercase tracking-[0.05em] group-hover:text-red-accent transition-colors duration-300">
+                                    <h2 className="text-sm font-semibold uppercase tracking-[0.05em] group-hover:text-brand transition-colors duration-300">
                                         {policy.title}
                                     </h2>
                                     <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
@@ -115,19 +115,19 @@ export default function PoliciesPage() {
                     <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-5">Quick summary</h2>
                     <ul className="space-y-3 text-xs">
                         <li className="flex items-start gap-2">
-                            <span className="text-red-accent mt-0.5">·</span>
+                            <span className="text-brand mt-0.5">·</span>
                             <span><strong className="text-foreground">Exchanges:</strong> <span className="text-muted-foreground">Within 48 hours for size/color only. Product must be unused with tags.</span></span>
                         </li>
                         <li className="flex items-start gap-2">
-                            <span className="text-red-accent mt-0.5">·</span>
+                            <span className="text-brand mt-0.5">·</span>
                             <span><strong className="text-foreground">Returns:</strong> <span className="text-muted-foreground">Only for defective items. Unboxing video required as proof.</span></span>
                         </li>
                         <li className="flex items-start gap-2">
-                            <span className="text-red-accent mt-0.5">·</span>
+                            <span className="text-brand mt-0.5">·</span>
                             <span><strong className="text-foreground">Refunds:</strong> <span className="text-muted-foreground">Issued to your XILAR wallet at the approved amount.</span></span>
                         </li>
                         <li className="flex items-start gap-2">
-                            <span className="text-red-accent mt-0.5">·</span>
+                            <span className="text-brand mt-0.5">·</span>
                             <span><strong className="text-foreground">Shipping:</strong> <span className="text-muted-foreground">Free above ₹999, otherwise ₹99. COD available (+₹50 fee).</span></span>
                         </li>
                     </ul>

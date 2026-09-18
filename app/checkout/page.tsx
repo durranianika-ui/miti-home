@@ -14,7 +14,7 @@ import { FREE_SHIPPING_THRESHOLD, FREE_SHIPPING_THRESHOLD_DISPLAY, SHIPPING_FEE,
 import { normalizeProductImage } from "@/lib/image"
 import Script from "next/script"
 
-const CHECKOUT_STORAGE_KEY = "xilar-checkout"
+const CHECKOUT_STORAGE_KEY = "miti-checkout"
 
 interface ShippingAddress {
     name: string
@@ -374,7 +374,7 @@ export default function CheckoutPage() {
     if (isAuthPending || !session) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-6 w-6 animate-spin text-red-accent" />
+                <Loader2 className="h-6 w-6 animate-spin text-brand" />
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Loading checkout</p>
             </div>
         )
@@ -410,7 +410,7 @@ export default function CheckoutPage() {
                         Thank you for shopping with XILAR. Your order has been placed and will be delivered soon.
                     </p>
                     {appliedCoupon && (
-                        <p className="text-xs text-red-accent tabular-nums">You saved ₹{appliedCoupon.discount} with coupon {appliedCoupon.code}</p>
+                        <p className="text-xs text-brand tabular-nums">You saved ₹{appliedCoupon.discount} with coupon {appliedCoupon.code}</p>
                     )}
                     {orderId && (
                         <p className="text-xs text-muted-foreground tabular-nums">Order ID: #{orderId.slice(0, 8).toUpperCase()}</p>
@@ -568,10 +568,10 @@ export default function CheckoutPage() {
 
                             {/* Mobile Bargain Nudge */}
                             {showBargainNudge && (
-                                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 p-4 bg-red-accent/10 border border-red-accent/30 space-y-3">
+                                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 p-4 bg-brand/10 border border-brand/30 space-y-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-red-accent/20 flex items-center justify-center flex-shrink-0">
-                                            <Sparkles className="h-4 w-4 text-red-accent" />
+                                        <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center flex-shrink-0">
+                                            <Sparkles className="h-4 w-4 text-brand" />
                                         </div>
                                         <div>
                                             <p className="font-semibold text-sm">You haven&apos;t bargained yet!</p>
@@ -591,7 +591,7 @@ export default function CheckoutPage() {
                                             Skip
                                         </Button>
                                         <Button
-                                            className="flex-1 h-10 rounded-none text-xs uppercase tracking-wide bg-red-accent text-white hover:bg-[#8E0000]"
+                                            className="flex-1 h-10 rounded-none text-xs uppercase tracking-wide bg-brand text-white hover:bg-[#8E0000]"
                                             onClick={() => {
                                                 setShowBargainNudge(false)
                                                 setBargainNudgeDismissed(true)

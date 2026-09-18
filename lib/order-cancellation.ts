@@ -11,7 +11,7 @@ export function getCustomerCodCancellationFailure(input: {
   }
 
   if (input.paymentMethod !== "cod") {
-    return "Only COD orders can be cancelled online. For paid orders, please contact support.";
+    return "Paid orders are cancelled by our team so your card can be refunded — please contact us.";
   }
 
   if (!CUSTOMER_CANCELLABLE_COD_STATUSES.has(input.status)) {

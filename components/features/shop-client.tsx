@@ -47,7 +47,7 @@ type ShopRestoreState = {
     clickedProductId: string
 }
 
-const SHOP_SCROLL_PREFIX = "xilar-shop-scroll:"
+const SHOP_SCROLL_PREFIX = "miti-shop-scroll:"
 
 interface ShopClientProps {
     genderFilter?: "men" | "women" | "unisex" | "all"

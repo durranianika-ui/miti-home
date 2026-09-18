@@ -150,7 +150,7 @@ test("campaign email template links featured products by product slug", () => {
     products: [
       {
         id: "b72305dc-5fc9-453b-b4dc-830d628c4fd8",
-        slug: "xilar-dualform",
+        slug: "miti-dualform",
         name: "XILAR Dualform",
         image: "https://xilar.in/product.jpg",
         sellingPrice: "799",
@@ -160,7 +160,7 @@ test("campaign email template links featured products by product slug", () => {
     appUrl: "https://xilar.in",
   });
 
-  assert.match(html, /https:\/\/xilar\.in\/product\/xilar-dualform/);
+  assert.match(html, /https:\/\/xilar\.in\/product\/miti-dualform/);
   assert.doesNotMatch(html, /https:\/\/xilar\.in\/product\/b72305dc-5fc9-453b-b4dc-830d628c4fd8/);
 });
 

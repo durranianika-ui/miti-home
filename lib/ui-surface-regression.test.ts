@@ -180,20 +180,20 @@ test("wishlist is account-backed and has no localStorage fallback", () => {
   assert.match(wishlistPage, /getServerSession/);
   assert.match(wishlistPage, /getWishlistProducts/);
   assert.match(productClient, /getProductWishlist/);
-  assert.doesNotMatch(`${layout}\n${navbar}\n${wishlistPage}\n${productClient}`, /xilar-wishlist|useWishlist|WishlistProvider/);
+  assert.doesNotMatch(`${layout}\n${navbar}\n${wishlistPage}\n${productClient}`, /miti-wishlist|useWishlist|WishlistProvider/);
 });
 
 test("theme first paint stays static and is repaired before hydration", () => {
   const layout = read("app/layout.tsx");
   const themeContext = read("lib/theme-context.tsx");
 
-  assert.match(layout, /xilar-theme/);
+  assert.match(layout, /miti-theme/);
   assert.doesNotMatch(layout, /cookies\(/);
   assert.doesNotMatch(layout, /next\/headers/);
   assert.match(layout, /className="dark"/);
-  assert.match(layout, /localStorage\.getItem\('xilar-theme'\)/);
+  assert.match(layout, /localStorage\.getItem\('miti-theme'\)/);
   assert.match(layout, /document\.cookie/);
-  assert.match(themeContext, /document\.cookie = `xilar-theme=\$\{theme\}/);
+  assert.match(themeContext, /document\.cookie = `miti-theme=\$\{theme\}/);
   assert.match(layout, /<html lang="en" className="dark" suppressHydrationWarning>/);
 });
 

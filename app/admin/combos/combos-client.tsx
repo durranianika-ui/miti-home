@@ -133,7 +133,7 @@ export function AdminCombosClient({
                     <p className="text-xs text-muted-foreground">
                       {combo.productA ? `₹${combo.productA.sellingPrice}` : "N/A"} + {combo.productB ? `₹${combo.productB.sellingPrice}` : "N/A"}
                     </p>
-                    <p className="text-xs text-red-accent">
+                    <p className="text-xs text-brand">
                       Max bargain discount: ₹{Number(combo.discountAmount).toLocaleString("en-IN")}
                     </p>
                   </div>

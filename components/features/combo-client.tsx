@@ -314,7 +314,7 @@ export function ComboClient({ id, initialCombo }: { id: string; initialCombo?: C
                     key={i}
                     type="button"
                     className={`rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                      selectedImageA === i ? "w-6 h-1.5 bg-red-accent" : "w-1.5 h-1.5 bg-neutral-400 hover:bg-neutral-300"
+                      selectedImageA === i ? "w-6 h-1.5 bg-brand" : "w-1.5 h-1.5 bg-neutral-400 hover:bg-neutral-300"
                     }`}
                     onClick={() => setSelectedImageA(i)}
                     aria-label={`Go to image ${i + 1}`}
@@ -401,7 +401,7 @@ export function ComboClient({ id, initialCombo }: { id: string; initialCombo?: C
                     key={i}
                     type="button"
                     className={`rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                      selectedImageB === i ? "w-6 h-1.5 bg-red-accent" : "w-1.5 h-1.5 bg-neutral-400 hover:bg-neutral-300"
+                      selectedImageB === i ? "w-6 h-1.5 bg-brand" : "w-1.5 h-1.5 bg-neutral-400 hover:bg-neutral-300"
                     }`}
                     onClick={() => setSelectedImageB(i)}
                     aria-label={`Go to image ${i + 1}`}
@@ -573,8 +573,8 @@ export function ComboClient({ id, initialCombo }: { id: string; initialCombo?: C
             </div>
 
             {maxDiscount > 0 && (
-              <div className="p-4 bg-red-accent/5 border border-red-accent/20 rounded">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-red-accent font-semibold">
+              <div className="p-4 bg-brand/5 border border-brand/20 rounded">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-brand font-semibold">
                   Bargain cap: {formatPrice(maxDiscount)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Negotiate further on checkout</p>

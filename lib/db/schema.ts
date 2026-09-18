@@ -15,6 +15,20 @@ import {
 import { relations } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
+/** UAE delivery address stored on users (last used) and snapshotted on orders. */
+export type SavedShippingAddress = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  emirate: string;
+  area: string;
+  building: string;
+  apartment?: string;
+  street?: string;
+  instructions?: string;
+};
+
 const tsvector = customType<{ data: string; driverData: string }>({
   dataType() {
     return "tsvector";
@@ -30,22 +44,6 @@ export const orderStatusEnum = pgEnum("order_status", [
   "shipped",
   "delivered",
   "cancelled",
-]);
-export const productCategoryEnum = pgEnum("product_category", [
-  "tshirt",
-  "cargo",
-  "jogger",
-  "shirt",
-  "jeans",
-  "hoodie",
-  "jacket",
-  "shorts",
-  "accessory",
-]);
-export const productGenderEnum = pgEnum("product_gender", [
-  "men",
-  "women",
-  "unisex",
 ]);
 
 // ============================================
@@ -71,14 +69,7 @@ export const user = pgTable("user", {
   ordersCount: integer("orders_count").notNull().default(0),
   totalSpent: decimal("total_spent", { precision: 10, scale: 2 }).notNull().default("0"),
   // Saved shipping address (auto-filled on next checkout)
-  shippingAddress: json("shipping_address").$type<{
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    pincode: string;
-  }>(),
+  shippingAddress: json("shipping_address").$type<SavedShippingAddress>(),
 });
 
 export const session = pgTable("session", {
@@ -136,9 +127,8 @@ export const products = pgTable("products", {
   sellingPrice: decimal("selling_price", { precision: 10, scale: 2 }).notNull(),
   maxBargainDiscount: decimal("max_bargain_discount", { precision: 10, scale: 2 }).notNull().default("0"),
   
-  // Categorization
-  category: productCategoryEnum("category").notNull(),
-  gender: productGenderEnum("gender").notNull(),
+  // Categorization — category holds a categories.slug
+  category: text("category").notNull(),
   tags: json("tags").$type<string[]>().default([]),
   
   // Inventory
@@ -148,13 +138,18 @@ export const products = pgTable("products", {
   images: json("images").$type<string[]>().default([]),
   
   // Product details
-  fabric: text("fabric"),
-  gsm: integer("gsm"),
+  sku: text("sku"),
+  material: text("material"),
+  dimensions: text("dimensions"),
+  // Variant option labels shown on the PDP ("Size", "Dimensions", "Pack"; "Colour", "Finish")
+  sizeLabel: text("size_label").notNull().default("Size"),
+  colorLabel: text("color_label").notNull().default("Colour"),
   careInstructions: json("care_instructions").$type<string[]>().default([]),
   features: json("features").$type<string[]>().default([]),
   
-  // Size & Color variants
-  sizes: json("sizes").$type<string[]>().default(["S", "M", "L", "XL"]),
+  // Variant options: "size" is the primary option (size / dimensions / pack),
+  // "colors" the secondary option (colour / finish).
+  sizes: json("sizes").$type<string[]>().default(["Standard"]),
   colors: json("colors").$type<{ name: string; hex: string; images?: string[] }[]>().default([]),
 
   // Search document for PostgreSQL lexical ranking. Dense vectors live in Pinecone.
@@ -166,7 +161,6 @@ export const products = pgTable("products", {
   // Metadata
   isNew: boolean("is_new").notNull().default(false),
   isFeatured: boolean("is_featured").notNull().default(false),
-  isPremium: boolean("is_premium").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   
   // Manual merchandising (gap method with increments of 100)
@@ -190,9 +184,6 @@ export const productSearchIndexState = pgTable("product_search_index_state", {
 }, (table) => [
   index("product_search_index_state_status_idx").on(table.status),
 ]);
-export const walletEntryTypeEnum = pgEnum("wallet_entry_type", ["top_up", "order_payment", "generation", "refund", "reversal"]);
-export const walletTopUpStatusEnum = pgEnum("wallet_top_up_status", ["created", "paid", "failed"]);
-export const walletReservationStatusEnum = pgEnum("wallet_reservation_status", ["held", "consumed", "released", "expired"]);
 
 export const productRecommendations = pgTable("product_recommendations", {
   sourceProductId: uuid("source_product_id")
@@ -215,33 +206,6 @@ export const productRecommendations = pgTable("product_recommendations", {
   ),
 ]);
 
-export const productTryOnRuns = pgTable("product_try_on_runs", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  productId: uuid("product_id")
-    .notNull()
-    .references(() => products.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  bodyImageUrl: text("body_image_url").notNull(),
-  bodyImagePublicId: text("body_image_public_id").notNull(),
-  outputImageUrl: text("output_image_url").notNull(),
-  outputImagePublicId: text("output_image_public_id").notNull(),
-  productImageUrl: text("product_image_url").notNull(),
-  productImageIndex: integer("product_image_index").notNull(),
-  tryOnMode: text("try_on_mode", { enum: ["upper", "lower", "full"] }).notNull(),
-  modelId: text("model_id").notNull(),
-  promptVersion: text("prompt_version").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => [
-  index("product_try_on_runs_product_user_created_idx").on(
-    table.productId,
-    table.userId,
-    table.createdAt,
-  ),
-  index("product_try_on_runs_user_created_idx").on(table.userId, table.createdAt),
-]);
-
 // ============================================
 // PRODUCT VARIANTS TABLE (per-size-per-color stock)
 // ============================================
@@ -258,6 +222,54 @@ export const productVariants = pgTable("product_variants", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   uniqueIndex("product_variant_unique").on(table.productId, table.size, table.color),
+]);
+
+// ============================================
+// TAXONOMY: CATEGORIES & COLLECTIONS
+// ============================================
+
+export const categories = pgTable("categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  image: text("image"),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  displayOrder: integer("display_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const collections = pgTable("collections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  eyebrow: text("eyebrow"),
+  description: text("description"),
+  image: text("image"),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  displayOrder: integer("display_order").notNull().default(0),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const collectionProducts = pgTable("collection_products", {
+  collectionId: uuid("collection_id")
+    .notNull()
+    .references(() => collections.id, { onDelete: "cascade" }),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("collection_products_unique").on(table.collectionId, table.productId),
+  index("collection_products_product_id_idx").on(table.productId),
 ]);
 
 // ============================================
@@ -306,26 +318,22 @@ export const orders = pgTable("orders", {
   bargainDiscount: decimal("bargain_discount", { precision: 10, scale: 2 }),
   bargainScore: integer("bargain_score"),
   
-  // Shipping address
-  shippingAddress: json("shipping_address").$type<{
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    state: string;
-    pincode: string;
-  }>(),
+  // Shipping address (UAE structure)
+  shippingAddress: json("shipping_address").$type<SavedShippingAddress>(),
   
   // Payment
   paymentMethod: text("payment_method"),
   paymentStatus: text("payment_status").default("pending"),
   
-  // Razorpay fields
-  razorpayOrderId: text("razorpay_order_id"),
-  razorpayPaymentId: text("razorpay_payment_id"),
-  razorpaySignature: text("razorpay_signature"),
-  walletPaidPaise: integer("wallet_paid_paise").notNull().default(0),
-  externalPaidPaise: integer("external_paid_paise").notNull().default(0),
+  // Payment provider fields (provider-agnostic)
+  paymentProvider: text("payment_provider"),
+  paymentReference: text("payment_reference"),
+  paymentTransactionId: text("payment_transaction_id"),
+  currency: text("currency").notNull().default("AED"),
+  vatAmount: decimal("vat_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  customerEmail: text("customer_email"),
+  courier: text("courier"),
+  trackingNumber: text("tracking_number"),
   
   // COD fields
   codFee: decimal("cod_fee", { precision: 10, scale: 2 }),
@@ -335,8 +343,8 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
-  uniqueIndex("orders_razorpay_order_id_unique").on(table.razorpayOrderId),
-  uniqueIndex("orders_razorpay_payment_id_unique").on(table.razorpayPaymentId),
+  uniqueIndex("orders_payment_reference_unique").on(table.paymentReference),
+  uniqueIndex("orders_payment_transaction_id_unique").on(table.paymentTransactionId),
   index("orders_user_id_idx").on(table.userId),
   index("orders_created_at_idx").on(table.createdAt),
 ]);
@@ -444,103 +452,6 @@ export const marketingCampaigns = pgTable("marketing_campaigns", {
   index("marketing_campaigns_created_at_idx").on(table.createdAt),
 ]);
 
-// ============================================
-// CLOSED-LOOP WALLET
-// All stored-value arithmetic uses integer paise. The ledger is immutable;
-// account balances are a transactional projection for efficient reads.
-// ============================================
-
-export const walletAccounts = pgTable("wallet_accounts", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull().unique().references(() => user.id, { onDelete: "cascade" }),
-  availablePaise: integer("available_paise").notNull().default(0),
-  heldPaise: integer("held_paise").notNull().default(0),
-  isFrozen: boolean("is_frozen").notNull().default(false),
-  freezeReason: text("freeze_reason"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const walletLedgerEntries = pgTable("wallet_ledger_entries", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  walletAccountId: uuid("wallet_account_id").notNull().references(() => walletAccounts.id, { onDelete: "restrict" }),
-  type: walletEntryTypeEnum("type").notNull(),
-  amountPaise: integer("amount_paise").notNull(),
-  balanceAfterPaise: integer("balance_after_paise").notNull(),
-  referenceType: text("reference_type").notNull(),
-  referenceId: text("reference_id").notNull(),
-  note: text("note"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => [
-  uniqueIndex("wallet_ledger_reference_unique").on(table.referenceType, table.referenceId),
-  index("wallet_ledger_account_created_idx").on(table.walletAccountId, table.createdAt),
-]);
-
-export const walletTopUps = pgTable("wallet_top_ups", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
-  amountPaise: integer("amount_paise").notNull(),
-  idempotencyKey: text("idempotency_key").notNull(),
-  razorpayOrderId: text("razorpay_order_id").notNull().unique(),
-  razorpayPaymentId: text("razorpay_payment_id").unique(),
-  status: walletTopUpStatusEnum("status").notNull().default("created"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  settledAt: timestamp("settled_at"),
-}, (table) => [
-  uniqueIndex("wallet_top_up_user_idempotency_unique").on(table.userId, table.idempotencyKey),
-  index("wallet_top_up_user_created_idx").on(table.userId, table.createdAt),
-]);
-
-export const walletReservations = pgTable("wallet_reservations", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  walletAccountId: uuid("wallet_account_id").notNull().references(() => walletAccounts.id, { onDelete: "restrict" }),
-  amountPaise: integer("amount_paise").notNull(),
-  referenceType: text("reference_type").notNull(),
-  referenceId: text("reference_id").notNull(),
-  status: walletReservationStatusEnum("status").notNull().default("held"),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table) => [
-  uniqueIndex("wallet_reservation_reference_unique").on(table.referenceType, table.referenceId),
-  index("wallet_reservation_expiry_idx").on(table.status, table.expiresAt),
-]);
-
-export const walletCheckoutPayments = pgTable("wallet_checkout_payments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
-  quote: json("quote").notNull(),
-  shippingAddress: json("shipping_address").notNull(),
-  paymentMethod: text("payment_method").notNull(),
-  walletPaidPaise: integer("wallet_paid_paise").notNull().default(0),
-  externalPaidPaise: integer("external_paid_paise").notNull().default(0),
-  razorpayOrderId: text("razorpay_order_id").unique(),
-  razorpayPaymentId: text("razorpay_payment_id").unique(),
-  status: text("status").notNull().default("created"),
-  orderId: uuid("order_id").references(() => orders.id, { onDelete: "restrict" }),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table) => [index("wallet_checkout_payment_user_idx").on(table.userId, table.createdAt)]);
-
-export const walletRefunds = pgTable("wallet_refunds", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "restrict" }),
-  userId: text("user_id").notNull().references(() => user.id, { onDelete: "restrict" }),
-  adminUserId: text("admin_user_id").notNull().references(() => user.id, { onDelete: "restrict" }),
-  amountPaise: integer("amount_paise").notNull(),
-  reason: text("reason").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => [index("wallet_refund_order_idx").on(table.orderId)]);
-
-export const walletWebhookEvents = pgTable("wallet_webhook_events", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  providerEventId: text("provider_event_id").notNull().unique(),
-  payloadHash: text("payload_hash").notNull(),
-  eventType: text("event_type").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 export const marketingCampaignRecipients = pgTable("marketing_campaign_recipients", {
   id: uuid("id").defaultRandom().primaryKey(),
   campaignId: uuid("campaign_id")
@@ -573,6 +484,57 @@ export const marketingEmailSuppressions = pgTable("marketing_email_suppressions"
   uniqueIndex("marketing_email_suppressions_email_unique").on(table.email),
   index("marketing_email_suppressions_user_id_idx").on(table.userId),
 ]);
+
+// ============================================
+// HOSTED CARD CHECKOUT SESSIONS
+// The server-owned quote is frozen here while the customer pays on the
+// provider's hosted page. The order is created only after the provider
+// confirms payment (webhook or verified return).
+// ============================================
+
+export const checkoutSessions = pgTable("checkout_sessions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  providerSessionId: text("provider_session_id").unique(),
+  quote: json("quote").notNull(),
+  shippingAddress: json("shipping_address").notNull(),
+  amountMinor: integer("amount_minor").notNull(),
+  currency: text("currency").notNull().default("AED"),
+  status: text("status", { enum: ["created", "paid", "fulfilled", "expired", "failed", "paid_unfulfilled"] })
+    .notNull()
+    .default("created"),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  failureReason: text("failure_reason"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("checkout_sessions_user_created_idx").on(table.userId, table.createdAt),
+  index("checkout_sessions_status_idx").on(table.status),
+]);
+
+export const paymentWebhookEvents = pgTable("payment_webhook_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  provider: text("provider").notNull(),
+  providerEventId: text("provider_event_id").notNull(),
+  eventType: text("event_type").notNull(),
+  payloadHash: text("payload_hash").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("payment_webhook_events_provider_event_unique").on(table.provider, table.providerEventId),
+]);
+
+// ============================================
+// NEWSLETTER
+// ============================================
+
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull().unique(),
+  source: text("source").notNull().default("website"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 // ============================================
 // BARGAIN SESSIONS TABLE
@@ -623,7 +585,6 @@ export const userRelations = relations(user, ({ many }) => ({
   marketingCampaigns: many(marketingCampaigns),
   marketingRecipients: many(marketingCampaignRecipients),
   marketingSuppressions: many(marketingEmailSuppressions),
-  tryOnRuns: many(productTryOnRuns),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -646,17 +607,21 @@ export const productsRelations = relations(products, ({ many }) => ({
   variants: many(productVariants),
   combosAsA: many(combos, { relationName: "comboProductA" }),
   combosAsB: many(combos, { relationName: "comboProductB" }),
-  tryOnRuns: many(productTryOnRuns),
+  collections: many(collectionProducts),
 }));
 
-export const productTryOnRunsRelations = relations(productTryOnRuns, ({ one }) => ({
-  product: one(products, {
-    fields: [productTryOnRuns.productId],
-    references: [products.id],
+export const collectionsRelations = relations(collections, ({ many }) => ({
+  products: many(collectionProducts),
+}));
+
+export const collectionProductsRelations = relations(collectionProducts, ({ one }) => ({
+  collection: one(collections, {
+    fields: [collectionProducts.collectionId],
+    references: [collections.id],
   }),
-  user: one(user, {
-    fields: [productTryOnRuns.userId],
-    references: [user.id],
+  product: one(products, {
+    fields: [collectionProducts.productId],
+    references: [products.id],
   }),
 }));
 

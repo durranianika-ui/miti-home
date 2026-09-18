@@ -124,8 +124,8 @@ export function ProductAssistant({ productContext }: ProductAssistantProps) {
                     <div className="p-4 bg-background border-b border-foreground/10 flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                             <span className="relative flex h-1.5 w-1.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-accent opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-accent"></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand"></span>
                             </span>
                             <span className="font-bold tracking-[0.25em] uppercase text-[10px] text-foreground">Xilar Bot</span>
                             {productContext && (
@@ -167,9 +167,9 @@ export function ProductAssistant({ productContext }: ProductAssistantProps) {
                             <div className="flex justify-start">
                                 <div className="bg-card border border-foreground/10 rounded-none p-3.5 text-xs">
                                     <div className="flex gap-1.5 items-center">
-                                        <span className="xilar-thinking-dot h-1.5 w-1.5 rounded-full bg-red-accent" style={{ animationDelay: '0ms' }} />
-                                        <span className="xilar-thinking-dot h-1.5 w-1.5 rounded-full bg-red-accent" style={{ animationDelay: '150ms' }} />
-                                        <span className="xilar-thinking-dot h-1.5 w-1.5 rounded-full bg-red-accent" style={{ animationDelay: '300ms' }} />
+                                        <span className="miti-thinking-dot h-1.5 w-1.5 rounded-full bg-brand" style={{ animationDelay: '0ms' }} />
+                                        <span className="miti-thinking-dot h-1.5 w-1.5 rounded-full bg-brand" style={{ animationDelay: '150ms' }} />
+                                        <span className="miti-thinking-dot h-1.5 w-1.5 rounded-full bg-brand" style={{ animationDelay: '300ms' }} />
                                     </div>
                                 </div>
                             </div>
@@ -203,7 +203,7 @@ export function ProductAssistant({ productContext }: ProductAssistantProps) {
                             type="submit" 
                             size="icon" 
                             aria-label="Send message"
-                            className="h-9 w-9 rounded-none bg-foreground text-background hover:bg-red-accent hover:text-white border-0 transition-colors"
+                            className="h-9 w-9 rounded-none bg-foreground text-background hover:bg-brand hover:text-white border-0 transition-colors"
                             disabled={isLoading || !input.trim()}
                         >
                             {isLoading ? (

@@ -13,6 +13,9 @@ import { getWishlistNavState } from "@/lib/actions/wishlist";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import { ANNOUNCEMENT_MESSAGES } from "@/lib/constants";
 import { normalizeProductImage } from "@/lib/image";
+import { formatPrice } from "@/lib/money";
+import { Wordmark } from "@/components/brand/wordmark";
+import type { NavigationData } from "@/lib/navigation";
 import { buildProductPath } from "@/lib/seo";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import gsap from "gsap";
@@ -120,7 +123,7 @@ function StaggeredAnnouncementText({
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="inline-flex items-center justify-center overflow-hidden py-1 gap-x-1 md:gap-x-1.5 text-[9px] font-normal uppercase tracking-[0.22em] text-neutral-400 dark:text-neutral-600 sm:text-[10px] md:text-xs md:tracking-[0.26em] w-full max-w-full"
+      className="inline-flex items-center justify-center overflow-hidden py-1 gap-x-1 md:gap-x-1.5 font-heading text-[9px] font-normal uppercase tracking-[0.22em] text-[#d9d0c2] dark:text-[#5f564d] sm:text-[10px] md:text-[11px] md:tracking-[0.28em] w-full max-w-full"
     >
       {words.map((word, idx) => (
         <span key={idx} className="relative inline-block overflow-hidden">
@@ -137,37 +140,27 @@ function StaggeredAnnouncementText({
 }
 
 
-const overlayLinks = [
-  { href: "/shop/men", label: "Men", img: "/hero/image(7).webp" },
-  { href: "/shop/women", label: "Women", img: "/hero/image(12).webp" },
-  { href: "/shop/accessories", label: "Accessories", img: "/hero/image(13).webp" },
-  { href: "/collections/premium", label: "Premium", img: "/hero/image(2).webp" },
-  { href: "/collections/summer-26", label: "Summer '26", img: "/hero/image(3).webp" },
-];
-
 const utilityLinks = [
+  { href: "/about", label: "Our Story" },
   { href: "/gallery", label: "Gallery" },
-  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
   { href: "/account", label: "Account" },
   { href: "/orders", label: "Orders" },
   { href: "/wishlist", label: "Wishlist" },
-  { href: "/policies", label: "Policies" },
 ];
 
-const searchableCatalogPaths = new Set([
-  "/shop",
-  "/shop/men",
-  "/shop/women",
-  "/shop/accessories",
-  "/collections/premium",
-  "/new",
-]);
+const LISTING_PATHS = new Set(["/shop", "/new", "/best-sellers", "/sale"]);
+
+function isSearchableListing(pathname: string) {
+  return LISTING_PATHS.has(pathname) || pathname.startsWith("/shop/") || pathname.startsWith("/collections/");
+}
 
 type SearchSuggestion = {
   id: string;
   slug: string;
   name: string;
   category: string;
+  categoryName?: string | null;
   sellingPrice: string;
   images: string[];
 };
@@ -264,7 +257,7 @@ function CatalogSearchOverlay({
   }, [showSearch]);
 
   const getSearchHref = (query: string) => {
-    const targetPath = searchableCatalogPaths.has(pathname) ? pathname : "/shop";
+    const targetPath = isSearchableListing(pathname) ? pathname : "/shop";
     return `${targetPath}?search=${encodeURIComponent(query)}`;
   };
 
@@ -363,11 +356,11 @@ function CatalogSearchOverlay({
             >
               <input
                 type="text"
-                placeholder="WHAT ARE YOU LOOKING FOR?"
+                placeholder="Search Miti Home"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Search for products"
-                className="w-full bg-transparent border-b border-foreground/20 text-3xl md:text-5xl lg:text-6xl uppercase font-light pb-4 outline-none transition-colors placeholder:text-muted-foreground/30 font-display"
+                className="w-full bg-transparent border-b border-foreground/20 text-3xl md:text-5xl lg:text-6xl font-light pb-4 outline-none transition-colors placeholder:text-muted-foreground/40 font-display"
               />
               <motion.div 
                 initial={{ scaleX: 0 }}
@@ -380,7 +373,7 @@ function CatalogSearchOverlay({
                 whileHover={{ x: 4 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 type="submit" 
-                className="absolute right-0 bottom-6 -mr-1 rounded-md p-1 text-foreground hover:text-red-accent transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/60"
+                className="absolute right-0 bottom-6 -mr-1 rounded-md p-1 text-foreground hover:text-brand transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/60"
                 aria-label="Submit search"
               >
                 <ArrowRight className="h-8 w-8 md:h-10 md:w-10 stroke-[1.5]" />
@@ -425,7 +418,7 @@ function CatalogSearchOverlay({
                             }}
                             className="group grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 border-b border-border/70 pb-3 text-left"
                           >
-                            <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                            <div className="relative aspect-square overflow-hidden bg-muted">
                               <Image
                                 src={normalizeProductImage(product.images?.[0])}
                                 alt={product.name}
@@ -436,15 +429,15 @@ function CatalogSearchOverlay({
                             </div>
                             <div className="min-w-0 transition-transform duration-300 group-hover:translate-x-1.5">
                               <p className="truncate text-sm font-medium uppercase tracking-[0.08em] text-foreground/70 transition-colors duration-300 group-hover:text-foreground">{product.name}</p>
-                              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{product.category}</p>
+                              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{product.categoryName ?? product.category}</p>
                             </div>
-                            <p className="text-sm font-semibold tabular-nums text-foreground/70 transition-colors duration-300 group-hover:text-foreground">₹{Number(product.sellingPrice).toLocaleString("en-IN")}</p>
+                            <p className="text-sm font-semibold tabular-nums text-foreground/70 transition-colors duration-300 group-hover:text-foreground">{formatPrice(product.sellingPrice)}</p>
                           </Link>
                         </motion.div>
                       ))}
                     </motion.div>
                   ) : !isLoadingSuggestions ? (
-                    <p className="text-sm text-muted-foreground">No exact matches yet. View all results for broader matches.</p>
+                    <p className="text-sm text-muted-foreground">Nothing matches that yet. Try a room, a material or a colour, such as vase, silver or lighting.</p>
                   ) : null}
                   <button
                     type="button"
@@ -452,7 +445,7 @@ function CatalogSearchOverlay({
                       router.push(getSearchHref(searchQuery.trim()));
                       setShowSearch(false);
                     }}
-                    className="group inline-flex items-center gap-2 rounded-sm text-xs font-medium uppercase tracking-[0.16em] text-foreground transition-colors hover:text-red-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/60"
+                    className="group inline-flex items-center gap-2 rounded-sm text-xs font-medium uppercase tracking-[0.16em] text-foreground transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/60"
                   >
                     View all results
                     <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -460,7 +453,7 @@ function CatalogSearchOverlay({
                 </div>
               ) : (
                 <div className="flex flex-col gap-6">
-                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Trending Searches</p>
+                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Popular right now</p>
                   {suggestions.length > 0 && (
                     <motion.div
                       key={`trending-products-${suggestions.length}`}
@@ -489,7 +482,7 @@ function CatalogSearchOverlay({
                             }}
                             className="group grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-4 border-b border-border/70 pb-3 text-left"
                           >
-                            <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                            <div className="relative aspect-square overflow-hidden bg-muted">
                               <Image
                                 src={normalizeProductImage(product.images?.[0])}
                                 alt={product.name}
@@ -500,9 +493,9 @@ function CatalogSearchOverlay({
                             </div>
                             <div className="min-w-0 transition-transform duration-300 group-hover:translate-x-1.5">
                               <p className="truncate text-sm font-medium uppercase tracking-[0.08em] text-foreground/70 transition-colors duration-300 group-hover:text-foreground">{product.name}</p>
-                              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{product.category}</p>
+                              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{product.categoryName ?? product.category}</p>
                             </div>
-                            <p className="text-sm font-semibold tabular-nums text-foreground/70 transition-colors duration-300 group-hover:text-foreground">₹{Number(product.sellingPrice).toLocaleString("en-IN")}</p>
+                            <p className="text-sm font-semibold tabular-nums text-foreground/70 transition-colors duration-300 group-hover:text-foreground">{formatPrice(product.sellingPrice)}</p>
                           </Link>
                         </motion.div>
                       ))}
@@ -548,7 +541,8 @@ function CatalogSearchOverlay({
   );
 }
 
-export function Navbar() {
+export function Navbar({ navigation }: { navigation: NavigationData }) {
+  const overlayLinks = navigation.menu;
   const { totalItems, setIsOpen, isHydrated: isCartHydrated } = useCart();
   const { data: wishlistNavState } = useQuery({
     queryKey: ["wishlist-nav"],
@@ -559,7 +553,7 @@ export function Navbar() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   
-  const [previewImage, setPreviewImage] = useState(overlayLinks[0].img);
+  const [previewImage, setPreviewImage] = useState<string | null>(overlayLinks[0]?.img ?? null);
   const [announcementIndex, setAnnouncementIndex] = useState(0);
   const firstMenuLinkRef = useRef<HTMLAnchorElement>(null);
   const shouldReduceMotion = useReducedMotion();
@@ -588,7 +582,7 @@ export function Navbar() {
       return;
     }
 
-    const links = gsap.utils.toArray<HTMLElement>("[data-xilar-menu-animate]");
+    const links = gsap.utils.toArray<HTMLElement>("[data-miti-menu-animate]");
 
     if (showMobileMenu) {
       document.body.style.overflow = "hidden";
@@ -779,13 +773,13 @@ export function Navbar() {
     } else {
       document.body.classList.remove("mobile-menu-open");
     }
-    window.dispatchEvent(new CustomEvent("xilar-mobile-menu", { detail: { open: showMobileMenu } }));
+    window.dispatchEvent(new CustomEvent("miti-mobile-menu", { detail: { open: showMobileMenu } }));
   }, [showMobileMenu]);
 
   return (
     <div ref={navContainerRef} className="contents">
       {/* Rotating announcement bar */}
-      <div ref={announcementRef} className="w-full bg-[#0a0a0a] dark:bg-neutral-100 border-b border-white/[0.04] dark:border-neutral-200 py-1 select-none">
+      <div ref={announcementRef} className="w-full bg-[#141312] dark:bg-[#efebe4] border-b border-white/[0.04] dark:border-[#e2dbd0] py-1 select-none">
         <div className="mx-auto flex max-w-7xl items-center justify-center px-4 md:px-8 h-7">
           <div className="h-7 w-full overflow-hidden text-center flex items-center justify-center">
             <AnimatePresence mode="wait" initial={false}>
@@ -852,16 +846,11 @@ export function Navbar() {
             </button>
 
             <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
-              {[
-                { href: "/shop/men", label: "For Him" },
-                { href: "/shop/women", label: "For Her" },
-                { href: "/new", label: "New Drop" },
-                { href: "/collections/premium", label: "Collections" },
-              ].map((link) => (
+              {navigation.primary.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="group relative px-3 py-1.5 tracking-[0.15em] uppercase text-[11px] font-medium text-muted-foreground transition-colors duration-300 hover:text-foreground"
+                  className="group relative px-3 py-1.5 font-heading tracking-[0.15em] uppercase text-[11px] font-medium text-muted-foreground transition-colors duration-300 hover:text-foreground"
                 >
                   <StaggeredTextRoll text={link.label} shouldReduceMotion={shouldReduceMotion} />
                 </Link>
@@ -870,8 +859,8 @@ export function Navbar() {
           </div>
 
           {/* Center: Logo */}
-          <Link href="/" className="flex-shrink-0 flex items-center justify-center">
-            <span className="font-[family-name:var(--font-instrument-serif)] text-3xl md:text-4xl text-foreground">Xilar</span>
+          <Link href="/" className="flex-shrink-0 flex items-center justify-center" aria-label="Miti Home, home page">
+            <Wordmark className="text-[13px] sm:text-[15px] md:text-[19px]" />
           </Link>
 
           {/* Right: Actions */}
@@ -889,28 +878,29 @@ export function Navbar() {
 
             <Link
               href="/account"
-              className="group relative hidden px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors duration-300 hover:text-foreground sm:block"
+              className="group relative hidden px-3 py-1.5 font-heading text-[11px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors duration-300 hover:text-foreground lg:block"
             >
-              <StaggeredTextRoll text="ACCOUNT" shouldReduceMotion={shouldReduceMotion} />
+              <StaggeredTextRoll text="Account" shouldReduceMotion={shouldReduceMotion} />
             </Link>
 
             <Link
               href="/wishlist"
-              className="group relative hidden px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors duration-300 hover:text-foreground md:block"
+              className="group relative hidden px-3 py-1.5 font-heading text-[11px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors duration-300 hover:text-foreground lg:block"
             >
               <StaggeredTextRoll 
-                text={`WISHLIST ${wishlistNavState?.count ? `(${wishlistNavState.count})` : ""}`}
+                text={`Wishlist${wishlistNavState?.count ? ` (${wishlistNavState.count})` : ""}`}
                 shouldReduceMotion={shouldReduceMotion} 
               />
             </Link>
 
             <button
               type="button"
-              className="group relative px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors duration-300 hover:text-foreground"
+              className="group relative px-2 py-1.5 font-heading text-[11px] font-medium uppercase tracking-[0.15em] text-muted-foreground transition-colors duration-300 hover:text-foreground sm:px-3"
               onClick={() => setIsOpen(true)}
+              aria-label={`Open bag, ${isCartHydrated ? totalItems : 0} items`}
             >
               <StaggeredTextRoll 
-                text={`CART [${isCartHydrated ? totalItems : 0}]`} 
+                text={`Bag (${isCartHydrated ? totalItems : 0})`} 
                 shouldReduceMotion={shouldReduceMotion} 
               />
             </button>
@@ -951,8 +941,8 @@ export function Navbar() {
           }}
         >
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center" onClick={() => setShowMobileMenu(false)}>
-              <span className="font-[family-name:var(--font-instrument-serif)] text-3xl md:text-4xl text-foreground">Xilar</span>
+            <Link href="/" className="flex items-center" onClick={() => setShowMobileMenu(false)} aria-label="Miti Home, home page">
+              <Wordmark className="text-[15px] md:text-[19px]" />
             </Link>
             <Button
               variant="ghost"
@@ -968,6 +958,7 @@ export function Navbar() {
           <div className="grid min-h-0 flex-1 content-center gap-5 py-3 md:grid-cols-[0.85fr_1.15fr] md:items-stretch md:gap-12 md:py-6">
             <div className="relative hidden h-full overflow-hidden bg-muted md:block">
               <AnimatePresence mode="popLayout">
+                {previewImage && (
                 <motion.div
                   key={previewImage}
                   initial={{ opacity: 0, scale: 1.14, rotate: 4 }}
@@ -979,17 +970,18 @@ export function Navbar() {
                 >
                   <Image src={previewImage} alt="" fill sizes="34vw" className="object-cover" />
                 </motion.div>
+                )}
               </AnimatePresence>
               <div className="absolute inset-0 bg-black/10" />
             </div>
 
             <div>
               <p
-                data-xilar-menu-animate
+                data-miti-menu-animate
                 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground md:mb-5"
                 style={{ transform: "translateY(120%)", opacity: 0.25, willChange: "transform" }}
               >
-                Discover
+                Shop by category
               </p>
               <nav className="flex flex-col">
                 {overlayLinks.map((link, i) => (
@@ -1000,8 +992,8 @@ export function Navbar() {
                     <Link
                       ref={i === 0 ? firstMenuLinkRef : undefined}
                       href={link.href}
-                      data-xilar-menu-animate
-                      className="group flex items-center justify-between py-2 font-display text-[clamp(2.65rem,13vw,5.4rem)] leading-[0.84] text-foreground transition-colors duration-500 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:py-3 md:text-5xl lg:text-6xl"
+                      data-miti-menu-animate
+                      className="group flex items-center justify-between gap-4 py-2 font-display text-[clamp(1.5rem,6.6vw,3rem)] leading-[1.05] text-foreground transition-colors duration-500 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:py-3 md:text-4xl lg:text-[2.75rem]"
                       style={{
                         transform: "translateY(120%)",
                         opacity: 0.25,
@@ -1009,8 +1001,8 @@ export function Navbar() {
                         width: "100%",
                         willChange: "transform",
                       }}
-                      onPointerEnter={() => setPreviewImage(link.img)}
-                      onFocus={() => setPreviewImage(link.img)}
+                      onPointerEnter={() => link.img && setPreviewImage(link.img)}
+                      onFocus={() => link.img && setPreviewImage(link.img)}
                       onClick={() => setShowMobileMenu(false)}
                     >
                       <span>{link.label}</span>
@@ -1025,7 +1017,7 @@ export function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    data-xilar-menu-animate
+                    data-miti-menu-animate
                     className="w-fit transition-colors duration-300 hover:text-foreground"
                     style={{
                       transform: "translateY(120%)",
@@ -1044,28 +1036,28 @@ export function Navbar() {
           <div className="flex flex-row items-center justify-between gap-3 border-t border-border/70 pt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:text-xs sm:tracking-[0.2em]">
             <Link
               href="/policies/shipping"
-              data-xilar-menu-animate
+              data-miti-menu-animate
               style={{ transform: "translateY(120%)", opacity: 0.25, willChange: "transform" }}
               onClick={() => setShowMobileMenu(false)}
               className="hover:text-foreground"
             >
-              Shipping
+              Delivery
             </Link>
             <span
-              data-xilar-menu-animate
+              data-miti-menu-animate
               style={{ transform: "translateY(120%)", opacity: 0.25, willChange: "transform" }}
               className="hidden sm:inline"
             >
-              Lucknow / Streetwise Minimalism
+              Dubai / Luxury Living
             </span>
             <Link
-              href="/gallery"
-              data-xilar-menu-animate
+              href="/policies"
+              data-miti-menu-animate
               style={{ transform: "translateY(120%)", opacity: 0.25, willChange: "transform" }}
               onClick={() => setShowMobileMenu(false)}
               className="hover:text-foreground"
             >
-              Open Gallery
+              Policies
             </Link>
           </div>
         </div>

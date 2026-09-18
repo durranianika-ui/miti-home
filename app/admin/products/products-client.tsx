@@ -286,7 +286,7 @@ export function AdminProductsClient({ initialPage }: { initialPage: AdminProduct
                         </span>
                       )}
                       {product.isFeatured && (
-                        <span className="ml-2 inline-flex items-center rounded-full bg-red-accent/10 px-2 py-1 text-xs text-red-accent">
+                        <span className="ml-2 inline-flex items-center rounded-full bg-brand/10 px-2 py-1 text-xs text-brand">
                           Best Seller
                         </span>
                       )}

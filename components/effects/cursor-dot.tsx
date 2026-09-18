@@ -89,7 +89,7 @@ export function CursorDot() {
     if (!dot || !ring) return;
 
     // Add cursor-hidden class to body
-    document.body.classList.add("xilar-custom-cursor");
+    document.body.classList.add("miti-custom-cursor");
 
     let currentState: CursorState = "default";
     let mouseX = -100;
@@ -205,7 +205,7 @@ export function CursorDot() {
       window.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerover", onOver);
       document.removeEventListener("pointerout", onOut);
-      document.body.classList.remove("xilar-custom-cursor");
+      document.body.classList.remove("miti-custom-cursor");
       gsap.killTweensOf([dot, ring]);
     };
   }, [mounted, shouldReduceMotion, isAdmin]);

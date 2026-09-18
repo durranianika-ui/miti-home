@@ -127,7 +127,7 @@ export function WishlistClient({
                     <h3 className="text-sm font-medium leading-tight tracking-tight">{item.name}</h3>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-semibold tabular-nums">{formatPrice(item.sellingPrice)}</span>
-                      <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${item.stock > 0 ? "text-muted-foreground" : "text-red-accent"}`}>
+                      <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${item.stock > 0 ? "text-muted-foreground" : "text-brand"}`}>
                         {item.stock > 0 ? "In stock" : "Unavailable"}
                       </span>
                     </div>

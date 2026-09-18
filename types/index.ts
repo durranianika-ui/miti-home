@@ -7,13 +7,16 @@ export interface Product {
   mrp: string;
   sellingPrice: string;
   maxBargainDiscount: string;
-  category: "tshirt" | "cargo" | "jogger" | "shirt" | "jeans" | "hoodie" | "jacket" | "shorts" | "accessory";
-  gender: "men" | "women" | "unisex";
+  /** Slug of a row in `categories`. */
+  category: string;
+  sku: string | null;
   tags: string[];
   stock: number;
   images: string[];
-  fabric: string | null;
-  gsm: number | null;
+  material: string | null;
+  dimensions: string | null;
+  sizeLabel: string;
+  colorLabel: string;
   careInstructions: string[];
   features: string[];
   sizes: string[];
@@ -21,7 +24,6 @@ export interface Product {
   variants?: ProductVariant[];
   isNew: boolean;
   isFeatured: boolean;
-  isPremium: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -69,7 +71,7 @@ export interface Order {
   couponDiscount: string | null;
   bargainDiscount: string | null;
   bargainScore: number | null;
-  shippingAddress: ShippingAddress | null;
+  shippingAddress: import("@/lib/db/schema").SavedShippingAddress | null;
   paymentMethod: string | null;
   paymentStatus: string | null;
   createdAt: Date;
@@ -91,14 +93,7 @@ export interface OrderItem {
   createdAt: Date;
 }
 
-export interface ShippingAddress {
-  name: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-}
+export type { SavedShippingAddress as ShippingAddress } from "@/lib/db/schema";
 
 // Coupon types
 export interface Coupon {
@@ -127,7 +122,7 @@ export interface BargainContext {
   sellingPrice: number;
   maxBargainDiscount: number;
   category?: string;
-  fabric?: string;
+  material?: string;
   features?: string[];
 }
 

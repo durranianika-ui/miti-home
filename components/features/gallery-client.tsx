@@ -126,7 +126,7 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.id = `tile-${key}`;
-        btn.setAttribute("data-xilar-gallery-card", "true");
+        btn.setAttribute("data-miti-gallery-card", "true");
         btn.className = "absolute overflow-hidden bg-muted/40 text-left opacity-100 shadow-2xl shadow-black/10";
         
         const left = col * cellWidth;
@@ -188,7 +188,7 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
     const state = stateRef.current;
     if (!shouldReduceMotion && !introRanRef.current) {
       introRanRef.current = true;
-      const allCards = gsap.utils.toArray<HTMLElement>("[data-xilar-gallery-card]");
+      const allCards = gsap.utils.toArray<HTMLElement>("[data-miti-gallery-card]");
       if (allCards.length > 0) {
         state.canDrag = false;
 
@@ -368,11 +368,11 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
     const targetLeft = (window.innerWidth - targetWidth) / 2;
     const targetTop = (window.innerHeight - targetHeight) / 2;
 
-    gsap.killTweensOf([card, text, "[data-xilar-gallery-card]"]);
+    gsap.killTweensOf([card, text, "[data-miti-gallery-card]"]);
 
     const timeline = gsap.timeline();
 
-    timeline.to("[data-xilar-gallery-card]", {
+    timeline.to("[data-miti-gallery-card]", {
       opacity: 0,
       duration: 0.3,
       ease: "power2.out",
@@ -444,7 +444,7 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
     state.startX = event.clientX;
     state.startY = event.clientY;
     state.lastDragTime = Date.now();
-    if (!(event.target as HTMLElement).closest("[data-xilar-gallery-card]")) {
+    if (!(event.target as HTMLElement).closest("[data-miti-gallery-card]")) {
       containerRef.current?.setPointerCapture(event.pointerId);
     }
   };
@@ -519,7 +519,7 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
     timeline.to(text, { opacity: 0, duration: 0.18, ease: "power2.out" }, 0.32);
 
     // Fade gallery tiles back to visible (they were set to opacity:0 on expand)
-    timeline.to("[data-xilar-gallery-card]", {
+    timeline.to("[data-miti-gallery-card]", {
       opacity: 1,
       duration: 0.5,
       ease: "power2.out",
@@ -628,7 +628,7 @@ export function GalleryClient({ items }: { items: XilarGalleryItem[] }) {
         <Button
           data-gallery-detail
           asChild
-          className="mt-5 rounded-full bg-white px-6 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-950 pointer-events-auto hover:bg-red-accent hover:text-white"
+          className="mt-5 rounded-full bg-white px-6 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-950 pointer-events-auto hover:bg-brand hover:text-white"
         >
           <Link href={active.item.href}>
             Shop product

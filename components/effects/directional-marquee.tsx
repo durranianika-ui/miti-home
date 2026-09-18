@@ -4,17 +4,14 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useReducedMotion } from "framer-motion";
 
-const DEFAULT_ITEMS = [
-  "Future Wear",
-  "New Drops",
-  "Bargain Smarter",
-  "Free Shipping Above Rs. 999",
-];
+import { MARQUEE_PHRASES } from "@/lib/merchandising";
+
+const DEFAULT_ITEMS = MARQUEE_PHRASES;
 
 function ArrowGlyph() {
   return (
     <span
-      className="mx-5 inline-flex h-8 w-6 shrink-0 items-center justify-center md:mx-8 md:h-11 md:w-8"
+      className="mx-6 inline-flex h-7 w-5 shrink-0 items-center justify-center text-[#c8a96a] md:mx-10 md:h-10 md:w-7"
       aria-hidden="true"
     >
       <svg viewBox="0 0 72 100" className="h-full w-full fill-current">
@@ -106,9 +103,9 @@ export function DirectionalMarquee({ items = DEFAULT_ITEMS }: { items?: string[]
         tweenRef.current?.play();
       }
     };
-    window.addEventListener("xilar-mobile-menu", handleMenuToggle);
+    window.addEventListener("miti-mobile-menu", handleMenuToggle);
     return () => {
-      window.removeEventListener("xilar-mobile-menu", handleMenuToggle);
+      window.removeEventListener("miti-mobile-menu", handleMenuToggle);
     };
   }, []);
 
@@ -117,8 +114,8 @@ export function DirectionalMarquee({ items = DEFAULT_ITEMS }: { items?: string[]
   return (
     <section
       ref={rootRef}
-      className="relative overflow-hidden border-y border-border/70 bg-foreground py-3 text-background md:py-4"
-      aria-label="XILAR highlights"
+      className="relative overflow-hidden border-y border-border/70 bg-[#141312] py-4 text-[#f2eee7] md:py-6"
+      aria-label="Miti Home promises"
     >
       <div data-marquee-track className="flex w-fit flex-row whitespace-nowrap will-change-transform">
         {[0, 1].map((group) => (
@@ -126,7 +123,7 @@ export function DirectionalMarquee({ items = DEFAULT_ITEMS }: { items?: string[]
             {sequence.map((item, index) => (
               <div
                 key={`${group}-${item}-${index}`}
-                className="flex shrink-0 items-center text-2xl font-black uppercase leading-none tracking-normal md:text-5xl lg:text-6xl"
+                className="flex shrink-0 items-center font-heading text-xl font-light uppercase leading-none tracking-[0.18em] md:text-4xl lg:text-5xl"
               >
                 <span>{item}</span>
                 <span

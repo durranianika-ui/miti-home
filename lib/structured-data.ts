@@ -1,13 +1,13 @@
+import { BRAND, SOCIAL_LINKS } from "./brand.ts";
 import {
   buildAbsoluteUrl,
   buildProductUrl,
+  DEFAULT_OG_IMAGE,
   SEO_CONTACT,
   SEO_SHIPPING,
   SITE_DESCRIPTION,
   SITE_NAME,
 } from "./seo.ts";
-
-const PRICE_VALID_UNTIL = "2026-12-31";
 
 type CollectionProduct = {
   name: string;
@@ -20,47 +20,33 @@ export function organizationJsonLd(baseUrl: string) {
   return {
     "@context": "https://schema.org",
     "@type": "OnlineStore",
+    "@id": `${baseUrl}/#organization`,
     name: SITE_NAME,
-    alternateName: "XILAR The Future Wear",
+    alternateName: `${SITE_NAME} — ${BRAND.tagline}`,
+    slogan: BRAND.promise,
     url: baseUrl,
-    logo: buildAbsoluteUrl("/logo.jpeg", baseUrl),
-    image: buildAbsoluteUrl("/logo.jpeg", baseUrl),
+    logo: buildAbsoluteUrl("/brand/miti-home-logo.png", baseUrl),
+    image: buildAbsoluteUrl(DEFAULT_OG_IMAGE, baseUrl),
     description: SITE_DESCRIPTION,
-    foundingDate: "2025",
-    founder: [
-      {
-        "@type": "Person",
-        name: "Aman Somvanshi",
-        jobTitle: "Founder",
-      },
-      {
-        "@type": "Person",
-        "@id": "https://fateless.dev/#person",
-        name: "Aditya Singh",
-        jobTitle: "CTO",
-        alternateName: ["fatelessdev", "fate1ess"],
-        url: "https://fateless.dev",
-      },
-    ],
     address: {
       "@type": "PostalAddress",
       addressLocality: SEO_CONTACT.locality,
-      addressRegion: SEO_CONTACT.region,
       addressCountry: SEO_CONTACT.country,
     },
     areaServed: {
       "@type": "Country",
-      name: "India",
+      name: BRAND.country,
     },
+    currenciesAccepted: SEO_SHIPPING.currency,
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: SEO_CONTACT.phone,
       contactType: "customer service",
       email: SEO_CONTACT.email,
+      ...(SEO_CONTACT.phone ? { telephone: SEO_CONTACT.phone } : {}),
       availableLanguage: SEO_CONTACT.availableLanguage,
-      areaServed: "IN",
+      areaServed: SEO_CONTACT.country,
     },
-    sameAs: [],
+    sameAs: SOCIAL_LINKS.map((link) => link.href),
   };
 }
 
@@ -68,14 +54,12 @@ export function webSiteJsonLd(baseUrl: string) {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${baseUrl}/#website`,
     name: SITE_NAME,
     url: baseUrl,
-    description: "Premium Indian streetwear for oversized tees, cargos, joggers, hoodies, and everyday drops.",
-    publisher: {
-      "@type": "Organization",
-      name: SITE_NAME,
-      url: baseUrl,
-    },
+    inLanguage: "en-AE",
+    description: BRAND.shortDescription,
+    publisher: { "@id": `${baseUrl}/#organization` },
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -149,6 +133,12 @@ export function collectionJsonLd(
   };
 }
 
+function priceValidUntil(from = new Date()) {
+  const date = new Date(from);
+  date.setUTCFullYear(date.getUTCFullYear() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
 export function productJsonLd(
   baseUrl: string,
   product: {
@@ -159,8 +149,11 @@ export function productJsonLd(
     mrp: string;
     stock: number;
     id: string;
+    sku?: string | null;
     slug: string;
     category: string;
+    categoryName?: string | null;
+    material?: string | null;
     brand?: string;
     sizes?: string[] | null;
     colors?: { name: string; hex: string }[] | null;
@@ -168,38 +161,35 @@ export function productJsonLd(
   }
 ) {
   const price = parseFloat(product.sellingPrice);
-  const mrp = parseFloat(product.mrp);
-  const hasDiscount = mrp > price;
+  const sizes = (product.sizes ?? []).filter((size) => size !== "Standard");
 
   return {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description || `Shop ${product.name} from XILAR.`,
+    description: product.description || `${product.name} — curated by ${SITE_NAME}.`,
     image: product.images?.length
       ? product.images.map((image) => buildAbsoluteUrl(image, baseUrl))
-      : [buildAbsoluteUrl("/logo.jpeg", baseUrl)],
+      : [buildAbsoluteUrl(DEFAULT_OG_IMAGE, baseUrl)],
     brand: {
       "@type": "Brand",
       name: product.brand || SITE_NAME,
     },
-    sku: product.id,
+    sku: product.sku || product.slug,
     mpn: product.slug,
-    category: product.category,
-    ...(product.updatedAt ? { releaseDate: product.updatedAt.toISOString() } : {}),
-    ...(product.sizes?.length ? { size: product.sizes } : {}),
+    category: product.categoryName || product.category,
+    ...(product.material ? { material: product.material } : {}),
+    ...(sizes.length ? { size: sizes } : {}),
     ...(product.colors?.length ? { color: product.colors.map((c) => c.name) } : {}),
     offers: {
       "@type": "Offer",
       priceCurrency: SEO_SHIPPING.currency,
       price: price.toFixed(2),
+      priceValidUntil: priceValidUntil(product.updatedAt ?? undefined),
       availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
       url: buildProductUrl(product.slug, baseUrl),
-      seller: {
-        "@type": "Organization",
-        name: SITE_NAME,
-      },
+      seller: { "@id": `${baseUrl}/#organization` },
       shippingDetails: {
         "@type": "OfferShippingDetails",
         shippingRate: {
@@ -213,30 +203,19 @@ export function productJsonLd(
         },
         deliveryTime: {
           "@type": "ShippingDeliveryTime",
-          handlingTime: {
-            "@type": "QuantitativeValue",
-            minValue: 1,
-            maxValue: 2,
-            unitCode: "DAY",
-          },
-          transitTime: {
-            "@type": "QuantitativeValue",
-            minValue: 3,
-            maxValue: 7,
-            unitCode: "DAY",
-          },
+          handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
+          transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 3, unitCode: "DAY" },
         },
       },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: SEO_SHIPPING.country,
         returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
-        merchantReturnDays: 2,
+        merchantReturnDays: 7,
         returnMethod: "https://schema.org/ReturnByMail",
-        returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
+        returnFees: "https://schema.org/FreeReturn",
         url: buildAbsoluteUrl("/policies/returns", baseUrl),
       },
-      ...(hasDiscount ? { priceValidUntil: PRICE_VALID_UNTIL } : {}),
     },
   };
 }

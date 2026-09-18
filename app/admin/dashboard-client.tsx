@@ -184,7 +184,7 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
                 <Plus className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
               <div>
-                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-red-accent transition-colors">
+                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand transition-colors">
                   Add New Product
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -202,7 +202,7 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
                 <Plus className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
               <div>
-                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-red-accent transition-colors">
+                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand transition-colors">
                   Create Coupon
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -220,7 +220,7 @@ export function AdminDashboardClient({ initialStats }: { initialStats: Dashboard
                 <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
               </div>
               <div>
-                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-red-accent transition-colors">
+                <h3 className="text-lg font-bold uppercase tracking-tight group-hover:text-brand transition-colors">
                   Manage Orders
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">

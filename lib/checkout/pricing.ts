@@ -1,6 +1,8 @@
 import { COD_FEE, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "../constants.ts";
+import { vatPortion } from "../money.ts";
 
-export type CheckoutPaymentMethod = "cod" | "upi" | "card" | "netbanking";
+/** "card" is paid on the configured hosted provider page; "cod" is cash on delivery. */
+export type CheckoutPaymentMethod = "cod" | "card";
 
 export type VerifiedCheckoutItem = {
   productId: string;
@@ -24,6 +26,8 @@ export type CheckoutQuote = {
   shippingCost: number;
   codFee: number;
   total: number;
+  /** VAT contained in the total (prices are VAT-inclusive by default). */
+  vatAmount: number;
   couponCode?: string;
 };
 
@@ -37,7 +41,8 @@ export type BuildCheckoutQuoteInput = {
 
 const MONEY_PRECISION = 100;
 const MIN_PAYABLE_TOTAL = 1;
-const RAZORPAY_AMOUNT_TOLERANCE = 1;
+/** Hosted providers settle in minor units; allow one fils of rounding drift. */
+const PROVIDER_AMOUNT_TOLERANCE_MINOR = 1;
 
 function roundMoney(value: number) {
   return Math.round(value * MONEY_PRECISION) / MONEY_PRECISION;
@@ -98,22 +103,23 @@ export function buildCheckoutQuoteFromVerifiedItems(input: BuildCheckoutQuoteInp
     shippingCost,
     codFee,
     total,
+    vatAmount: vatPortion(total),
     couponCode: input.couponCode ? input.couponCode.toUpperCase() : undefined,
   };
 }
 
-export function assertRazorpayAmountMatchesQuote(input: {
+export function assertProviderAmountMatchesQuote(input: {
   quoteTotal: number;
-  orderAmountInPaise: number;
-  capturedAmountInPaise: number;
+  paidAmountMinor: number;
+  paidCurrency: string;
+  expectedCurrency: string;
 }) {
-  const orderAmount = Number(input.orderAmountInPaise) / 100;
-  const capturedAmount = Number(input.capturedAmountInPaise) / 100;
+  if (input.paidCurrency.toUpperCase() !== input.expectedCurrency.toUpperCase()) {
+    throw new Error("Payment currency mismatch. Please contact support.");
+  }
 
-  if (
-    Math.abs(orderAmount - input.quoteTotal) > RAZORPAY_AMOUNT_TOLERANCE ||
-    Math.abs(capturedAmount - input.quoteTotal) > RAZORPAY_AMOUNT_TOLERANCE
-  ) {
+  const expectedMinor = Math.round(input.quoteTotal * 100);
+  if (Math.abs(Number(input.paidAmountMinor) - expectedMinor) > PROVIDER_AMOUNT_TOLERANCE_MINOR) {
     throw new Error("Payment amount mismatch. Please contact support.");
   }
 }

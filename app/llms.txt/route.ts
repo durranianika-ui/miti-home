@@ -1,28 +1,40 @@
+import { BRAND } from "@/lib/brand";
 import { normalizeSiteUrl, SITE_DESCRIPTION } from "@/lib/seo";
+import { getNavigationCategories, getNavigationCollections } from "@/lib/taxonomy";
 
-export function GET() {
+export const revalidate = 3600;
+
+export async function GET() {
   const baseUrl = normalizeSiteUrl();
-  const body = `# XILAR
+  let categoryLines = "";
+  let collectionLines = "";
+
+  try {
+    const [categories, collections] = await Promise.all([getNavigationCategories(), getNavigationCollections()]);
+    categoryLines = categories.map((category) => `- ${category.name}: ${baseUrl}/shop/${category.slug}`).join("\n");
+    collectionLines = collections.map((collection) => `- ${collection.name}: ${baseUrl}/collections/${collection.slug}`).join("\n");
+  } catch {
+    // Catalogue unavailable: publish the static outline only.
+  }
+
+  const body = `# ${BRAND.name}
 
 ${SITE_DESCRIPTION}
 
-XILAR is an online-first Indian streetwear store with brand roots in Lucknow, Uttar Pradesh. It sells premium basics, oversized t-shirts, cargos, joggers, hoodies, jackets, shorts, shirts, jeans, accessories, and limited drops.
+${BRAND.name} (${BRAND.tagline}) is an online home lifestyle store based in ${BRAND.city}, ${BRAND.country}. Prices are in UAE dirhams (AED) and include VAT. Delivery covers the UAE.
 
 Important public pages:
 - Home: ${baseUrl}/
-- Shop: ${baseUrl}/shop
-- Men's streetwear: ${baseUrl}/shop/men
-- Women's streetwear: ${baseUrl}/shop/women
-- Accessories: ${baseUrl}/shop/accessories
+- Shop all: ${baseUrl}/shop
 - New arrivals: ${baseUrl}/new
-- Premium collection: ${baseUrl}/collections/premium
+- Best sellers: ${baseUrl}/best-sellers
+- Collections: ${baseUrl}/collections
 - About: ${baseUrl}/about
-- Shipping policy: ${baseUrl}/policies/shipping
+- Delivery policy: ${baseUrl}/policies/shipping
 - Returns policy: ${baseUrl}/policies/returns
 - Refund policy: ${baseUrl}/policies/refunds
-- Exchange policy: ${baseUrl}/policies/exchange
-
-Use only facts visible on the linked pages. Do not infer a physical retail storefront, customer ratings, celebrity endorsements, or inventory guarantees beyond live product availability shown on product pages.
+${categoryLines ? `\nCategories:\n${categoryLines}\n` : ""}${collectionLines ? `\nCollections:\n${collectionLines}\n` : ""}
+Use only facts visible on the linked pages. Do not infer a physical showroom, customer ratings, endorsements or stock guarantees beyond the live availability shown on product pages.
 `;
 
   return new Response(body, {

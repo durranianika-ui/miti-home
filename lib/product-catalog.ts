@@ -1,9 +1,13 @@
 import { db } from "@/lib/db";
-import { products, productVariants } from "@/lib/db/schema";
-import { and, desc, eq, gt, gte, inArray, lte, or, sql, type SQL } from "drizzle-orm";
+import { collectionProducts, collections, products, productVariants } from "@/lib/db/schema";
+import { and, asc, desc, eq, gt, inArray, sql, type SQL } from "drizzle-orm";
 import { generateProductQuerySearchEmbedding } from "@/lib/product-search-embedding";
 import { queryProductSemanticCandidates } from "@/lib/product-search-pinecone";
+import { isSemanticSearchConfigured } from "@/lib/product-search-index";
 import type { SemanticProductCandidate } from "@/lib/product-search";
+import type { CatalogQuery, CatalogSort } from "@/lib/catalog-query";
+
+export type { CatalogQuery, CatalogSort } from "@/lib/catalog-query";
 
 export type CatalogProduct = Pick<
   typeof products.$inferSelect,
@@ -14,11 +18,12 @@ export type CatalogProduct = Pick<
   | "mrp"
   | "maxBargainDiscount"
   | "category"
-  | "gender"
   | "isNew"
   | "isFeatured"
-  | "isPremium"
   | "stock"
+  | "material"
+  | "sizeLabel"
+  | "colorLabel"
 > & {
   images: string[];
   sizes: string[];
@@ -32,21 +37,6 @@ type CatalogProductRow = Omit<CatalogProduct, "images" | "sizes" | "colors" | "a
   colors: { name: string; hex: string; images?: string[] }[] | null;
 };
 
-type CatalogQuery = {
-  category?: string | null;
-  gender?: string | null;
-  search?: string | null;
-  size?: string | null;
-  minPrice?: string | null;
-  maxPrice?: string | null;
-  isNew?: boolean;
-  isFeatured?: boolean;
-  isPremium?: boolean;
-  limit?: number;
-  offset?: number;
-  includeTotal?: boolean;
-};
-
 const catalogProductColumns = {
   id: products.id,
   name: products.name,
@@ -56,125 +46,85 @@ const catalogProductColumns = {
   maxBargainDiscount: products.maxBargainDiscount,
   images: products.images,
   category: products.category,
-  gender: products.gender,
+  material: products.material,
+  sizeLabel: products.sizeLabel,
+  colorLabel: products.colorLabel,
   sizes: products.sizes,
   colors: products.colors,
   isNew: products.isNew,
   isFeatured: products.isFeatured,
-  isPremium: products.isPremium,
   stock: products.stock,
 };
 
-function buildCatalogConditions(query: CatalogQuery) {
-  const conditions = [eq(products.isActive, true)];
+function collectionMembership(slug: string) {
+  return sql`EXISTS (
+    SELECT 1
+    FROM ${collectionProducts}
+    INNER JOIN ${collections} ON ${collections.id} = ${collectionProducts.collectionId}
+    WHERE ${collectionProducts.productId} = ${products.id}
+      AND ${collections.slug} = ${slug}
+      AND ${collections.isActive} = true
+  )`;
+}
 
-  if (query.category) {
-    conditions.push(eq(products.category, query.category as typeof products.category.enumValues[number]));
-  }
+/** Builds the WHERE clause shared by listing, counting and hybrid search. */
+function buildCatalogConditions(query: CatalogQuery): SQL {
+  const conditions: SQL[] = [sql`${products.isActive} = true`];
 
-  if (query.gender) {
-    conditions.push(
-      or(
-        eq(products.gender, query.gender as typeof products.gender.enumValues[number]),
-        eq(products.gender, "unisex")
-      )!
-    );
-  }
+  if (query.category) conditions.push(sql`${products.category} = ${query.category}`);
+  if (query.collection) conditions.push(collectionMembership(query.collection));
+  if (query.minPrice) conditions.push(sql`${products.sellingPrice} >= ${query.minPrice}`);
+  if (query.maxPrice) conditions.push(sql`${products.sellingPrice} <= ${query.maxPrice}`);
+  if (query.isNew) conditions.push(sql`${products.isNew} = true`);
+  if (query.isFeatured) conditions.push(sql`${products.isFeatured} = true`);
+  if (query.onSale) conditions.push(sql`${products.mrp} > ${products.sellingPrice}`);
+  if (query.availability === "in-stock") conditions.push(sql`${products.stock} > 0`);
+  if (query.material) conditions.push(sql`${products.material} ILIKE ${`%${query.material}%`}`);
 
-  if (query.minPrice) {
-    conditions.push(gte(products.sellingPrice, query.minPrice));
-  }
-
-  if (query.maxPrice) {
-    conditions.push(lte(products.sellingPrice, query.maxPrice));
-  }
-
-  if (query.isNew) {
-    conditions.push(eq(products.isNew, true));
-  }
-
-  if (query.isFeatured) {
-    conditions.push(eq(products.isFeatured, true));
-  }
-
-  if (query.isPremium) {
-    conditions.push(eq(products.isPremium, true));
-  }
-
-  if (query.size) {
+  if (query.color) {
     conditions.push(sql`EXISTS (
-      SELECT 1
-      FROM ${productVariants}
-      WHERE ${productVariants.productId} = ${products.id}
-        AND ${productVariants.size} = ${query.size}
-        AND ${productVariants.stock} > 0
+      SELECT 1 FROM json_array_elements(coalesce(${products.colors}, '[]'::json)) AS product_color
+      WHERE lower(product_color->>'name') = lower(${query.color})
     )`);
   }
 
-  return and(...conditions);
-}
-
-function buildCatalogSqlConditions(query: CatalogQuery) {
-  const conditions: SQL[] = [sql`${products.isActive} = true`];
-
-  if (query.category) {
-    conditions.push(sql`${products.category} = ${query.category}`);
-  }
-
-  if (query.gender) {
-    conditions.push(sql`(${products.gender} = ${query.gender} OR ${products.gender} = 'unisex')`);
-  }
-
-  if (query.minPrice) {
-    conditions.push(sql`${products.sellingPrice} >= ${query.minPrice}`);
-  }
-
-  if (query.maxPrice) {
-    conditions.push(sql`${products.sellingPrice} <= ${query.maxPrice}`);
-  }
-
-  if (query.isNew) {
-    conditions.push(sql`${products.isNew} = true`);
-  }
-
-  if (query.isFeatured) {
-    conditions.push(sql`${products.isFeatured} = true`);
-  }
-
-  if (query.isPremium) {
-    conditions.push(sql`${products.isPremium} = true`);
-  }
-
   if (query.size) {
-    conditions.push(sql`EXISTS (
-      SELECT 1
-      FROM ${productVariants}
-      WHERE ${productVariants.productId} = ${products.id}
-        AND ${productVariants.size} = ${query.size}
-        AND ${productVariants.stock} > 0
+    conditions.push(sql`(
+      EXISTS (
+        SELECT 1 FROM ${productVariants}
+        WHERE ${productVariants.productId} = ${products.id}
+          AND ${productVariants.size} = ${query.size}
+          AND ${productVariants.stock} > 0
+      )
     )`);
   }
 
   return sql.join(conditions, sql` AND `);
 }
 
+function orderByFor(sort: CatalogSort | null | undefined) {
+  switch (sort) {
+    case "newest":
+      return [desc(products.createdAt), desc(products.displayOrder)];
+    case "price-asc":
+      return [asc(products.sellingPrice), desc(products.displayOrder)];
+    case "price-desc":
+      return [desc(products.sellingPrice), desc(products.displayOrder)];
+    case "name":
+      return [asc(products.name)];
+    default:
+      return [desc(products.displayOrder), desc(products.createdAt)];
+  }
+}
+
 function buildPineconeMetadataFilter(query: CatalogQuery) {
   const filters: object[] = [{ isActive: { $eq: true } }];
 
   if (query.category) filters.push({ category: { $eq: query.category } });
-  if (query.gender) {
-    filters.push({
-      $or: [
-        { gender: { $eq: query.gender } },
-        { gender: { $eq: "unisex" } },
-      ],
-    });
-  }
   if (query.minPrice) filters.push({ price: { $gte: Number(query.minPrice) } });
   if (query.maxPrice) filters.push({ price: { $lte: Number(query.maxPrice) } });
   if (query.isNew) filters.push({ isNew: { $eq: true } });
   if (query.isFeatured) filters.push({ isFeatured: { $eq: true } });
-  if (query.isPremium) filters.push({ isPremium: { $eq: true } });
 
   return filters.length === 1 ? filters[0] : { $and: filters };
 }
@@ -217,17 +167,18 @@ async function addAvailableSizes(productRows: CatalogProductRow[]): Promise<Cata
   }, new Map());
 
   return productRows.map((product) => {
-    const availableSizes = Array.from(availableSizesByProductId.get(product.id) || []);
+    const available = availableSizesByProductId.get(product.id);
+    const declared = product.sizes || [];
+    // Keep the merchant's option order rather than the variant query order.
+    const availableSizes = available
+      ? declared.filter((size) => available.has(size)).concat([...available].filter((size) => !declared.includes(size)))
+      : product.stock > 0 ? declared : [];
     return {
       ...product,
       images: product.images || [],
-      sizes: product.sizes || [],
+      sizes: declared,
       colors: product.colors || [],
-      availableSizes: availableSizes.length > 0
-        ? availableSizes
-        : product.stock > 0
-          ? product.sizes || []
-          : [],
+      availableSizes,
     };
   });
 }
@@ -243,7 +194,7 @@ export async function getCatalogProducts(query: CatalogQuery = {}) {
     .select(catalogProductColumns)
     .from(products)
     .where(where)
-    .orderBy(desc(products.displayOrder), desc(products.createdAt));
+    .orderBy(...orderByFor(query.sort));
 
   const productRowsPromise: Promise<CatalogProductRow[]> = (
     query.limit === undefined
@@ -268,13 +219,106 @@ export async function getCatalogProducts(query: CatalogQuery = {}) {
   };
 }
 
+/** Products in a collection, in the collection's merchandising order. */
+export async function getCollectionCatalogProducts(collectionSlug: string, query: CatalogQuery = {}) {
+  if (query.sort && query.sort !== "featured") {
+    return getCatalogProducts({ ...query, collection: collectionSlug });
+  }
+
+  const where = buildCatalogConditions({ ...query, collection: collectionSlug });
+  const rows = await db
+    .select(catalogProductColumns)
+    .from(products)
+    .innerJoin(collectionProducts, eq(collectionProducts.productId, products.id))
+    .innerJoin(collections, eq(collections.id, collectionProducts.collectionId))
+    .where(and(where, eq(collections.slug, collectionSlug)))
+    .orderBy(asc(collectionProducts.position));
+
+  const productsWithSizes = await addAvailableSizes(rows as CatalogProductRow[]);
+  return { products: productsWithSizes, total: productsWithSizes.length, limit: productsWithSizes.length, offset: 0 };
+}
+
+export type CatalogFacets = {
+  categories: { slug: string; count: number }[];
+  colors: { name: string; hex: string; count: number }[];
+  materials: { name: string; count: number }[];
+  sizes: { name: string; count: number }[];
+  price: { min: number; max: number };
+};
+
+/**
+ * Filter options available within a listing scope (category / collection /
+ * flags), so the filter panel only offers choices that return products.
+ */
+export async function getCatalogFacets(scope: CatalogQuery = {}): Promise<CatalogFacets> {
+  const where = buildCatalogConditions({
+    category: scope.category,
+    collection: scope.collection,
+    isNew: scope.isNew,
+    isFeatured: scope.isFeatured,
+    onSale: scope.onSale,
+  });
+
+  const rows = await db
+    .select({
+      category: products.category,
+      material: products.material,
+      colors: products.colors,
+      sizes: products.sizes,
+      sellingPrice: products.sellingPrice,
+    })
+    .from(products)
+    .where(where);
+
+  const categoryCounts = new Map<string, number>();
+  const colorCounts = new Map<string, { name: string; hex: string; count: number }>();
+  const materialCounts = new Map<string, number>();
+  const sizeCounts = new Map<string, number>();
+  let min = Infinity;
+  let max = 0;
+
+  for (const row of rows) {
+    categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + 1);
+    for (const color of row.colors ?? []) {
+      const key = color.name.toLowerCase();
+      const entry = colorCounts.get(key) ?? { name: color.name, hex: color.hex, count: 0 };
+      entry.count += 1;
+      colorCounts.set(key, entry);
+    }
+    if (row.material) {
+      // Materials are free text ("Glass, wood"); facet on each primary material word.
+      for (const part of row.material.split(/,|with|&/i).map((value) => value.trim()).filter(Boolean)) {
+        const name = part.replace(/^(glazed|matte|high-fired|silver-plated|brushed|smoked)\s+/i, "");
+        const label = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+        if (label.length > 2 && label.length < 24) materialCounts.set(label, (materialCounts.get(label) ?? 0) + 1);
+      }
+    }
+    for (const size of row.sizes ?? []) {
+      if (size !== "Standard") sizeCounts.set(size, (sizeCounts.get(size) ?? 0) + 1);
+    }
+    const price = Number(row.sellingPrice);
+    if (Number.isFinite(price)) {
+      min = Math.min(min, price);
+      max = Math.max(max, price);
+    }
+  }
+
+  return {
+    categories: [...categoryCounts].map(([slug, count]) => ({ slug, count })),
+    colors: [...colorCounts.values()].sort((a, b) => b.count - a.count),
+    materials: [...materialCounts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+    sizes: [...sizeCounts].map(([name, count]) => ({ name, count })),
+    price: { min: Number.isFinite(min) ? min : 0, max },
+  };
+}
+
 async function getHybridCatalogProducts(query: CatalogQuery & { search: string }) {
   const limit = query.limit ?? 24;
   const offset = query.offset ?? 0;
-  const where = buildCatalogSqlConditions(query);
+  const where = buildCatalogConditions(query);
   let semanticCandidates: SemanticProductCandidate[] = [];
 
-  if (query.search.length >= 2) {
+  if (query.search.length >= 2 && isSemanticSearchConfigured()) {
     try {
       const embedding = await generateProductQuerySearchEmbedding(query.search);
       semanticCandidates = await queryProductSemanticCandidates({
@@ -311,8 +355,8 @@ async function getHybridCatalogProducts(query: CatalogQuery & { search: string }
         WHERE ${where}
           AND (
             lower(${products.name}) = search_query.normalized_query
-            OR lower(${products.category}::text) = search_query.normalized_query
-            OR lower(${products.gender}::text) = search_query.normalized_query
+            OR lower(${products.category}) = search_query.normalized_query
+            OR lower(replace(${products.category}, '-', ' ')) = search_query.normalized_query
           )
         LIMIT 80
       ) exact_matches
@@ -417,12 +461,13 @@ async function getHybridCatalogProducts(query: CatalogQuery & { search: string }
         ${products.maxBargainDiscount} AS "maxBargainDiscount",
         ${products.images} AS images,
         ${products.category} AS category,
-        ${products.gender} AS gender,
+        ${products.material} AS material,
+        ${products.sizeLabel} AS "sizeLabel",
+        ${products.colorLabel} AS "colorLabel",
         ${products.sizes} AS sizes,
         ${products.colors} AS colors,
         ${products.isNew} AS "isNew",
         ${products.isFeatured} AS "isFeatured",
-        ${products.isPremium} AS "isPremium",
         ${products.stock} AS stock,
         count(*) OVER() AS total
       FROM fused
@@ -444,4 +489,3 @@ async function getHybridCatalogProducts(query: CatalogQuery & { search: string }
     offset,
   };
 }
-

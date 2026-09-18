@@ -14,10 +14,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 function resolveInitialTheme(): Theme {
     if (typeof document === "undefined") {
-        return "dark"
+        return "light"
     }
 
-    return document.documentElement.classList.contains("light") ? "light" : "dark"
+    return document.documentElement.classList.contains("dark") ? "dark" : "light"
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -33,8 +33,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             root.classList.remove("dark")
         }
         root.style.colorScheme = theme
-        localStorage.setItem("xilar-theme", theme)
-        document.cookie = `xilar-theme=${theme}; path=/; max-age=31536000; samesite=lax`
+        localStorage.setItem("miti-theme", theme)
+        document.cookie = `miti-theme=${theme}; path=/; max-age=31536000; samesite=lax`
     }, [theme])
 
     const toggleTheme = () => {

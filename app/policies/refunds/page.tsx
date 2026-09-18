@@ -36,7 +36,7 @@ export default function RefundPolicyPage() {
                     <ArrowLeft className="h-3 w-3" /> Back to policies
                 </Link>
                 <div className="flex items-center gap-3 mb-2">
-                    <CreditCard className="h-5 w-5 text-red-accent" />
+                    <CreditCard className="h-5 w-5 text-brand" />
                     <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Policy</p>
                 </div>
                 <h1 className="font-display text-4xl md:text-6xl">Refund policy</h1>
@@ -60,10 +60,10 @@ export default function RefundPolicyPage() {
                 {/* Bonus */}
                 <section className="space-y-3">
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Gift className="h-4 w-4 text-red-accent" /> Bonus credit
+                        <Gift className="h-4 w-4 text-brand" /> Bonus credit
                     </h2>
-                    <div className="p-4 bg-red-accent/5 border border-red-accent/20">
-                        <p className="font-medium text-sm text-red-accent">
+                    <div className="p-4 bg-brand/5 border border-brand/20">
+                        <p className="font-medium text-sm text-brand">
                             We value your trust. Defective returns receive:
                         </p>
                         <div className="mt-4 text-center">
@@ -81,16 +81,16 @@ export default function RefundPolicyPage() {
                 {/* Validity */}
                 <section className="space-y-3">
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-red-accent" /> Credit validity
+                        <Calendar className="h-4 w-4 text-brand" /> Credit validity
                     </h2>
                     <div className="p-4 bg-secondary/10 border border-border/60">
                         <p className="font-medium text-sm">
                             Wallet refunds <strong>do not expire</strong>.
                         </p>
                         <ul className="text-xs text-muted-foreground mt-3 space-y-1">
-                            <li className="flex items-start gap-2"><span className="text-red-accent mt-0.5">·</span> Standard defects: 30 days validity</li>
-                            <li className="flex items-start gap-2"><span className="text-red-accent mt-0.5">·</span> Severe defects / delays: 60 days validity</li>
-                            <li className="flex items-start gap-2"><span className="text-red-accent mt-0.5">·</span> Credit cannot be extended after expiry</li>
+                            <li className="flex items-start gap-2"><span className="text-brand mt-0.5">·</span> Standard defects: 30 days validity</li>
+                            <li className="flex items-start gap-2"><span className="text-brand mt-0.5">·</span> Severe defects / delays: 60 days validity</li>
+                            <li className="flex items-start gap-2"><span className="text-brand mt-0.5">·</span> Credit cannot be extended after expiry</li>
                         </ul>
                     </div>
                 </section>
@@ -100,21 +100,21 @@ export default function RefundPolicyPage() {
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em]">How it works</h2>
                     <div className="space-y-2">
                         <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-red-accent text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">1</span>
+                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">1</span>
                             <div>
                                 <p className="font-medium text-sm">Return approved</p>
                                 <p className="text-xs text-muted-foreground">After we verify your defect claim with unboxing video</p>
                             </div>
                         </div>
                         <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-red-accent text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">2</span>
+                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">2</span>
                             <div>
                                 <p className="font-medium text-sm">Credit issued</p>
                                 <p className="text-xs text-muted-foreground">Your approved amount is credited directly to your XILAR wallet</p>
                             </div>
                         </div>
                         <div className="flex gap-4 p-4 border border-border/60">
-                            <span className="w-7 h-7 bg-red-accent text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">3</span>
+                            <span className="w-7 h-7 bg-brand text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">3</span>
                             <div>
                                 <p className="font-medium text-sm">Use at checkout</p>
                                 <p className="text-xs text-muted-foreground">Apply the code at checkout on your next order</p>
@@ -131,19 +131,19 @@ export default function RefundPolicyPage() {
                     <div className="p-4 bg-secondary/10 border border-border/60">
                         <ul className="space-y-2 text-xs">
                             <li className="flex items-start gap-2">
-                                <span className="text-red-accent mt-0.5">·</span>
+                                <span className="text-brand mt-0.5">·</span>
                                 <span>Wallet credit is <strong>non-transferable</strong>, account-bound, and cannot be withdrawn</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-red-accent mt-0.5">·</span>
+                                <span className="text-brand mt-0.5">·</span>
                                 <span>Credit cannot be combined with bargain discounts</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-red-accent mt-0.5">·</span>
+                                <span className="text-brand mt-0.5">·</span>
                                 <span>If order total is less than credit amount, remaining balance is forfeited</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-red-accent mt-0.5">·</span>
+                                <span className="text-brand mt-0.5">·</span>
                                 <span>Credit applies to product value only (shipping charges calculated separately)</span>
                             </li>
                         </ul>

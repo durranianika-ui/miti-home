@@ -11,9 +11,13 @@ export type ProductSearchSource = {
   name?: string | null;
   description?: string | null;
   category?: string | null;
-  gender?: string | null;
+  /** Human-readable category name, e.g. "Home Décor". */
+  categoryName?: string | null;
+  /** Names of the collections the product belongs to. */
+  collectionNames?: string[] | null;
   tags?: string[] | null;
-  fabric?: string | null;
+  material?: string | null;
+  dimensions?: string | null;
   careInstructions?: string[] | null;
   features?: string[] | null;
   images?: string[] | null;
@@ -22,7 +26,6 @@ export type ProductSearchSource = {
   isActive?: boolean | null;
   isNew?: boolean | null;
   isFeatured?: boolean | null;
-  isPremium?: boolean | null;
   stock?: number | null;
   sellingPrice?: string | null;
 };
@@ -37,11 +40,9 @@ export type ProductSearchVectorMetadata = {
   dimension: number;
   name: string;
   category: string;
-  gender: string;
   isActive: boolean;
   isNew: boolean;
   isFeatured: boolean;
-  isPremium: boolean;
   stock: number;
   price: number;
   imageUrl?: string;
@@ -94,13 +95,15 @@ export function buildProductSearchText(product: ProductSearchSource) {
 
   appendText(parts, product.name);
   appendText(parts, product.description);
-  appendText(parts, product.category);
-  appendText(parts, product.gender);
+  appendText(parts, product.categoryName);
+  appendText(parts, product.category?.replace(/-/g, " "));
+  appendTextList(parts, product.collectionNames);
   appendTextList(parts, product.tags);
-  appendText(parts, product.fabric);
+  appendText(parts, product.material);
+  appendText(parts, product.dimensions);
   appendTextList(parts, product.features);
   appendTextList(parts, product.careInstructions);
-  appendTextList(parts, product.sizes);
+  appendTextList(parts, product.sizes?.filter((size) => size !== "Standard"));
 
   product.colors?.forEach((color) => {
     appendText(parts, color.name);
@@ -244,11 +247,9 @@ export function buildProductVectorMetadata({
     dimension: PRODUCT_SEARCH_EMBEDDING_DIMENSIONS,
     name: product.name || "",
     category: product.category || "",
-    gender: product.gender || "",
     isActive: product.isActive !== false,
     isNew: Boolean(product.isNew),
     isFeatured: Boolean(product.isFeatured),
-    isPremium: Boolean(product.isPremium),
     stock: product.stock || 0,
     price: Number(product.sellingPrice || 0),
     ...(imageUrl ? { imageUrl } : {}),

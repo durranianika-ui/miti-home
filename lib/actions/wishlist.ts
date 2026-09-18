@@ -4,7 +4,7 @@ import { getServerSession, requireAuth } from "@/lib/auth-server";
 import {
   addProductWishlistItem,
   getProductWishlistState,
-  getWishlistCount,
+  getWishlistProductIds,
   removeProductWishlistItem,
 } from "@/lib/wishlist";
 
@@ -23,19 +23,23 @@ export async function getWishlistNavState() {
     return {
       authenticated: false as const,
       count: 0,
+      productIds: [] as string[],
     };
   }
 
   try {
+    const productIds = await getWishlistProductIds(session.user.id);
     return {
       authenticated: true as const,
-      count: await getWishlistCount(session.user.id),
+      count: productIds.length,
+      productIds,
     };
   } catch (error) {
     return {
       authenticated: true as const,
       count: 0,
-      error: friendlyActionError(error, "Could not load wishlist count."),
+      productIds: [] as string[],
+      error: friendlyActionError(error, "Could not load your wishlist."),
     };
   }
 }

@@ -36,7 +36,7 @@ export default function ShippingPolicyPage() {
                     <ArrowLeft className="h-3 w-3" /> Back to policies
                 </Link>
                 <div className="flex items-center gap-3 mb-2">
-                    <Truck className="h-5 w-5 text-red-accent" />
+                    <Truck className="h-5 w-5 text-brand" />
                     <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Policy</p>
                 </div>
                 <h1 className="font-display text-4xl md:text-6xl">Shipping policy</h1>
@@ -47,9 +47,9 @@ export default function ShippingPolicyPage() {
                 {/* Free Shipping */}
                 <section className="space-y-3">
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <IndianRupee className="h-4 w-4 text-red-accent" /> Free shipping
+                        <IndianRupee className="h-4 w-4 text-brand" /> Free shipping
                     </h2>
-                    <div className="p-6 bg-red-accent/5 border border-red-accent/20 text-center">
+                    <div className="p-6 bg-brand/5 border border-brand/20 text-center">
                         <p className="text-2xl font-black tracking-tight uppercase">Free shipping</p>
                         <p className="text-sm mt-2 tabular-nums">on orders above ₹999</p>
                         <p className="text-xs text-muted-foreground mt-3">
@@ -95,7 +95,7 @@ export default function ShippingPolicyPage() {
                 {/* Delivery Time */}
                 <section className="space-y-3">
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-red-accent" /> Delivery time
+                        <Clock className="h-4 w-4 text-brand" /> Delivery time
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="p-4 bg-secondary/10 border border-border/60">
@@ -117,7 +117,7 @@ export default function ShippingPolicyPage() {
                 {/* Serviceable Areas */}
                 <section className="space-y-3">
                     <h2 className="text-sm font-semibold uppercase tracking-[0.1em] flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-red-accent" /> Serviceable areas
+                        <MapPin className="h-4 w-4 text-brand" /> Serviceable areas
                     </h2>
                     <div className="p-4 bg-secondary/10 border border-border/60">
                         <p className="font-medium text-sm">We deliver across India</p>
@@ -136,15 +136,15 @@ export default function ShippingPolicyPage() {
                     <div className="p-4 bg-secondary/20 border border-border">
                         <ul className="space-y-2 text-sm">
                             <li className="flex items-start gap-2">
-                                <span className="text-red-accent font-bold">•</span>
+                                <span className="text-brand font-bold">•</span>
                                 <span>You&apos;ll receive a tracking ID via email/SMS once your order ships</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-red-accent font-bold">•</span>
+                                <span className="text-brand font-bold">•</span>
                                 <span>Track your order anytime from the &quot;My Orders&quot; page</span>
                             </li>
                             <li className="flex items-start gap-2">
-                                <span className="text-red-accent font-bold">•</span>
+                                <span className="text-brand font-bold">•</span>
                                 <span>We partner with trusted couriers for safe and reliable delivery</span>
                             </li>
                         </ul>

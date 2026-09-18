@@ -1,4 +1,4 @@
-export const DEFAULT_PRODUCT_IMAGE = "/clothes/clothes1.jpeg";
+export const DEFAULT_PRODUCT_IMAGE = "/brand/placeholder-product.webp";
 
 export function normalizeProductImage(imagePath?: string | null): string {
   const trimmed = imagePath?.trim();

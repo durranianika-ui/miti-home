@@ -1,0 +1,201 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useReducedMotion } from "framer-motion";
+import { normalizeProductImage } from "@/lib/image";
+
+gsap.registerPlugin(ScrollTrigger);
+
+export type GalleryBandItem = {
+  src: string;
+  alt: string;
+};
+
+const FALLBACK_IMAGES: GalleryBandItem[] = [
+  { src: "/products/resting-figures-sculpture-pair/1.webp", alt: "Terracotta figure sculptures" },
+  { src: "/products/deer-family-sculpture-set/2.webp", alt: "Mirror-silver deer family" },
+  { src: "/products/smoked-glass-ambient-table-lamp/1.webp", alt: "Smoked glass table lamp" },
+  { src: "/products/moai-tissue-box-silver/1.webp", alt: "Silver moai tissue box" },
+  { src: "/products/vanity-tissue-tray-organiser/1.webp", alt: "Vanity tray organiser" },
+  { src: "/products/horse-and-rider-sculpture/1.webp", alt: "Horse and rider sculpture" },
+  { src: "/products/twin-panel-smoked-pendant/1.webp", alt: "Smoked glass pendant" },
+  { src: "/products/zebra-cat-duo/1.webp", alt: "Zebra cat sculptures" },
+];
+const ROW_SPEEDS = [0.92, 1.08, 0.87, 1.14] as const;
+
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function stableShuffle(items: GalleryBandItem[]) {
+  return [...items].sort((a, b) => stableHash(`${a.src}-${a.alt}`) - stableHash(`${b.src}-${b.alt}`));
+}
+
+function uniqueBySrc(items: GalleryBandItem[]) {
+  const seen = new Set<string>();
+  const unique: GalleryBandItem[] = [];
+
+  items.forEach((item) => {
+    if (seen.has(item.src)) return;
+    seen.add(item.src);
+    unique.push(item);
+  });
+
+  return unique;
+}
+
+export function AngledGalleryBand({ items }: { items?: GalleryBandItem[] }) {
+  const rootRef = useRef<HTMLElement>(null);
+  const shouldReduceMotion = useReducedMotion();
+
+  const resolvedItems = useMemo(() => {
+    const clean = (items || [])
+      .filter((item) => item.src)
+      .map((item) => ({ ...item, src: normalizeProductImage(item.src) }));
+    const uniqueProductImages = uniqueBySrc(clean);
+    const uniqueFallbackImages = uniqueBySrc(FALLBACK_IMAGES);
+    return uniqueBySrc([...uniqueProductImages, ...uniqueFallbackImages]).slice(0, 32);
+  }, [items]);
+
+  const displayItems = useMemo(() => stableShuffle(resolvedItems), [resolvedItems]);
+
+  const [isVisible, setIsVisible] = useState(true);
+  const scrollTriggersRef = useRef<ScrollTrigger[]>([]);
+
+  useEffect(() => {
+    if (!rootRef.current) return;
+
+    const el = rootRef.current;
+    const isMobileView = typeof window !== "undefined" && window.innerWidth <= 900;
+    const margin = isMobileView ? "100px 0px 100px 0px" : "300px 0px 300px 0px";
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting);
+    }, {
+      threshold: 0,
+      rootMargin: margin
+    });
+
+    observer.observe(el);
+
+    if (shouldReduceMotion) {
+      return () => observer.disconnect();
+    }
+
+    const ctx = gsap.context(() => {
+      const rows = gsap.utils.toArray<HTMLElement>("[data-miti-origin-row]");
+      const isMobileView = window.innerWidth <= 900;
+
+      const getStartX = (index: number) => {
+        const direction = index % 2 === 0 ? 1 : -1;
+        return direction * (isMobileView ? 150 : 300);
+      };
+
+      rows.forEach((row, index) => {
+        const startX = getStartX(index);
+        const speedMultiplier = ROW_SPEEDS[index] || 1;
+        gsap.set(row, { x: startX });
+
+        const anim = gsap.to(row, {
+          scrollTrigger: {
+            trigger: rootRef.current,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: isMobileView ? 0.5 : 1,
+            onUpdate: (self) => {
+              const moveAmount = startX * (1 - self.progress * speedMultiplier);
+              gsap.set(row, {
+                x: moveAmount,
+              });
+            },
+          },
+        });
+
+        if (anim.scrollTrigger) {
+          scrollTriggersRef.current.push(anim.scrollTrigger);
+        }
+      });
+    }, rootRef);
+
+    return () => {
+      observer.disconnect();
+      ctx.revert();
+      scrollTriggersRef.current = [];
+    };
+  }, [shouldReduceMotion]);
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleMenuToggle = (e: Event) => {
+      setIsMenuOpen((e as CustomEvent).detail.open);
+    };
+    window.addEventListener("miti-mobile-menu", handleMenuToggle);
+    const timer = window.setTimeout(() => {
+      setIsMenuOpen(document.body.classList.contains("mobile-menu-open"));
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("miti-mobile-menu", handleMenuToggle);
+    };
+  }, []);
+
+  useEffect(() => {
+    scrollTriggersRef.current.forEach((trigger) => {
+      if (trigger) {
+        if (isVisible && !isMenuOpen) {
+          trigger.enable();
+        } else {
+          trigger.disable(false);
+        }
+      }
+    });
+  }, [isVisible, isMenuOpen]);
+
+  const rows = [0, 1, 2, 3].map((row) => displayItems.slice(row * 8, row * 8 + 8));
+
+  return (
+    <section
+      ref={rootRef}
+      style={{ visibility: isVisible ? "visible" : "hidden" }}
+      className="relative min-h-[78svh] overflow-hidden border-t border-border/60 bg-background px-6 py-16 text-foreground md:min-h-[94svh] md:px-12 md:py-24"
+      aria-label="Miti Home moving gallery"
+      data-cursor="explore"
+      data-cursor-label="Explore"
+    >
+      <div className="pointer-events-none absolute left-1/2 top-[56%] z-0 w-[220vw] -translate-x-1/2 -translate-y-1/2 rotate-[14deg] md:rotate-[28deg] scale-125 md:top-1/2">
+        {rows.map((row, rowIndex) => (
+          <div
+            key={rowIndex}
+            data-miti-origin-row
+            style={{ willChange: "transform" }}
+            className="relative mb-5 flex h-44 justify-center gap-5 md:h-72 md:gap-8"
+          >
+            {row.map((item, index) => (
+              <div
+                key={`${item.src}-${rowIndex}-${index}`}
+                className="relative aspect-[4/5] h-full overflow-hidden bg-muted/30 shadow-2xl shadow-black/15"
+              >
+                <Image
+                  src={item.src}
+                  alt={item.alt}
+                  fill
+                  sizes="(max-width: 768px) 42vw, 24vw"
+                  className="object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+

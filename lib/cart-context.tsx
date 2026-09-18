@@ -43,14 +43,14 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 function readStoredCart() {
-    const stored = localStorage.getItem("xilar-cart")
+    const stored = localStorage.getItem("miti-cart")
     if (!stored) return []
 
     try {
         const parsed = JSON.parse(stored)
         return Array.isArray(parsed) ? parsed : []
     } catch {
-        localStorage.removeItem("xilar-cart")
+        localStorage.removeItem("miti-cart")
         return []
     }
 }
@@ -70,7 +70,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Save to localStorage on change
     useEffect(() => {
         if (isHydrated) {
-            localStorage.setItem("xilar-cart", JSON.stringify(items))
+            localStorage.setItem("miti-cart", JSON.stringify(items))
         }
     }, [items, isHydrated])
 

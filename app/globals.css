@@ -5,107 +5,108 @@
 @plugin "tailwindcss-animate";
 
 :root {
-  /* Warm off-white light mode */
-  --background: oklch(0.985 0.003 60);
-  --foreground: oklch(0.14 0.012 30);
+  /* Miti Home — ivory ground, charcoal ink, signature gold */
+  --background: #f7f5f0;
+  --foreground: #141312;
 
-  --card: oklch(0.99 0.002 60);
-  --card-foreground: oklch(0.14 0.012 30);
+  --card: #fbfaf7;
+  --card-foreground: #141312;
 
-  --popover: oklch(0.99 0.002 60);
-  --popover-foreground: oklch(0.14 0.012 30);
+  --popover: #fbfaf7;
+  --popover-foreground: #141312;
 
-  --primary: oklch(0.16 0.012 30);
-  --primary-foreground: oklch(0.985 0.003 60);
+  --primary: #141312;
+  --primary-foreground: #f7f5f0;
 
-  --secondary: oklch(0.95 0.005 50);
-  --secondary-foreground: oklch(0.16 0.012 30);
+  --secondary: #efebe4;
+  --secondary-foreground: #141312;
 
-  --muted: oklch(0.95 0.005 50);
-  --muted-foreground: oklch(0.48 0.012 30);
+  --muted: #ece7df;
+  --muted-foreground: #675d53;
 
-  --accent: oklch(0.95 0.005 50);
-  --accent-foreground: oklch(0.16 0.012 30);
+  --accent: #efebe4;
+  --accent-foreground: #141312;
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: #fafafa;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
 
-  --border: oklch(0.905 0.006 50);
-  --input: oklch(0.905 0.006 50);
-  --ring: oklch(0.65 0.012 30);
+  --border: #e2dbd0;
+  --input: #d9d1c4;
+  --ring: #8c7f72;
 
   --radius: 0.625rem;
 
-  /* Deep crimson accent — desaturated for premium feel */
-  --red: oklch(0.45 0.18 25);
-  --red-foreground: #ffffff;
-  --red-light: oklch(0.52 0.19 25);
-  --red-dark: oklch(0.32 0.14 25);
+  /* Signature gold. --brand is decorative; --brand-strong is text-safe on ivory (4.9:1). */
+  --brand: #c8a96a;
+  --brand-foreground: #141312;
+  --brand-strong: #8a6b32;
+  --brand-soft: #e9dcc0;
+  --beige: #d6cec1;
+  --taupe: #8c7f72;
 
-  /* Glassmorphism utilities — removed for clarity, using solid backgrounds instead */
-
-  --chart-1: oklch(0.55 0.22 25);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.65 0.2 30);
-  --chart-5: oklch(0.5 0.18 15);
-  --sidebar: oklch(0.975 0.003 60);
-  --sidebar-foreground: oklch(0.14 0.012 30);
-  --sidebar-primary: oklch(0.16 0.012 30);
-  --sidebar-primary-foreground: oklch(0.985 0.003 60);
-  --sidebar-accent: oklch(0.95 0.005 50);
-  --sidebar-accent-foreground: oklch(0.16 0.012 30);
-  --sidebar-border: oklch(0.905 0.006 50);
-  --sidebar-ring: oklch(0.65 0.012 30);
+  --chart-1: #c8a96a;
+  --chart-2: #8c7f72;
+  --chart-3: #3a3632;
+  --chart-4: #d6cec1;
+  --chart-5: #8a6b32;
+  --sidebar: #f2efe9;
+  --sidebar-foreground: #141312;
+  --sidebar-primary: #141312;
+  --sidebar-primary-foreground: #f7f5f0;
+  --sidebar-accent: #efebe4;
+  --sidebar-accent-foreground: #141312;
+  --sidebar-border: #e2dbd0;
+  --sidebar-ring: #8c7f72;
 }
 
-/* Dark mode */
+/* Dark mode — charcoal ground, warm ivory ink */
 .dark {
-  --background: oklch(0.115 0.01 30);
-  --foreground: oklch(0.93 0.006 60);
+  --background: #100f0e;
+  --foreground: #f2eee7;
 
-  --card: oklch(0.155 0.01 30);
-  --card-foreground: oklch(0.93 0.006 60);
+  --card: #181614;
+  --card-foreground: #f2eee7;
 
-  --popover: oklch(0.155 0.01 30);
-  --popover-foreground: oklch(0.93 0.006 60);
+  --popover: #181614;
+  --popover-foreground: #f2eee7;
 
-  --primary: oklch(0.92 0.006 60);
-  --primary-foreground: oklch(0.155 0.01 30);
+  --primary: #f2eee7;
+  --primary-foreground: #141312;
 
-  --secondary: oklch(0.2 0.01 30);
-  --secondary-foreground: oklch(0.93 0.006 60);
+  --secondary: #1f1c1a;
+  --secondary-foreground: #f2eee7;
 
-  --muted: oklch(0.2 0.01 30);
-  --muted-foreground: oklch(0.58 0.012 30);
+  --muted: #1f1c1a;
+  --muted-foreground: #aa9e91;
 
-  --accent: oklch(0.2 0.01 30);
-  --accent-foreground: oklch(0.93 0.006 60);
+  --accent: #1f1c1a;
+  --accent-foreground: #f2eee7;
 
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: #ffffff;
+  --destructive: #ef8a82;
+  --destructive-foreground: #141312;
 
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.45 0.012 30);
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 14%);
+  --ring: #8c7f72;
 
-  --red: oklch(0.55 0.2 25);
-  --red-light: oklch(0.6 0.21 25);
-  --red-dark: oklch(0.4 0.16 25);
+  --brand: #c8a96a;
+  --brand-foreground: #141312;
+  --brand-strong: #d9bf87;
+  --brand-soft: #3a3124;
 
-  --chart-1: oklch(0.55 0.22 25);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.65 0.2 30);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.5 0.18 15);
-  --sidebar: oklch(0.155 0.01 30);
-  --sidebar-foreground: oklch(0.93 0.006 60);
-  --sidebar-primary: oklch(0.55 0.2 25);
-  --sidebar-primary-foreground: oklch(0.93 0.006 60);
-  --sidebar-accent: oklch(0.2 0.01 30);
-  --sidebar-accent-foreground: oklch(0.93 0.006 60);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.45 0.012 30);
+  --chart-1: #c8a96a;
+  --chart-2: #aa9e91;
+  --chart-3: #f2eee7;
+  --chart-4: #6b6157;
+  --chart-5: #d9bf87;
+  --sidebar: #181614;
+  --sidebar-foreground: #f2eee7;
+  --sidebar-primary: #c8a96a;
+  --sidebar-primary-foreground: #141312;
+  --sidebar-accent: #1f1c1a;
+  --sidebar-accent-foreground: #f2eee7;
+  --sidebar-border: rgb(255 255 255 / 9%);
+  --sidebar-ring: #8c7f72;
 }
 
 @theme inline {
@@ -132,8 +133,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
 
-  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-sans: var(--font-lato), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -154,10 +155,12 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
-  --color-red-accent: var(--red);
-  --color-red-accent-foreground: var(--red-foreground);
-  --color-red-accent-light: var(--red-light);
-  --color-red-accent-dark: var(--red-dark);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-beige: var(--beige);
+  --color-taupe: var(--taupe);
 
   /* Premium easing tokens */
   --ease-out-expo: cubic-bezier(0.32, 0.72, 0, 1);
@@ -174,11 +177,40 @@ body {
   overflow-x: clip;
 }
 
+/* Editorial display type: Montserrat Light, as in the Miti Home wordmark. */
 .font-display {
-  font-family: var(--font-instrument-serif), ui-serif, Georgia, serif;
-  font-weight: 400;
-  letter-spacing: 0;
+  font-family: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.01em;
   text-transform: none;
+}
+
+/* Wide-tracked uppercase headline, e.g. "A MORE BEAUTIFUL EVERYDAY". */
+.font-display-caps {
+  font-family: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.font-heading {
+  font-family: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Gold hairline divider with the brand diamond, from the logo lock-up. */
+.brand-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--brand);
+}
+.brand-rule::before,
+.brand-rule::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: currentColor;
+  opacity: 0.8;
 }
 
 /* Premium transition utility */
@@ -194,8 +226,8 @@ body {
 
 /* Hardware accelerate scale transitions for product, gallery cards, images & video elements */
 .group img,
-[data-xilar-gallery-card],
-[data-xilar-gallery-card] img,
+[data-miti-gallery-card],
+[data-miti-gallery-card] img,
 video {
   backface-visibility: hidden;
   transform: translate3d(0, 0, 0);
@@ -208,21 +240,21 @@ video {
   perspective: 1000px;
 }
 
-/* Crimson red accent utilities */
-.text-red-accent {
-  color: var(--red);
+/* Brand accent utilities */
+.text-brand {
+  color: var(--brand);
 }
 
 .char {
   transition: color 150ms ease-out;
 }
 
-.bg-red-accent {
-  background-color: var(--red);
+.bg-brand {
+  background-color: var(--brand);
 }
 
-.border-red-accent {
-  border-color: var(--red);
+.border-brand {
+  border-color: var(--brand);
 }
 
 /* Star rating */
@@ -247,8 +279,8 @@ video {
 
 /* Sold out badge */
 .badge-sold-out {
-  background-color: oklch(0.12 0.01 30);
-  color: #ffffff;
+  background-color: #141312;
+  color: #f7f5f0;
   padding: 0.25rem 0.5rem;
   font-size: 0.625rem;
   letter-spacing: 0.08em;
@@ -256,7 +288,7 @@ video {
   font-weight: 500;
 }
 
-@keyframes xilar-thinking-pulse {
+@keyframes miti-thinking-pulse {
   0%,
   100% {
     opacity: 0.42;
@@ -268,8 +300,8 @@ video {
   }
 }
 
-.xilar-thinking-dot {
-  animation: xilar-thinking-pulse 1s var(--ease-out-expo) infinite;
+.miti-thinking-dot {
+  animation: miti-thinking-pulse 1s var(--ease-out-expo) infinite;
 }
 
 @layer base {
@@ -289,7 +321,7 @@ video {
     transform: none;
   }
 
-  .xilar-thinking-dot {
+  .miti-thinking-dot {
     animation: none;
   }
 }
@@ -302,8 +334,8 @@ video {
 /* Global custom cursor — hide native cursor on fine-pointer (mouse) devices
    when JS has loaded and applied the class. Safe fallback: no class = native cursor */
 @media (pointer: fine) {
-  body.xilar-custom-cursor,
-  body.xilar-custom-cursor * {
+  body.miti-custom-cursor,
+  body.miti-custom-cursor * {
     cursor: none !important;
   }
 }

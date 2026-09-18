@@ -50,12 +50,12 @@ function createTextTexture(text: string, width: number, height: number, align: "
 
   context.clearRect(0, 0, canvas.width, canvas.height);
   const rootStyles = getComputedStyle(document.body);
-  const fontFamily = rootStyles.getPropertyValue("--font-instrument-serif").trim() || "Georgia, serif";
+  const fontFamily = rootStyles.getPropertyValue("--font-montserrat").trim() || "Montserrat, Arial, sans-serif";
   context.fillStyle = rootStyles.getPropertyValue("--foreground").trim() || rootStyles.color || "#f4f1ec";
   context.textAlign = align;
   context.textBaseline = "middle";
-  context.font = `400 ${Math.floor(canvas.height * 0.82)}px ${fontFamily}, Georgia, serif`;
-  context.letterSpacing = "0px";
+  context.font = `300 ${Math.floor(canvas.height * 0.62)}px ${fontFamily}, Arial, sans-serif`;
+  context.letterSpacing = `${Math.floor(canvas.height * 0.09)}px`;
 
   const measured = context.measureText(text);
   const maxWidth = canvas.width * 0.98;
@@ -228,7 +228,7 @@ export function PixelatedText({ text, className, textClassName, align = "center"
     <div ref={rootRef} className={cn("relative w-full overflow-hidden", className)}>
       <span
         className={cn(
-          "block select-none font-serif text-[31vw] font-normal uppercase leading-[0.72] tracking-normal text-current",
+          "block select-none font-heading text-[14vw] font-light uppercase leading-[1] tracking-[0.14em] text-current",
           align === "left" ? "text-left" : "text-center",
           ready && !shouldReduceMotion ? "opacity-0" : "opacity-100",
           textClassName,

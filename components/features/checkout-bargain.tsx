@@ -244,8 +244,8 @@ export function CheckoutBargain({ cartItems, totalPrice, onApplyCoupon, appliedC
                 <div className="p-4 bg-background border-b border-foreground/10 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <span className="relative flex h-1.5 w-1.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-accent opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-accent"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand"></span>
                         </span>
                         <span className="font-bold tracking-[0.25em] uppercase text-[10px] text-foreground">Bargain Terminal</span>
                     </div>
@@ -285,9 +285,9 @@ export function CheckoutBargain({ cartItems, totalPrice, onApplyCoupon, appliedC
                         <div className="flex justify-start">
                             <div className="bg-card border border-foreground/10 rounded-none p-3.5 text-xs">
                                 <div className="flex gap-1.5 items-center">
-                                    <span className="xilar-thinking-dot h-1.5 w-1.5 rounded-full bg-red-accent" style={{ animationDelay: '0ms' }} />
-                                    <span className="xilar-thinking-dot h-1.5 w-1.5 rounded-full bg-red-accent" style={{ animationDelay: '150ms' }} />
-                                    <span className="xilar-thinking-dot h-1.5 w-1.5 rounded-full bg-red-accent" style={{ animationDelay: '300ms' }} />
+                                    <span className="miti-thinking-dot h-1.5 w-1.5 rounded-full bg-brand" style={{ animationDelay: '0ms' }} />
+                                    <span className="miti-thinking-dot h-1.5 w-1.5 rounded-full bg-brand" style={{ animationDelay: '150ms' }} />
+                                    <span className="miti-thinking-dot h-1.5 w-1.5 rounded-full bg-brand" style={{ animationDelay: '300ms' }} />
                                 </div>
                             </div>
                         </div>
@@ -317,7 +317,7 @@ export function CheckoutBargain({ cartItems, totalPrice, onApplyCoupon, appliedC
                             "flex items-center gap-3 p-4 border rounded-none",
                             couponExpired
                                 ? "bg-red-500/5 border-red-500/20 opacity-50"
-                                : "bg-red-accent/5 border-red-accent/20"
+                                : "bg-brand/5 border-brand/20"
                         )}>
                             <code className={cn(
                                 "flex-1 font-mono font-black text-xl text-center tracking-widest text-foreground",
@@ -347,7 +347,7 @@ export function CheckoutBargain({ cartItems, totalPrice, onApplyCoupon, appliedC
                             </Button>
                         ) : !appliedCoupon ? (
                             <Button
-                                className="w-full h-11 rounded-none text-[10px] uppercase tracking-[0.2em] font-bold bg-red-accent text-white hover:bg-red-accent/90"
+                                className="w-full h-11 rounded-none text-[10px] uppercase tracking-[0.2em] font-bold bg-brand text-white hover:bg-brand/90"
                                 onClick={handleApplyCoupon}
                             >
                                 Apply ₹{couponGenerated.discount} discount
@@ -384,7 +384,7 @@ export function CheckoutBargain({ cartItems, totalPrice, onApplyCoupon, appliedC
                             <Button
                                 type="submit"
                                 size="icon"
-                                className="rounded-none h-10 w-10 bg-foreground text-background hover:bg-red-accent hover:text-white transition-colors border-0"
+                                className="rounded-none h-10 w-10 bg-foreground text-background hover:bg-brand hover:text-white transition-colors border-0"
                                 disabled={isLoading || !input.trim()}
                                 aria-label="Send bargain message"
                             >
@@ -420,11 +420,11 @@ export function CheckoutBargain({ cartItems, totalPrice, onApplyCoupon, appliedC
         <>
             {/* Bargain Prompt */}
             {showPrompt && !appliedCoupon && (
-                <div className="mt-6 p-4 bg-red-accent/5 border border-red-accent/15 animate-in fade-in slide-in-from-bottom-2 duration-500 rounded-none shadow-[4px_4px_0px_0px_rgba(219,39,119,0.05)]">
+                <div className="mt-6 p-4 bg-brand/5 border border-brand/15 animate-in fade-in slide-in-from-bottom-2 duration-500 rounded-none shadow-[4px_4px_0px_0px_rgba(219,39,119,0.05)]">
                     <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
                         <div className="flex items-center gap-3.5">
-                            <div className="w-10 h-10 rounded-none bg-red-accent/10 flex items-center justify-center border border-red-accent/20">
-                                <Sparkles className="h-4 w-4 text-red-accent" />
+                            <div className="w-10 h-10 rounded-none bg-brand/10 flex items-center justify-center border border-brand/20">
+                                <Sparkles className="h-4 w-4 text-brand" />
                             </div>
                             <div>
                                 <p className="font-bold text-xs uppercase tracking-wider text-foreground">Want a bargain? 💰</p>
@@ -442,7 +442,7 @@ export function CheckoutBargain({ cartItems, totalPrice, onApplyCoupon, appliedC
                             </Button>
                             <Button
                                 size="sm"
-                                className="text-[9px] rounded-none bg-red-accent text-white hover:bg-red-accent/90 uppercase tracking-[0.2em] font-bold border-0 shadow-sm"
+                                className="text-[9px] rounded-none bg-brand text-white hover:bg-brand/90 uppercase tracking-[0.2em] font-bold border-0 shadow-sm"
                                 onClick={handleOpenBargain}
                             >
                                 Bargain

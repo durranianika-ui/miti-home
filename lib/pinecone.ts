@@ -4,7 +4,7 @@ import type { ProductSearchVectorMetadata } from "./product-search.ts";
 let pineconeClient: Pinecone | null = null;
 
 export function getPineconeIndexName() {
-  const indexName = process.env.PINECONE_INDEX || "xilar-products";
+  const indexName = process.env.PINECONE_INDEX || "miti-home-products";
   if (!indexName.trim()) {
     throw new Error("PINECONE_INDEX must be a non-empty index name");
   }

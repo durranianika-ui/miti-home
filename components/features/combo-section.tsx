@@ -249,7 +249,7 @@ export function ComboCard({ combo, interactive }: { combo: Combo; interactive: b
       <CardFooter className="border-t border-border/60 pt-4 pb-4 px-4 flex-col items-start gap-3">
         <div className="space-y-1">
           {maxDiscountAmount > 0 && (
-            <p className="text-[10px] uppercase tracking-[0.2em] text-red-accent font-semibold">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-brand font-semibold">
               Max bargain on combo: {formatPrice(maxDiscountAmount)}
             </p>
           )}

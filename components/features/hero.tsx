@@ -6,62 +6,14 @@ import Image from "next/image";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { HERO_SLIDES } from "@/lib/merchandising";
 
 const EASE_OUT_EXPO = [0.32, 0.72, 0, 1] as const;
 const PANEL_TRANSITION = {
   duration: 0.46,
   ease: EASE_OUT_EXPO,
 } as const;
-const HERO_IMAGES = [
-  {
-    src: "/hero/newhero.jpeg",
-    alt: "Model wearing a dark green number 9 varsity graphic tee",
-    eyebrow: "Number 9 drop",
-    title: "Varsity tee",
-    cta: "Graphics",
-    href: "/shop/men",
-  },
-  {
-    src: "/hero/newhero1.webp",
-    alt: "Model wearing a white knit polo with striped short sleeves",
-    eyebrow: "Clean collar edit",
-    title: "Knit polo",
-    cta: "Polos",
-    href: "/shop/men",
-  },
-  {
-    src: "/hero/newhero2.webp",
-    alt: "Model wearing a beige palm-print polo with relaxed white trousers",
-    eyebrow: "Sunlit summer fit",
-    title: "Resort set",
-    cta: "Summer",
-    href: "/collections/summer-26",
-  },
-  {
-    src: "/hero/newhero3.jpeg",
-    alt: "Model wearing a brown oversized tee with a back graphic under red lighting",
-    eyebrow: "Red room graphics",
-    title: "Brown tee",
-    cta: "Backprints",
-    href: "/shop/men",
-  },
-  {
-    src: "/hero/newhero4.jpeg",
-    alt: "Model wearing a black oversized graphic tee outside a XILAR storefront",
-    eyebrow: "Storefront drop",
-    title: "Black tee",
-    cta: "New",
-    href: "/new",
-  },
-  {
-    src: "/hero/newhero5.jpeg",
-    alt: "Model wearing an olive tee with tonal embossed back artwork",
-    eyebrow: "Tonal streetwear",
-    title: "Olive tee",
-    cta: "Premium",
-    href: "/collections/premium",
-  },
-];
+const HERO_IMAGES = HERO_SLIDES;
 
 export function Hero() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -91,13 +43,13 @@ export function Hero() {
     const handleMenuToggle = (e: Event) => {
       setIsMenuOpen((e as CustomEvent).detail.open);
     };
-    window.addEventListener("xilar-mobile-menu", handleMenuToggle);
+    window.addEventListener("miti-mobile-menu", handleMenuToggle);
     const timer = window.setTimeout(() => {
       setIsMenuOpen(document.body.classList.contains("mobile-menu-open"));
     }, 0);
     return () => {
       window.clearTimeout(timer);
-      window.removeEventListener("xilar-mobile-menu", handleMenuToggle);
+      window.removeEventListener("miti-mobile-menu", handleMenuToggle);
     };
   }, []);
 
@@ -123,7 +75,7 @@ export function Hero() {
   const visibleSlides = [getSlide(-1), activeSlide, getSlide(1)];
 
   return (
-    <section ref={heroRef} className="relative w-full overflow-hidden bg-background">
+    <section ref={heroRef} aria-roledescription="carousel" aria-label="Featured collections" className="relative w-full overflow-hidden bg-background">
       <div className="relative mx-auto min-h-[calc(100svh-7rem)] max-w-[1800px] overflow-hidden">
         <div className="absolute inset-0 hidden grid-cols-[0.34fr_0.92fr_0.34fr] gap-2 md:grid">
           <AnimatePresence initial={false} mode="popLayout">
@@ -143,7 +95,7 @@ export function Hero() {
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.82, x: slideDirection > 0 ? -120 : 120 }}
                   transition={shouldReduceMotion ? { duration: 0.01 } : PANEL_TRANSITION}
-                  className="group relative min-h-[calc(100svh-8.5rem)] overflow-hidden bg-neutral-950 text-left will-change-transform"
+                  className="group relative min-h-[calc(100svh-8.5rem)] overflow-hidden bg-[#2a2622] text-left will-change-transform"
                   onClick={() => {
                     if (!isActive) goToSlide(targetIndex);
                   }}
@@ -167,7 +119,7 @@ export function Hero() {
                       priority={shouldPrioritize}
                     />
                   </motion.div>
-                  <div className={`absolute inset-0 z-10 ${isActive ? "bg-gradient-to-t from-black/76 via-black/24 to-black/8" : "bg-black/20"}`} />
+                  <div className={`absolute inset-0 z-10 ${isActive ? "bg-gradient-to-t from-black/70 via-black/20 to-black/5" : "bg-black/25"}`} />
                   {isActive && (
                     <motion.div
                       className="absolute inset-0 z-20 touch-pan-y"
@@ -195,7 +147,7 @@ export function Hero() {
                         initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 16, filter: "blur(4px)" }}
                         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                         transition={{ duration: 0.55, delay: 0.2, ease: EASE_OUT_EXPO }}
-                        className="mb-4 text-[10px] font-semibold uppercase tracking-[0.35em] text-white/75"
+                        className="mb-5 font-heading text-[10px] font-medium uppercase tracking-[0.38em] text-[#e9dcc0]"
                       >
                         {activeSlide.eyebrow}
                       </motion.p>
@@ -204,7 +156,7 @@ export function Hero() {
                         initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 26, filter: "blur(6px)" }}
                         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                         transition={{ duration: 0.72, delay: 0.16, ease: EASE_OUT_EXPO }}
-                        className="font-display max-w-full whitespace-nowrap text-5xl leading-[0.9] sm:text-6xl md:text-7xl xl:text-8xl"
+                        className="font-display-caps max-w-[16ch] text-3xl leading-[1.12] sm:text-4xl md:text-[2.6rem] xl:text-[3.4rem]"
                       >
                         {activeSlide.title}
                       </motion.h1>
@@ -212,7 +164,7 @@ export function Hero() {
                         <Link href={activeSlide.href} className="min-w-0 flex-none">
                           <Button
                             size="lg"
-                            className="group/cta h-11 rounded-full bg-white px-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-950 transition-all duration-500 hover:bg-red-accent hover:text-white sm:h-12 sm:px-6 sm:text-xs sm:tracking-[0.18em]"
+                            className="group/cta h-11 rounded-none bg-white px-5 font-heading text-[10px] font-medium uppercase tracking-[0.18em] text-neutral-950 transition-all duration-500 hover:bg-brand hover:text-neutral-950 sm:h-12 sm:px-7 sm:tracking-[0.22em]"
                           >
                             {activeSlide.cta}
                             <ArrowRight className="ml-2 h-3.5 w-3.5 transition-transform duration-500 group-hover/cta:translate-x-1" />
@@ -222,17 +174,17 @@ export function Hero() {
                           <Button
                             size="lg"
                             variant="outline"
-                            className="h-11 rounded-full border-white/35 bg-transparent px-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition-all duration-500 hover:border-white/70 hover:text-red-accent sm:h-12 sm:px-6 sm:text-xs sm:tracking-[0.18em]"
+                            className="h-11 rounded-none border-white/40 bg-transparent px-5 font-heading text-[10px] font-medium uppercase tracking-[0.18em] text-white transition-all duration-500 hover:border-brand hover:bg-transparent hover:text-[#e9dcc0] sm:h-12 sm:px-7 sm:tracking-[0.22em]"
                           >
-                            View all
+                            Shop all
                           </Button>
                         </Link>
                       </div>
                     </div>
                   ) : (
                     <div className="absolute bottom-8 left-6 z-30 text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-white/70">{slide.eyebrow}</p>
-                      <p className="font-display mt-2 max-w-[12rem] text-3xl leading-none">{slide.title}</p>
+                      <p className="font-heading text-[9px] font-medium uppercase tracking-[0.28em] text-white/75">{slide.eyebrow}</p>
+                      <p className="font-display-caps mt-3 max-w-[11rem] text-lg leading-snug">{slide.title}</p>
                     </div>
                   )}
                 </motion.div>
@@ -280,7 +232,7 @@ export function Hero() {
                 aria-hidden="true"
               />
               <div className="absolute inset-x-0 bottom-0 z-30 px-6 pb-10 text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.45)]">
-                <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.35em] text-white/75">
+                <p className="mb-4 font-heading text-[10px] font-medium uppercase tracking-[0.32em] text-[#e9dcc0]">
                   {activeSlide.eyebrow}
                 </p>
                 <motion.h1
@@ -288,7 +240,7 @@ export function Hero() {
                   initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 24, filter: "blur(6px)" }}
                   animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                   transition={{ duration: 0.62, delay: 0.12, ease: EASE_OUT_EXPO }}
-                  className="font-display max-w-full whitespace-nowrap text-5xl leading-[0.9] sm:text-6xl"
+                  className="font-display-caps max-w-[15ch] text-[1.7rem] leading-[1.15] sm:text-4xl"
                 >
                   {activeSlide.title}
                 </motion.h1>
@@ -296,7 +248,7 @@ export function Hero() {
                   <Link href={activeSlide.href} className="min-w-0 flex-none">
                     <Button
                       size="lg"
-                      className="group/cta h-11 rounded-full bg-white px-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-950 transition-all duration-500 hover:bg-red-accent hover:text-white sm:h-12 sm:px-6 sm:text-xs sm:tracking-[0.18em]"
+                      className="group/cta h-11 rounded-none bg-white px-5 font-heading text-[10px] font-medium uppercase tracking-[0.18em] text-neutral-950 transition-all duration-500 hover:bg-brand hover:text-neutral-950 sm:h-12 sm:px-7 sm:tracking-[0.22em]"
                     >
                       {activeSlide.cta}
                       <ArrowRight className="ml-2 h-3.5 w-3.5 transition-transform duration-500 group-hover/cta:translate-x-1" />
@@ -306,9 +258,9 @@ export function Hero() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="h-11 rounded-full border-white/35 bg-transparent px-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition-all duration-500 hover:border-white/70 hover:text-white sm:h-12 sm:px-6 sm:text-xs sm:tracking-[0.18em]"
+                      className="h-11 rounded-none border-white/40 bg-transparent px-5 font-heading text-[10px] font-medium uppercase tracking-[0.18em] text-white transition-all duration-500 hover:border-brand hover:bg-transparent hover:text-[#e9dcc0] sm:h-12 sm:px-7 sm:tracking-[0.22em]"
                     >
-                      View all
+                      Shop all
                     </Button>
                   </Link>
                 </div>
@@ -323,10 +275,11 @@ export function Hero() {
               key={slide.src}
               type="button"
               className={`h-1.5 rounded-full transition-all duration-500 ${
-                index === activeIndex ? "w-9 bg-white" : "w-1.5 bg-white/45 hover:bg-white/75"
+                index === activeIndex ? "w-9 bg-brand" : "w-1.5 bg-white/55 hover:bg-white/85"
               }`}
               onClick={() => goToSlide(index)}
-              aria-label={`Go to hero slide ${index + 1}`}
+              aria-label={`Show ${slide.title}`}
+              aria-current={index === activeIndex}
             />
           ))}
         </div>
@@ -335,7 +288,7 @@ export function Hero() {
           type="button"
           className="absolute left-5 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-neutral-950 shadow-lg shadow-black/10 transition-transform duration-300 hover:scale-105 md:flex"
           onClick={() => goToSlide(activeIndex - 1)}
-          aria-label="Previous hero slide"
+          aria-label="Previous slide"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -343,7 +296,7 @@ export function Hero() {
           type="button"
           className="absolute right-5 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-neutral-950 shadow-lg shadow-black/10 transition-transform duration-300 hover:scale-105 md:flex"
           onClick={() => goToSlide(activeIndex + 1)}
-          aria-label="Next hero slide"
+          aria-label="Next slide"
         >
           <ChevronRight className="h-4 w-4" />
         </button>

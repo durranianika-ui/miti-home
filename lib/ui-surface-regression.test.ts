@@ -166,9 +166,13 @@ test("wishlist is account-backed and has no localStorage fallback", () => {
   const productClient = read("components/features/product-client.tsx");
 
   assert.equal(existsSync("lib/wishlist-context.tsx"), false);
-  assert.match(navbar, /getWishlistNavState/);
+  const wishlistQueries = read("lib/wishlist-queries.ts");
+  assert.match(navbar, /fetchWishlistNavState/);
   assert.match(wishlistPage, /getServerSession/);
-  assert.match(productClient, /getProductWishlist/);
+  assert.match(productClient, /fetchProductWishlist/);
+  // Wrappers hit the account-backed server actions except on the static preview.
+  assert.match(wishlistQueries, /return getWishlistNavState\(\)/);
+  assert.match(wishlistQueries, /return getProductWishlist\(productId\)/);
   assert.doesNotMatch(`${navbar}\n${wishlistPage}\n${productClient}`, /miti-wishlist|useWishlist|WishlistProvider/);
 });
 

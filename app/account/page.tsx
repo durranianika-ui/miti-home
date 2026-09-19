@@ -1,5 +1,6 @@
 "use client"
 
+import { PreviewUnavailable, STATIC_PREVIEW } from "@/components/layout/preview-banner"
 import { Button } from "@/components/ui/button"
 import { Package, Heart, LogOut, Shield, Loader2 } from "lucide-react"
 import { AddressBook } from "@/components/features/address-book"
@@ -312,6 +313,7 @@ function AccountContent() {
 }
 
 export default function AccountPage() {
+    if (STATIC_PREVIEW) return <PreviewUnavailable title="Your account" />
     return (
         <Suspense fallback={
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">

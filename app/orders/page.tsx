@@ -1,3 +1,4 @@
+import { PreviewUnavailable, STATIC_PREVIEW } from "@/components/layout/preview-banner"
 import type { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
@@ -55,6 +56,7 @@ function OrderProgress({ status }: { status: string }) {
 }
 
 export default async function OrdersPage() {
+    if (STATIC_PREVIEW) return <PreviewUnavailable title="Your orders" />
     const session = await getServerSession()
     if (!session) redirect("/account?redirect=/orders")
 

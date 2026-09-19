@@ -7,7 +7,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, Heart, Plus } from "lucide-react"
 import { ViewportPrefetchLink } from "@/components/ui/viewport-prefetch-link"
 import { useCart } from "@/lib/cart-context"
-import { addWishlistItem, getWishlistNavState, removeWishlistItem } from "@/lib/actions/wishlist"
+import { addWishlistItem, removeWishlistItem } from "@/lib/actions/wishlist"
+import { fetchWishlistNavState } from "@/lib/wishlist-queries"
 import { normalizeProductImage } from "@/lib/image"
 import { discountPercent, formatPrice } from "@/lib/money"
 import { buildProductPath } from "@/lib/seo"
@@ -69,7 +70,7 @@ export function ProductCard({
     const [wishlistPending, setWishlistPending] = useState(false)
     const { data: wishlist } = useQuery({
         queryKey: ["wishlist-nav"],
-        queryFn: getWishlistNavState,
+        queryFn: fetchWishlistNavState,
         staleTime: 1000 * 30,
     })
 

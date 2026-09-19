@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { NavbarGate } from "@/components/layout/navbar-gate";
 import { FooterGate } from "@/components/layout/footer-gate";
+import { PreviewBanner, STATIC_PREVIEW } from "@/components/layout/preview-banner";
 import { CartProvider } from "@/lib/cart-context";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { QueryProvider } from "@/components/ui/query-provider";
@@ -92,7 +93,7 @@ export const metadata: Metadata = {
     description: BRAND.shortDescription,
     images: [DEFAULT_OG_IMAGE],
   },
-  robots: {
+  robots: STATIC_PREVIEW ? { index: false, follow: false } : {
     index: true,
     follow: true,
     googleBot: {
@@ -151,6 +152,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <QueryProvider>
             <CartProvider>
+              <PreviewBanner />
               <NavbarGate navigation={navigation} />
               <div id="main-content-container" className="flex-1 flex flex-col">
                 <main id="main-content" className="flex-1 overflow-x-hidden relative">

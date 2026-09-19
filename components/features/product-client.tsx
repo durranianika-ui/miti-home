@@ -1,5 +1,6 @@
 "use client"
 
+import { withBasePath } from "@/lib/static-image-loader"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
@@ -21,7 +22,8 @@ import {
     ZoomIn,
 } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { addWishlistItem, getProductWishlist, removeWishlistItem } from "@/lib/actions/wishlist"
+import { addWishlistItem, removeWishlistItem } from "@/lib/actions/wishlist"
+import { fetchProductWishlist } from "@/lib/wishlist-queries"
 import { normalizeProductImage } from "@/lib/image"
 import { discountPercent, formatPrice } from "@/lib/money"
 import { buildProductPath } from "@/lib/seo"
@@ -242,7 +244,7 @@ export function ProductClient({ initialProduct }: { initialProduct: Product }) {
 
     const { data: wishlistState } = useQuery({
         queryKey: ["wishlist-product", product.id],
-        queryFn: () => getProductWishlist(product.id),
+        queryFn: () => fetchProductWishlist(product.id),
         staleTime: 1000 * 30,
     })
 
@@ -314,7 +316,7 @@ export function ProductClient({ initialProduct }: { initialProduct: Product }) {
 
     useEffect(() => {
         if (images.length <= 1) return
-        const preload = () => images.slice(1).forEach((src) => { const image = new window.Image(); image.src = src })
+        const preload = () => images.slice(1).forEach((src) => { const image = new window.Image(); image.src = withBasePath(src) })
         const idle = window.requestIdleCallback
         if (idle) {
             const id = idle(preload, { timeout: 1500 })

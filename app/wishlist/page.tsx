@@ -1,3 +1,4 @@
+import { PreviewUnavailable, STATIC_PREVIEW } from "@/components/layout/preview-banner"
 import { WishlistClient } from "@/components/features/wishlist-client";
 import { getServerSession } from "@/lib/auth-server";
 import { getWishlistProducts } from "@/lib/wishlist";
@@ -5,6 +6,7 @@ import { getWishlistProducts } from "@/lib/wishlist";
 export const dynamic = "force-dynamic";
 
 export default async function WishlistPage() {
+  if (STATIC_PREVIEW) return <PreviewUnavailable title="Wishlist" />;
   const session = await getServerSession();
   const initialItems = session?.user?.id
     ? await getWishlistProducts(session.user.id)

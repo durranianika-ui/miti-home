@@ -1,5 +1,6 @@
 "use client";
 
+import { withBasePath } from "@/lib/static-image-loader"
 import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -150,7 +151,7 @@ export function GalleryClient({ items }: { items: MitiGalleryItem[] }) {
         const item = galleryItems[itemIndex];
 
         const img = document.createElement("img");
-        img.src = item.src;
+        img.src = withBasePath(item.src);
         img.alt = item.title;
         img.className = "w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105";
         img.loading = "lazy";

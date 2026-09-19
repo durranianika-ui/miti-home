@@ -47,3 +47,9 @@ references
 .codex/
 db backup/
 postgresql-neondb-owner-npg-pbmdfp3jmoe2-ep/
+
+.vercel
+.env*
+!.env.example
+/.next-preview/
+/static-preview/

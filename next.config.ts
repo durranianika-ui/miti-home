@@ -21,9 +21,15 @@ function catalogNoindexHeaders() {
   );
 }
 
+// Static preview build (GitHub Pages): served under a sub-path, no image optimiser.
+const staticPreview = process.env.NEXT_PUBLIC_STATIC_PREVIEW === "1";
+const previewBasePath = process.env.NEXT_PUBLIC_BASE_PATH || undefined;
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  ...(staticPreview ? { basePath: previewBasePath, trailingSlash: true, distDir: ".next-preview" } : {}),
   images: {
+    ...(staticPreview ? { loader: "custom" as const, loaderFile: "./lib/static-image-loader.ts" } : {}),
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       {

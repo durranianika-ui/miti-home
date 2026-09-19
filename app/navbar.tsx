@@ -9,7 +9,7 @@ import { Menu, X, ArrowRight, Search, Loader2 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart-context";
-import { getWishlistNavState } from "@/lib/actions/wishlist";
+import { fetchWishlistNavState } from "@/lib/wishlist-queries";
 import ThemeToggleButton from "@/components/ui/theme-toggle-button";
 import { ANNOUNCEMENT_MESSAGES } from "@/lib/constants";
 import { normalizeProductImage } from "@/lib/image";
@@ -546,7 +546,7 @@ export function Navbar({ navigation }: { navigation: NavigationData }) {
   const { totalItems, setIsOpen, isHydrated: isCartHydrated } = useCart();
   const { data: wishlistNavState } = useQuery({
     queryKey: ["wishlist-nav"],
-    queryFn: getWishlistNavState,
+    queryFn: fetchWishlistNavState,
     staleTime: 1000 * 30,
   });
   
